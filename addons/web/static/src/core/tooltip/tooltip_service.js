@@ -51,15 +51,19 @@ export const tooltipService = {
         let closeTooltip;
         let target = null;
         let touchPressed;
+        let mouseEntered;
         const elementsWithTooltips = new Map();
 
         /**
          * Closes the currently opened tooltip if any, or prevent it from opening.
          */
         function cleanup() {
+            target = null;
             browser.clearTimeout(openTooltipTimeout);
+            openTooltipTimeout = null;
             if (closeTooltip) {
                 closeTooltip();
+                closeTooltip = null;
             }
         }
 
@@ -74,7 +78,7 @@ export const tooltipService = {
             if (!document.body.contains(target)) {
                 return true; // target is no longer in the DOM
             }
-            if (hasTouch()) {
+            if (hasTouch() && !mouseEntered) {
                 return !touchPressed;
             }
             return false;
@@ -97,12 +101,12 @@ export const tooltipService = {
          *  open
          */
         function openTooltip(el, { tooltip = "", template, info, position, delay = OPEN_DELAY }) {
-            target = el;
             cleanup();
             if (!tooltip && !template) {
                 return;
             }
 
+            target = el;
             openTooltipTimeout = browser.setTimeout(() => {
                 // verify that the element is still in the DOM
                 if (target.isConnected) {
@@ -126,6 +130,11 @@ export const tooltipService = {
          * @param {HTMLElement} el
          */
         function openElementsTooltip(el) {
+            // Fix weird behavior in Firefox where MouseEvent can be dispatched
+            // from TEXT_NODE, even if they shouldn't...
+            if (el.nodeType === Node.TEXT_NODE) {
+                return;
+            }
             if (elementsWithTooltips.has(el)) {
                 openTooltip(el, elementsWithTooltips.get(el));
             } else if (el.matches("[data-tooltip], [data-tooltip-template]")) {
@@ -153,11 +162,13 @@ export const tooltipService = {
          * @param {MouseEvent} ev a "mouseenter" event
          */
         function onMouseenter(ev) {
+            mouseEntered = true;
             openElementsTooltip(ev.target);
         }
 
         function onMouseleave(ev) {
             if (target === ev.target) {
+                mouseEntered = false;
                 cleanup();
             }
         }

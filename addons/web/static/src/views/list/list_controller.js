@@ -47,6 +47,7 @@ export class ListController extends Component {
         this.dialogService = useService("dialog");
         this.userService = useService("user");
         this.rpc = useService("rpc");
+        this.orm = useService("orm");
         this.rootRef = useRef("root");
 
         this.archInfo = this.props.archInfo;
@@ -378,6 +379,13 @@ export class ListController extends Component {
     }
 
     async onSelectDomain() {
+        if (!this.isTotalTrustable) {
+            this.nbRecordsMatchingDomain = await this.orm.searchCount(
+                this.props.resModel,
+                this.model.root.domain,
+                { limit: this.model.initialCountLimit }
+            );
+        }
         await this.model.root.selectDomain(true);
         if (this.props.onSelectionChanged) {
             const resIds = await this.model.root.getResIds(true);
@@ -413,6 +421,10 @@ export class ListController extends Component {
         return this.model.root.isDomainSelected;
     }
 
+    get isTotalTrustable() {
+        return !this.model.root.isGrouped || this.model.root.count <= this.model.root.limit;
+    }
+
     get nbTotal() {
         const list = this.model.root;
         return list.isGrouped ? list.recordCount : list.count;
@@ -427,6 +439,7 @@ export class ListController extends Component {
             this.props.archInfo.columns
                 .filter((col) => col.type === "field")
                 .filter((col) => !col.optional || this.optionalActiveFields[col.name])
+                .filter((col) => !evaluateBooleanExpr(col.column_invisible, this.props.context))
                 .map((col) => this.props.fields[col.name])
                 .filter((field) => field.exportable !== false)
         );

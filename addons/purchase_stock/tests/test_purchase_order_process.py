@@ -1,5 +1,6 @@
 from odoo import Command, fields
 from odoo.tests import tagged
+from odoo.tools import float_compare
 from .common import PurchaseTestCommon
 
 
@@ -58,90 +59,38 @@ class TestPurchaseOrderProcess(PurchaseTestCommon):
         po.button_confirm()
         self.assertEqual(po.order_line.move_ids.product_packaging_id, packaging)
 
-    def test_analytic_distribution_propagation_with_exchange_difference(self):
-        # Create 2 rates in order to generate an exchange difference later.
-        eur = self.env.ref('base.EUR')
-        eur.write({
-            'rate_ids': [
-                Command.clear(),
-                Command.create({
-                    'name': fields.Date.from_string('2023-01-01'),
-                    'company_rate': 2.0,
-                }),
-                Command.create({
-                    'name': fields.Date.from_string('2023-12-01'),
-                    'company_rate': 3.0,
-                }),
-            ],
-            'active': True,
-        })
-
-        # Create a mandatory analytic account.
-        analytic_plan = self.env['account.analytic.plan'].create({
-            'name': 'Analytic Plan',
-            'default_applicability': 'mandatory',
-        })
-        analytic_account = self.env['account.analytic.account'].create({
-            'name': 'Analytic Account',
-            'plan_id': analytic_plan.id},
-        )
-
-        # Create a storable product with FIFO costing method and automated inventory valuation.
-        analytic_product_category = self.env['product.category'].create({
-            'name': 'Analytic Product Category',
-            'property_cost_method': 'fifo',
-            'property_valuation': 'real_time',
-        })
-        analytic_product = self.env['product.product'].create({
-            'name': 'Analytic Product',
-            'detailed_type': 'product',
-            'categ_id': analytic_product_category.id,
-            'lst_price': 100.0,
-            'standard_price': 25.0,
-        })
-
-        # Create and confirm a Purchase Order using aforementioned product and currency.
+    def test_02_vendor_delay_report_partially_cancelled_purchase_order(self):
+        """ Test vendor delay reports for partially cancelled purchase order"""
+        partner = self.partner_1
         purchase_order = self.env['purchase.order'].create({
-            'date_order': fields.Date.from_string('2023-12-04'),
-            'currency_id': eur.id,
-            'partner_id': self.partner.id,
+            'partner_id': partner.id,
             'order_line': [
                 Command.create({
-                    'product_id': analytic_product.id,
-                    'product_qty': 10.0,
-                    'analytic_distribution': {analytic_account.id: 100},
+                    'product_id': self.product_1.id,
+                    'product_qty': 2.0,
+                    'product_uom': self.product_1.uom_id.id,
                 }),
-            ],
+                Command.create({
+                    'product_id': self.product_2.id,
+                    'product_qty': 3.0,
+                    'product_uom': self.product_2.uom_id.id,
+                })],
         })
         purchase_order.button_confirm()
-
-        # Make sure a stock move has been created to replenish the product.
-        self.assertEqual(len(purchase_order.picking_ids.move_ids), 1)
-
-        stock_move = purchase_order.picking_ids.move_ids
-        stock_move.quantity = stock_move.product_uom_qty
-
+        purchase_order.picking_ids.move_ids.flush_recordset()
+        delay_reports = self.env['vendor.delay.report']._read_group([('partner_id', '=', partner.id)], ['product_id'], ['on_time_rate:sum'])
+        self.assertEqual([rec[1] for rec in delay_reports], [0.0, 0.0])
+        # cancel the first part of the PO
+        purchase_order.order_line.filtered(lambda l: l.product_id == self.product_1).product_qty = 0
+        self.assertEqual(partner.purchase_order_count, 1)
+        self.assertTrue(float_compare(partner.on_time_rate, 0.0, precision_rounding=0.01) <= 0, "negative number indicates no data")
+        self.assertEqual(purchase_order.picking_ids.move_ids.filtered(lambda l: l.product_id == self.product_1).state, 'cancel')
+        purchase_order.picking_ids.move_ids.filtered(lambda l: l.product_id == self.product_2).quantity = 3.0
         purchase_order.picking_ids.button_validate()
-        purchase_order.action_create_invoice()
-
-        # Make sure a first Journal Entry has been created (to account for the stock move).
-        self.assertEqual(len(stock_move.account_move_ids), 1)
-        stock_account_move = stock_move.account_move_ids
-
-        # Make sure the Vendor Bill has been created,
-        # and confirm it at an earlier date (to generate the exchange difference).
-        self.assertEqual(len(purchase_order.invoice_ids), 1)
-
-        vendor_bill = purchase_order.invoice_ids
-        vendor_bill.invoice_date = fields.Date.from_string('2023-11-01')
-        vendor_bill.action_post()
-
-        # Make sure a second Journal Entry has been created (to account for the exchange difference).
-        self.assertEqual(len(stock_move.account_move_ids), 2)
-        exchange_account_move = stock_move.account_move_ids - stock_account_move
-
-        # Make sure both exchange Journal Items have the correct analytic distribution.
-        self.assertEqual(len(exchange_account_move.line_ids), 2)
-        for line in exchange_account_move.line_ids:
-            self.assertTrue(line.analytic_distribution)
-            self.assertEqual(line.analytic_distribution[str(analytic_account.id)], 100)
+        self.assertEqual(purchase_order.picking_ids.move_ids.filtered(lambda l: l.product_id == self.product_2).state, 'done')
+        self.assertEqual(partner.purchase_line_ids.mapped('qty_received'), [0.0, 3.0])
+        partner.invalidate_recordset(fnames=['on_time_rate'])
+        self.assertEqual(partner.on_time_rate, 100.0)
+        purchase_order.picking_ids.move_ids.flush_recordset()
+        delay_reports = self.env['vendor.delay.report']._read_group([('partner_id', '=', partner.id)], ['product_id'], ['on_time_rate:sum'])
+        self.assertEqual([rec[1] for rec in delay_reports], [100.0])

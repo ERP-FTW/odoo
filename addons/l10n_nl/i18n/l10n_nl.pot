@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 16.2alpha1+e\n"
+"Project-Id-Version: Odoo Server 17.0+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-01-23 07:55+0000\n"
-"PO-Revision-Date: 2023-01-23 07:55+0000\n"
+"POT-Creation-Date: 2024-09-23 12:42+0000\n"
+"PO-Revision-Date: 2024-09-23 12:42+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -86,7 +86,29 @@ msgstr ""
 
 #. module: l10n_nl
 #: model:account.report.line,name:l10n_nl.tax_report_rub_3b
-msgid "3b. Deliveries to/services in countries within the EU (turnover)"
+msgid ""
+"3b. Deliveries to/services in countries within the EU and A-B-C supply chain"
+" transactions (turnover)"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.report.line,name:l10n_nl.tax_report_rub_3bl
+msgid "3bl. Deliveries to/services in countries within the EU (turnover)"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.report.line,name:l10n_nl.tax_report_rub_3bg
+msgid "3bg. Deliveries of products to countries within the EU (turnover)."
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.report.line,name:l10n_nl.tax_report_rub_3bs
+msgid "3bs. Services in countries within the EU (revenue)"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.report.line,name:l10n_nl.tax_report_rub_3bt
+msgid "3bt. A-B-C supply chain transactions within the EU (turnover)"
 msgstr ""
 
 #. module: l10n_nl
@@ -176,19 +198,23 @@ msgid "Cash at bank and in hand"
 msgstr ""
 
 #. module: l10n_nl
-#: model:ir.model,name:l10n_nl.model_res_company
-msgid "Companies"
-msgstr ""
-
-#. module: l10n_nl
-#: model:ir.model,name:l10n_nl.model_res_partner
-msgid "Contact"
-msgstr ""
-
-#. module: l10n_nl
 #: model:account.account.tag,name:l10n_nl.account_tag_10
+msgid "Cost of Goods Sold"
+msgstr ""
+
+#. module: l10n_nl
 #: model:account.account.tag,name:l10n_nl.account_tag_7
 msgid "Cost of sales"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.account.tag,name:l10n_nl.account_tag_cred
+msgid "Creditors"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.account.tag,name:l10n_nl.account_tag_sh_debt
+msgid "Current Liabilities"
 msgstr ""
 
 #. module: l10n_nl
@@ -202,8 +228,18 @@ msgid "Distribution costs"
 msgstr ""
 
 #. module: l10n_nl
+#: model_terms:ir.ui.view,arch_db:l10n_nl.res_config_settings_view_form
+msgid "Dutch Localization"
+msgstr ""
+
+#. module: l10n_nl
 #: model:account.account.tag,name:l10n_nl.account_tag_29
 msgid "Error account"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.account.tag,name:l10n_nl.account_tag_fin
+msgid "Financial Fixed Active"
 msgstr ""
 
 #. module: l10n_nl
@@ -214,6 +250,16 @@ msgstr ""
 #. module: l10n_nl
 #: model:account.account.tag,name:l10n_nl.account_tag_8
 msgid "General expenses"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.account.tag,name:l10n_nl.account_tag_hous
+msgid "Housing costs"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.account.tag,name:l10n_nl.account_tag_immat
+msgid "Intangible Fixed Asset"
 msgstr ""
 
 #. module: l10n_nl
@@ -237,10 +283,18 @@ msgid "Journal"
 msgstr ""
 
 #. module: l10n_nl
-#: model:ir.model.fields,field_description:l10n_nl.field_res_company__l10n_nl_kvk
-#: model:ir.model.fields,field_description:l10n_nl.field_res_partner__l10n_nl_kvk
-#: model:ir.model.fields,field_description:l10n_nl.field_res_users__l10n_nl_kvk
-msgid "KVK number"
+#: model:account.account.tag,name:l10n_nl.account_tag_legal_res
+msgid "Legal and Statutory Reserves"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.account.tag,name:l10n_nl.account_tag_long_debt
+msgid "Long-term liabilities"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.account.tag,name:l10n_nl.account_tag_net
+msgid "Net sales"
 msgstr ""
 
 #. module: l10n_nl
@@ -259,10 +313,8 @@ msgid "Office costs"
 msgstr ""
 
 #. module: l10n_nl
-#: model:ir.model.fields,field_description:l10n_nl.field_res_company__l10n_nl_oin
-#: model:ir.model.fields,field_description:l10n_nl.field_res_partner__l10n_nl_oin
-#: model:ir.model.fields,field_description:l10n_nl.field_res_users__l10n_nl_oin
-msgid "Organisation Indentification Number"
+#: model:account.account.tag,name:l10n_nl.account_tag_other_res
+msgid "Other Reserves"
 msgstr ""
 
 #. module: l10n_nl
@@ -281,8 +333,23 @@ msgid "Other personnel costs"
 msgstr ""
 
 #. module: l10n_nl
+#: model:account.account.tag,name:l10n_nl.account_tag_cap
+msgid "Paid-up and Called-up Capital"
+msgstr ""
+
+#. module: l10n_nl
 #: model:account.account.tag,name:l10n_nl.account_tag_20
 msgid "Pension charges"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.account.tag,name:l10n_nl.account_tag_premium
+msgid "Premium"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.account.tag,name:l10n_nl.account_tag_prev_years_earnings
+msgid "Previous Years Profit"
 msgstr ""
 
 #. module: l10n_nl
@@ -303,6 +370,16 @@ msgstr ""
 #. module: l10n_nl
 #: model:account.account.tag,name:l10n_nl.account_tag_12
 msgid "Result on other assets"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.account.tag,name:l10n_nl.account_tag_reso
+msgid "Result other assets"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.account.tag,name:l10n_nl.account_tag_revaluation_res
+msgid "Revaluation reserve"
 msgstr ""
 
 #. module: l10n_nl
@@ -388,6 +465,11 @@ msgstr ""
 #. module: l10n_nl
 #: model:account.account.tag,name:l10n_nl.account_tag_6
 msgid "Transport costs"
+msgstr ""
+
+#. module: l10n_nl
+#: model:account.account.tag,name:l10n_nl.account_tag_undist_profit
+msgid "Undistributed Profit"
 msgstr ""
 
 #. module: l10n_nl

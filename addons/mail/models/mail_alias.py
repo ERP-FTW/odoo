@@ -38,7 +38,7 @@ class Alias(models.Model):
     alias_name = fields.Char(
         'Alias Name', copy=False,
         help="The name of the email alias, e.g. 'jobs' if you want to catch emails for <jobs@example.odoo.com>")
-    alias_full_name = fields.Char('Alias Email', compute='_compute_alias_full_name', store=True)
+    alias_full_name = fields.Char('Alias Email', compute='_compute_alias_full_name', store=True, index='btree_not_null')
     display_name = fields.Char(string='Display Name', compute='_compute_display_name')
     alias_domain_id = fields.Many2one(
         'mail.alias.domain', string='Alias Domain', ondelete='restrict',
@@ -108,7 +108,9 @@ class Alias(models.Model):
         """ Check for invalid alias domains based on company configuration.
         When having a parent record and/or updating an existing record alias
         domain should match the one used on the related record. """
-        tocheck = self.filtered(lambda domain: domain.alias_domain_id.company_ids)
+
+        # in sudo, to be able to read alias_parent_model_id (ir.model)
+        tocheck = self.sudo().filtered(lambda domain: domain.alias_domain_id.company_ids)
         if not tocheck:
             return
 

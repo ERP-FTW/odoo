@@ -125,6 +125,7 @@ export class Rtc {
         this.pttExtService = services["discuss.ptt_extension"];
         this._handleSfuClientUpdates = this._handleSfuClientUpdates.bind(this);
         this._handleSfuClientStateChange = this._handleSfuClientStateChange.bind(this);
+        this.linkVoiceActivationDebounce = debounce(this.linkVoiceActivation, 500);
         this.state = reactive({
             connectionType: undefined,
             hasPendingRequest: false,
@@ -175,9 +176,9 @@ export class Rtc {
                 this.blurManager.backgroundBlur = this.userSettingsService.backgroundBlurAmount;
             }
         });
-        onChange(this.userSettingsService, ["voiceActivationThreshold", "usePushToTalk"], () =>
-            this.linkVoiceActivation()
-        );
+        onChange(this.userSettingsService, ["voiceActivationThreshold", "usePushToTalk"], () => {
+            this.linkVoiceActivationDebounce();
+        });
         onChange(this.userSettingsService, "audioInputDeviceId", async () => {
             if (this.state.selfSession) {
                 await this.resetAudioTrack({ force: true });
@@ -963,13 +964,22 @@ export class Rtc {
                 );
             },
             3000,
-            true
+            { leading: true, trailing: true }
         );
         this.state.channel.rtcInvitingSession = undefined;
         await this.loadSfuClient();
+        if (!this.state.channel?.id) {
+            return;
+        }
         await this.call();
+        if (!this.state.channel?.id) {
+            return;
+        }
         this.soundEffectsService.play("channel-join");
         await this.resetAudioTrack({ force: true });
+        if (!this.state.channel?.id) {
+            return;
+        }
         if (video) {
             await this.toggleVideo("camera");
         }
@@ -1283,7 +1293,7 @@ export class Rtc {
      * @param {boolean} [force]
      */
     async toggleVideo(type, force) {
-        if (!this.state.channel.id) {
+        if (!this.state.channel?.id) {
             return;
         }
         switch (type) {
@@ -1573,7 +1583,7 @@ export class Rtc {
             this.updateAndBroadcast({ isSelfMuted: false });
             audioTrack.enabled = !this.state.selfSession.isMute && this.state.selfSession.isTalking;
             this.state.audioTrack = audioTrack;
-            await this.linkVoiceActivation();
+            this.linkVoiceActivationDebounce();
             if (this.sfuClient) {
                 await this.sfuClient.updateUpload("audio", this.state.audioTrack);
                 return;

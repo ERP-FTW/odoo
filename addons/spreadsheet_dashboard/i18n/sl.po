@@ -4,12 +4,12 @@
 # 
 # Translators:
 # Matjaz Mozetic <m.mozetic@matmoz.si>, 2023
-# Tomaž Jug <tomaz@editor.si>, 2023
 # jl2035 <jaka.luthar@gmail.com>, 2023
 # matjaz k <matjaz@mentis.si>, 2023
 # Dejan Sraka <dejan.sraka@picolabs.si>, 2023
 # Martin Trigaux, 2023
 # laznikd <laznik@mentis.si>, 2024
+# Grega Vavtar <grega@hbs.si>, 2024
 # Katja Deržič, 2024
 # 
 msgid ""
@@ -41,7 +41,7 @@ msgstr "Dostopni žeton"
 #. module: spreadsheet_dashboard
 #: model:res.groups,name:spreadsheet_dashboard.group_dashboard_manager
 msgid "Admin"
-msgstr ""
+msgstr "Admin"
 
 #. module: spreadsheet_dashboard
 #. odoo-javascript
@@ -55,7 +55,7 @@ msgstr ""
 #: code:addons/spreadsheet_dashboard/static/src/bundle/dashboard_action/mobile_search_panel/mobile_search_panel.xml:0
 #, python-format
 msgid "BACK"
-msgstr ""
+msgstr "NAZAJ"
 
 #. module: spreadsheet_dashboard
 #. odoo-javascript
@@ -125,7 +125,7 @@ msgstr ""
 #. module: spreadsheet_dashboard
 #: model:spreadsheet.dashboard.group,name:spreadsheet_dashboard.spreadsheet_dashboard_group_finance
 msgid "Finance"
-msgstr ""
+msgstr "Finance"
 
 #. module: spreadsheet_dashboard
 #: model:ir.model.fields,field_description:spreadsheet_dashboard.field_spreadsheet_dashboard__group_ids
@@ -180,7 +180,7 @@ msgstr "Logistika"
 #: model:ir.model.fields,field_description:spreadsheet_dashboard.field_spreadsheet_dashboard_group__name
 #: model:ir.model.fields,field_description:spreadsheet_dashboard.field_spreadsheet_dashboard_share__name
 msgid "Name"
-msgstr "Ime in priimek"
+msgstr "Naziv"
 
 #. module: spreadsheet_dashboard
 #. odoo-javascript
@@ -234,7 +234,7 @@ msgstr ""
 #. module: spreadsheet_dashboard
 #: model_terms:ir.ui.view,arch_db:spreadsheet_dashboard.spreadsheet_dashboard_container_view_form
 msgid "Spreadsheets"
-msgstr ""
+msgstr "Preglednice"
 
 #. module: spreadsheet_dashboard
 #: model:ir.model.fields,field_description:spreadsheet_dashboard.field_spreadsheet_dashboard__thumbnail

@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 16.5alpha1+e\n"
+"Project-Id-Version: Odoo Server 17.0+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-09-07 06:57+0000\n"
-"PO-Revision-Date: 2023-09-07 06:57+0000\n"
+"POT-Creation-Date: 2024-09-24 14:56+0000\n"
+"PO-Revision-Date: 2024-09-24 14:56+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -177,6 +177,17 @@ msgid ""
 msgstr ""
 
 #. module: l10n_ar
+#. odoo-python
+#: code:addons/l10n_ar/models/account_move.py:0
+#, python-format
+msgid ""
+"A required tax group could not be found (XML ID: %s).\n"
+"Please reload your chart template in order to reinstall the required tax group.\n"
+"\n"
+"Note: You might have to relink your existing taxes to this new tax group."
+msgstr ""
+
+#. module: l10n_ar
 #: model:l10n_latam.document.type,name:l10n_ar.dc_ac_dis_cf
 msgid "ACCOUNTING ADJUSTMENTS THAT DECREASE THE TAX CREDIT"
 msgstr ""
@@ -316,6 +327,13 @@ msgid "Accounting Documents"
 msgstr ""
 
 #. module: l10n_ar
+#. odoo-python
+#: code:addons/l10n_ar/models/account_move.py:0
+#, python-format
+msgid "Accounting Settings"
+msgstr ""
+
+#. module: l10n_ar
 #: model:ir.model.fields,field_description:l10n_ar.field_l10n_ar_afip_responsibility_type__active
 msgid "Active"
 msgstr ""
@@ -326,8 +344,28 @@ msgid "Activities Start"
 msgstr ""
 
 #. module: l10n_ar
+#: model:ir.model.fields,help:l10n_ar.field_account_journal__l10n_ar_is_pos
+msgid ""
+"Argentina: Specify if this Journal will be used to send electronic invoices "
+"to AFIP."
+msgstr ""
+
+#. module: l10n_ar
+#: model:ir.model.fields,help:l10n_ar.field_account_journal__l10n_ar_afip_pos_system
+msgid ""
+"Argentina: Specify which type of system will be used to create the "
+"electronic invoice. This will depend on the type of invoice to be created."
+msgstr ""
+
+#. module: l10n_ar
 #: model:ir.model.fields,help:l10n_ar.field_uom_uom__l10n_ar_afip_code
-msgid "Argentina: This code will be used on electronic invoice"
+msgid "Argentina: This code will be used on electronic invoice."
+msgstr ""
+
+#. module: l10n_ar
+#: model:ir.model.fields,help:l10n_ar.field_res_partner__l10n_ar_gross_income_type
+#: model:ir.model.fields,help:l10n_ar.field_res_users__l10n_ar_gross_income_type
+msgid "Argentina: Type of gross income: exempt, local, multilateral."
 msgstr ""
 
 #. module: l10n_ar
@@ -1342,15 +1380,6 @@ msgid "Identification Types"
 msgstr ""
 
 #. module: l10n_ar
-#. odoo-python
-#: code:addons/l10n_ar/models/account_fiscal_position.py:0
-#, python-format
-msgid ""
-"If use AFIP Responsibility then the country / zip codes will be not take "
-"into account"
-msgstr ""
-
-#. module: l10n_ar
 #: model:product.template,name:l10n_ar.product_product_quote_despacho_product_template
 msgid "Import Clearance"
 msgstr ""
@@ -1696,7 +1725,7 @@ msgstr ""
 #. odoo-python
 #: code:addons/l10n_ar/models/account_move.py:0
 #, python-format
-msgid "On invoice id \"%s\" you must use VAT Not Applicable on every line."
+msgid "On invoice id %r you must use VAT Not Applicable on every line."
 msgstr ""
 
 #. module: l10n_ar
@@ -1704,8 +1733,7 @@ msgstr ""
 #: code:addons/l10n_ar/models/account_move.py:0
 #, python-format
 msgid ""
-"On invoice id \"%s\" you must use VAT taxes different than VAT Not "
-"Applicable."
+"On invoice id %r you must use VAT taxes different than VAT Not Applicable."
 msgstr ""
 
 #. module: l10n_ar
@@ -1961,29 +1989,8 @@ msgid "Service Date"
 msgstr ""
 
 #. module: l10n_ar
-#: model:ir.model.fields,help:l10n_ar.field_res_partner__l10n_ar_special_purchase_document_type_ids
-#: model:ir.model.fields,help:l10n_ar.field_res_users__l10n_ar_special_purchase_document_type_ids
-msgid ""
-"Set here if this partner can issue other documents further than invoices, "
-"credit notes and debit notes"
-msgstr ""
-
-#. module: l10n_ar
 #: model:l10n_latam.identification.type,name:l10n_ar.it_Sigd
 msgid "Sigd"
-msgstr ""
-
-#. module: l10n_ar
-#: model:ir.model.fields,help:l10n_ar.field_account_journal__l10n_ar_is_pos
-msgid ""
-"Specify if this Journal will be used to send electronic invoices to AFIP"
-msgstr ""
-
-#. module: l10n_ar
-#: model:ir.model.fields,help:l10n_ar.field_account_journal__l10n_ar_afip_pos_system
-msgid ""
-"Specify which type of system will be used to create the electronic invoice. "
-"This will depend on the type of invoice to be created"
 msgstr ""
 
 #. module: l10n_ar
@@ -2095,6 +2102,15 @@ msgstr ""
 
 #. module: l10n_ar
 #. odoo-python
+#: code:addons/l10n_ar/models/account_tax_group.py:0
+#, python-format
+msgid ""
+"The tax group '%s' can't be removed, since it is required in the Argentinian"
+" localization."
+msgstr ""
+
+#. module: l10n_ar
+#. odoo-python
 #: code:addons/l10n_ar/models/res_partner.py:0
 #, python-format
 msgid "The validation digit is not valid for \"%s\""
@@ -2106,8 +2122,8 @@ msgstr ""
 #, python-format
 msgid ""
 "There should be a single tax from the \"VAT\" tax group per line, add it to "
-"\"%s\". If you already have it, please check the tax configuration, in "
-"advanced options, in the corresponding field \"Tax Group\"."
+"%r. If you already have it, please check the tax configuration, in advanced "
+"options, in the corresponding field \"Tax Group\"."
 msgstr ""
 
 #. module: l10n_ar
@@ -2120,6 +2136,13 @@ msgstr ""
 #: model:ir.model.fields,help:l10n_ar.field_res_company__l10n_ar_gross_income_number
 #: model:ir.model.fields,help:l10n_ar.field_res_company__l10n_ar_gross_income_type
 msgid "This field is required in order to print the invoice report properly"
+msgstr ""
+
+#. module: l10n_ar
+#: model:ir.model.fields,help:l10n_ar.field_res_partner__l10n_ar_special_purchase_document_type_ids
+#: model:ir.model.fields,help:l10n_ar.field_res_users__l10n_ar_special_purchase_document_type_ids
+msgid ""
+"This field will be deprecated in the next version as it is no longer needed."
 msgstr ""
 
 #. module: l10n_ar
@@ -2137,12 +2160,6 @@ msgstr ""
 #. module: l10n_ar
 #: model:ir.model.fields,field_description:l10n_ar.field_account_tax_group__l10n_ar_tribute_afip_code
 msgid "Tribute AFIP Code"
-msgstr ""
-
-#. module: l10n_ar
-#: model:ir.model.fields,help:l10n_ar.field_res_partner__l10n_ar_gross_income_type
-#: model:ir.model.fields,help:l10n_ar.field_res_users__l10n_ar_gross_income_type
-msgid "Type of gross income: exempt, local, multilateral"
 msgstr ""
 
 #. module: l10n_ar
@@ -2232,13 +2249,6 @@ msgid "WAYBILL FOR RAIL TRANSPORT FOR GRAINS"
 msgstr ""
 
 #. module: l10n_ar
-#. odoo-python
-#: code:addons/l10n_ar/models/account_fiscal_position.py:0
-#, python-format
-msgid "Warning"
-msgstr ""
-
-#. module: l10n_ar
 #: model_terms:ir.ui.view,arch_db:l10n_ar.view_account_invoice_report_search_inherit
 msgid "With Document"
 msgstr ""
@@ -2266,8 +2276,13 @@ msgstr ""
 #: code:addons/l10n_ar/models/account_journal.py:0
 #, python-format
 msgid ""
-"You can not change the journal's configuration if it already has validated "
+"You can not change %s journal's configuration if it already has validated "
 "invoices"
+msgstr ""
+
+#. module: l10n_ar
+#: model:l10n_latam.document.type,report_name:l10n_ar.dc_zeta
+msgid "ZETA"
 msgstr ""
 
 #. module: l10n_ar

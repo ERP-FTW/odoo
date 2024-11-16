@@ -5,14 +5,16 @@
 # Translators:
 # Martin Trigaux, 2023
 # Simon S, 2023
+# Anders Wallenquist <anders.wallenquist@vertel.se>, 2024
+# Jakob Krabbe <jakob.krabbe@vertel.se>, 2024
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 17.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-10-26 21:56+0000\n"
+"POT-Creation-Date: 2024-02-08 07:29+0000\n"
 "PO-Revision-Date: 2023-10-26 23:09+0000\n"
-"Last-Translator: Simon S, 2023\n"
+"Last-Translator: Jakob Krabbe <jakob.krabbe@vertel.se>, 2024\n"
 "Language-Team: Swedish (https://app.transifex.com/odoo/teams/41243/sv/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -25,7 +27,7 @@ msgstr ""
 #: code:addons/spreadsheet_account/static/src/accounting_datasource.js:0
 #, python-format
 msgid "%s is not a valid year."
-msgstr ""
+msgstr "%s är inte ett giltigt år."
 
 #. module: spreadsheet_account
 #. odoo-javascript
@@ -35,18 +37,13 @@ msgid ""
 "'%s' is not a valid period. Supported formats are \"21/12/2022\", "
 "\"Q1/2022\", \"12/2022\", and \"2022\"."
 msgstr ""
+"'%s' är inte en giltig period. Format som stöds är \"21/12/2022\", "
+"\"Q1/2022\", \"12/2022\" och \"2022\"."
 
 #. module: spreadsheet_account
 #: model:ir.model,name:spreadsheet_account.model_account_account
 msgid "Account"
 msgstr "Konto"
-
-#. module: spreadsheet_account
-#. odoo-javascript
-#: code:addons/spreadsheet_account/static/src/accounting_functions.js:0
-#, python-format
-msgid "Account type."
-msgstr ""
 
 #. module: spreadsheet_account
 #: model:ir.model,name:spreadsheet_account.model_res_company
@@ -59,6 +56,7 @@ msgstr "Bolag"
 #, python-format
 msgid "Get the total balance for the specified account(s) and period."
 msgstr ""
+"Hämta det totala saldot för det/de angivna kontot/kontona och perioden."
 
 #. module: spreadsheet_account
 #. odoo-javascript
@@ -66,6 +64,7 @@ msgstr ""
 #, python-format
 msgid "Get the total credit for the specified account(s) and period."
 msgstr ""
+"Hämta den totala krediten för det/de angivna kontot/kontona och perioden."
 
 #. module: spreadsheet_account
 #. odoo-javascript
@@ -73,28 +72,22 @@ msgstr ""
 #, python-format
 msgid "Get the total debit for the specified account(s) and period."
 msgstr ""
+"Hämta den totala debiteringen för det/de angivna kontot/kontona och "
+"perioden."
 
 #. module: spreadsheet_account
 #. odoo-python
 #: code:addons/spreadsheet_account/models/account.py:0
 #, python-format
 msgid "Journal items for account prefix %s"
-msgstr ""
-
-#. module: spreadsheet_account
-#. odoo-javascript
-#: code:addons/spreadsheet_account/static/src/accounting_functions.js:0
-#: code:addons/spreadsheet_account/static/src/accounting_functions.js:0
-#, python-format
-msgid "Reference date."
-msgstr ""
+msgstr "Verifikat för kontoprefix %s"
 
 #. module: spreadsheet_account
 #. odoo-javascript
 #: code:addons/spreadsheet_account/static/src/accounting_functions.js:0
 #, python-format
 msgid "Returns the account ids of a given group."
-msgstr ""
+msgstr "Returnerar konto-id:n för en given grupp."
 
 #. module: spreadsheet_account
 #. odoo-javascript
@@ -103,6 +96,8 @@ msgstr ""
 msgid ""
 "Returns the ending date of the fiscal year encompassing the provided date."
 msgstr ""
+"Returnerar slutdatumet för det räkenskapsår som omfattar det angivna "
+"datumet."
 
 #. module: spreadsheet_account
 #. odoo-javascript
@@ -111,34 +106,43 @@ msgstr ""
 msgid ""
 "Returns the starting date of the fiscal year encompassing the provided date."
 msgstr ""
+"Returnerar startdatumet för det räkenskapsår som omfattar det angivna "
+"datumet."
 
 #. module: spreadsheet_account
 #. odoo-javascript
 #: code:addons/spreadsheet_account/static/src/index.js:0
 #, python-format
 msgid "See records"
-msgstr ""
+msgstr "Se register"
 
 #. module: spreadsheet_account
 #. odoo-javascript
 #: code:addons/spreadsheet_account/static/src/accounting_functions.js:0
 #, python-format
 msgid "Set to TRUE to include unposted entries."
-msgstr ""
+msgstr "Ställ in på SANT för att inkludera poster som inte har lagts upp."
+
+#. module: spreadsheet_account
+#. odoo-javascript
+#: code:addons/spreadsheet_account/static/src/accounting_functions.js:0
+#, python-format
+msgid "The account type (income, expense, asset_current,...)."
+msgstr "Kontotypen (inkomst, utgift, asset_current,...)."
 
 #. module: spreadsheet_account
 #. odoo-javascript
 #: code:addons/spreadsheet_account/static/src/accounting_datasource.js:0
 #, python-format
 msgid "The company fiscal year could not be found."
-msgstr ""
+msgstr "Företagets räkenskapsår kunde inte hittas."
 
 #. module: spreadsheet_account
 #. odoo-javascript
 #: code:addons/spreadsheet_account/static/src/accounting_functions.js:0
 #, python-format
 msgid "The company to target (Advanced)."
-msgstr ""
+msgstr "Företaget att rikta in sig på (avancerat)."
 
 #. module: spreadsheet_account
 #. odoo-javascript
@@ -146,7 +150,7 @@ msgstr ""
 #: code:addons/spreadsheet_account/static/src/accounting_functions.js:0
 #, python-format
 msgid "The company."
-msgstr ""
+msgstr "Företaget"
 
 #. module: spreadsheet_account
 #. odoo-javascript
@@ -156,17 +160,33 @@ msgid ""
 "The date range. Supported formats are \"21/12/2022\", \"Q1/2022\", "
 "\"12/2022\", and \"2022\"."
 msgstr ""
+"Datumintervall. Format som stöds är \"21/12/2024\", \"Q1/2024\", "
+"\"12/2024\", och \"2024\"."
+
+#. module: spreadsheet_account
+#. odoo-javascript
+#: code:addons/spreadsheet_account/static/src/accounting_functions.js:0
+#, python-format
+msgid "The day from which to extract the fiscal year end."
+msgstr "Dagen från vilken räkenskapsårets slut ska tas ut."
+
+#. module: spreadsheet_account
+#. odoo-javascript
+#: code:addons/spreadsheet_account/static/src/accounting_functions.js:0
+#, python-format
+msgid "The day from which to extract the fiscal year start."
+msgstr "Dagen från vilken räkenskapsåret börjar."
 
 #. module: spreadsheet_account
 #. odoo-javascript
 #: code:addons/spreadsheet_account/static/src/accounting_functions.js:0
 #, python-format
 msgid "The prefix of the accounts."
-msgstr ""
+msgstr "Prefixet för kontona."
 
 #. module: spreadsheet_account
 #. odoo-javascript
 #: code:addons/spreadsheet_account/static/src/accounting_functions.js:0
 #, python-format
 msgid "Year offset applied to date_range."
-msgstr ""
+msgstr "Årsförskjutning tillämpas på datumintervall."

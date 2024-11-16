@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from collections import defaultdict
@@ -81,7 +80,7 @@ class SaleOrderLine(models.Model):
     product_id = fields.Many2one(
         comodel_name='product.product',
         string="Product",
-        change_default=True, ondelete='restrict', check_company=True, index='btree_not_null',
+        change_default=True, ondelete='restrict', index='btree_not_null',
         domain="[('sale_ok', '=', True)]")
     product_template_id = fields.Many2one(
         string="Product Template",
@@ -207,6 +206,7 @@ class SaleOrderLine(models.Model):
     qty_delivered = fields.Float(
         string="Delivery Quantity",
         compute='_compute_qty_delivered',
+        default=0.0,
         digits='Product Unit of Measure',
         store=True, readonly=False, copy=False)
 
@@ -327,7 +327,9 @@ class SaleOrderLine(models.Model):
                 elif dp_state == 'cancel':
                     name = _("%(line_description)s (Canceled)", line_description=name)
                 else:
-                    invoice = line._get_invoice_lines().move_id
+                    invoice = line._get_invoice_lines().filtered(
+                        lambda aml: aml.quantity >= 0
+                    ).move_id.filtered(lambda move: move.move_type == 'out_invoice')
                     if len(invoice) == 1 and invoice.payment_reference and invoice.invoice_date:
                         name = _(
                             "%(line_description)s (ref: %(reference)s on %(date)s)",
@@ -359,13 +361,16 @@ class SaleOrderLine(models.Model):
         :return: the description related to special variant attributes/values
         :rtype: string
         """
-        if not self.product_custom_attribute_value_ids and not self.product_no_variant_attribute_value_ids:
+        no_variant_ptavs = self.product_no_variant_attribute_value_ids._origin.filtered(
+            # Only describe the attributes where a choice was made by the customer
+            lambda ptav: ptav.display_type == 'multi' or ptav.attribute_line_id.value_count > 1
+        )
+        if not self.product_custom_attribute_value_ids and not no_variant_ptavs:
             return ""
 
         name = "\n"
 
         custom_ptavs = self.product_custom_attribute_value_ids.custom_product_template_attribute_value_id
-        no_variant_ptavs = self.product_no_variant_attribute_value_ids._origin
         multi_ptavs = no_variant_ptavs.filtered(lambda ptav: ptav.display_type == 'multi').sorted()
 
         # display the no_variant attributes, except those that are also
@@ -413,20 +418,15 @@ class SaleOrderLine(models.Model):
 
     @api.depends('product_id', 'company_id')
     def _compute_tax_id(self):
-        taxes_by_product_company = defaultdict(lambda: self.env['account.tax'])
         lines_by_company = defaultdict(lambda: self.env['sale.order.line'])
         cached_taxes = {}
         for line in self:
             lines_by_company[line.company_id] += line
-        for product in self.product_id:
-            for tax in product.taxes_id:
-                taxes_by_product_company[(product, tax.company_id)] += tax
         for company, lines in lines_by_company.items():
             for line in lines.with_company(company):
-                taxes, comp = None, company
-                while not taxes and comp:
-                    taxes = taxes_by_product_company[(line.product_id, comp)]
-                    comp = comp.parent_id
+                taxes = None
+                if line.product_id:
+                    taxes = line.product_id.taxes_id._filter_taxes_by_company(company)
                 if not line.product_id or not taxes:
                     # Nothing to map
                     line.tax_id = False
@@ -464,20 +464,20 @@ class SaleOrderLine(models.Model):
         for line in self:
             # check if there is already invoiced amount. if so, the price shouldn't change as it might have been
             # manually edited
-            if line.qty_invoiced > 0:
+            if line.qty_invoiced > 0 or (line.product_id.expense_policy == 'cost' and line.is_expense):
                 continue
             if not line.product_uom or not line.product_id:
                 line.price_unit = 0.0
             else:
-                price = line.with_company(line.company_id)._get_display_price()
-                line.price_unit = line.product_id._get_tax_included_unit_price(
-                    line.company_id or line.env.company,
-                    line.order_id.currency_id,
-                    line.order_id.date_order,
-                    'sale',
+                line = line.with_company(line.company_id)
+                price = line._get_display_price()
+                line.price_unit = line.product_id._get_tax_included_unit_price_from_price(
+                    price,
+                    line.currency_id or line.order_id.currency_id,
+                    product_taxes=line.product_id.taxes_id.filtered(
+                        lambda tax: tax.company_id == line.env.company
+                    ),
                     fiscal_position=line.order_id.fiscal_position_id,
-                    product_price_unit=price,
-                    product_currency=line.currency_id
                 )
 
     def _get_display_price(self):
@@ -619,7 +619,7 @@ class SaleOrderLine(models.Model):
         Compute the amounts of the SO line.
         """
         for line in self:
-            tax_results = self.env['account.tax']._compute_taxes([
+            tax_results = self.env['account.tax'].with_company(line.company_id)._compute_taxes([
                 line._convert_to_tax_base_line_dict()
             ])
             totals = list(tax_results['totals'].values())[0]
@@ -825,6 +825,16 @@ class SaleOrderLine(models.Model):
             else:
                 line.invoice_status = 'no'
 
+    def _can_be_invoiced_alone(self):
+        """ Whether a given line is meaningful to invoice alone.
+
+        It is generally meaningless/confusing or even wrong to invoice some specific SOlines
+        (delivery, discounts, rewards, ...) without others, unless they are the only left to invoice
+        in the SO.
+        """
+        self.ensure_one()
+        return self.product_id.id != self.company_id.sale_discount_product_id.id
+
     @api.depends('invoice_lines', 'invoice_lines.price_total', 'invoice_lines.move_id.state', 'invoice_lines.move_id.move_type')
     def _compute_untaxed_amount_invoiced(self):
         """ Compute the untaxed amount already invoiced from the sale order line, taking the refund attached
@@ -994,7 +1004,12 @@ class SaleOrderLine(models.Model):
         if 'product_uom_qty' in values:
             precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
             self.filtered(
-                lambda r: r.state == 'sale' and float_compare(r.product_uom_qty, values['product_uom_qty'], precision_digits=precision) != 0)._update_line_quantity(values)
+                lambda r: r.state == 'sale' and float_compare(
+                    r.product_uom_qty,
+                    values['product_uom_qty'],
+                    precision_digits=precision
+                ) != 0
+            )._update_line_quantity(values)
 
         # Prevent writing on a locked SO.
         protected_fields = self._get_protected_fields()
@@ -1160,6 +1175,13 @@ class SaleOrderLine(models.Model):
                 'company_id': line.company_id.id,
             })
 
+    def _get_downpayment_line_price_unit(self, invoices):
+        return sum(
+            l.price_unit if l.move_id.move_type == 'out_invoice' else -l.price_unit
+            for l in self.invoice_lines
+            if l.move_id.state == 'posted' and l.move_id not in invoices  # don't recompute with the final invoice
+        )
+
     #=== CORE METHODS OVERRIDES ===#
 
     def _get_partner_display(self):
@@ -1193,7 +1215,8 @@ class SaleOrderLine(models.Model):
         the product is read-only or not.
 
         A product is considered read-only if the order is considered read-only (see
-        ``SaleOrder._is_readonly`` for more details) or if `self` contains multiple records.
+        ``SaleOrder._is_readonly`` for more details) or if `self` contains multiple records
+        or if it has sale_line_warn == "block".
 
         Note: This method cannot be called with multiple records that have different products linked.
 
@@ -1204,19 +1227,23 @@ class SaleOrderLine(models.Model):
                 'quantity': float,
                 'price': float,
                 'readOnly': bool,
+                'warning': String
             }
         """
         if len(self) == 1:
-            return {
+            res = {
                 'quantity': self.product_uom_qty,
                 'price': self.price_unit,
-                'readOnly': self.order_id._is_readonly(),
+                'readOnly': self.order_id._is_readonly() or (self.product_id.sale_line_warn == "block"),
             }
+            if self.product_id.sale_line_warn != 'no-message' and self.product_id.sale_line_warn_msg:
+                res['warning'] = self.product_id.sale_line_warn_msg
+            return res
         elif self:
             self.product_id.ensure_one()
             order_line = self[0]
             order = order_line.order_id
-            return {
+            res = {
                 'readOnly': True,
                 'price': order.pricelist_id._get_product_price(
                     product=order_line.product_id,
@@ -1232,8 +1259,11 @@ class SaleOrderLine(models.Model):
                             to_unit=line.product_id.uom_id,
                         )
                     )
-                ),
+                )
             }
+            if self.product_id.sale_line_warn != 'no-message' and self.product_id.sale_line_warn_msg:
+                res['warning'] = self.product_id.sale_line_warn_msg
+            return res
         else:
             return {
                 'quantity': 0,
@@ -1267,3 +1297,13 @@ class SaleOrderLine(models.Model):
 
     def has_valued_move_ids(self):
         return self.move_ids
+
+    def _sellable_lines_domain(self):
+        discount_products_ids = self.env.companies.sale_discount_product_id.ids
+        domain = [('is_downpayment', '=', False)]
+        if discount_products_ids:
+            domain = expression.AND([
+                domain,
+                [('product_id', 'not in', discount_products_ids)],
+            ])
+        return domain

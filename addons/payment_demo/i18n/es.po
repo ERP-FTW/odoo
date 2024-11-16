@@ -3,17 +3,17 @@
 # 	* payment_demo
 # 
 # Translators:
-# Wil Odoo, 2023
 # Lucia Pacheco, 2023
-# Larissa Manderfeld, 2023
+# Wil Odoo, 2024
+# Larissa Manderfeld, 2024
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 17.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-10-26 21:56+0000\n"
+"POT-Creation-Date: 2024-08-13 10:28+0000\n"
 "PO-Revision-Date: 2023-10-26 23:09+0000\n"
-"Last-Translator: Larissa Manderfeld, 2023\n"
+"Last-Translator: Larissa Manderfeld, 2024\n"
 "Language-Team: Spanish (https://app.transifex.com/odoo/teams/41243/es/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -92,7 +92,7 @@ msgstr "<small>Detalles de pago (datos de prueba)</small>"
 #. module: payment_demo
 #: model_terms:ir.ui.view,arch_db:payment_demo.payment_details
 msgid "<small>Payment Status</small>"
-msgstr "<small>Estado del pago</small>"
+msgstr "<small>Estado de pago</small>"
 
 #. module: payment_demo
 #: model_terms:ir.ui.view,arch_db:payment_demo.express_inline_form
@@ -112,7 +112,7 @@ msgstr "Cancelar"
 #. module: payment_demo
 #: model:ir.model.fields.selection,name:payment_demo.selection__payment_token__demo_simulated_state__cancel
 msgid "Canceled"
-msgstr "Cancelada"
+msgstr "Cancelado"
 
 #. module: payment_demo
 #: model:ir.model.fields,field_description:payment_demo.field_payment_transaction__capture_manually
@@ -126,9 +126,9 @@ msgid ""
 "Use this if you want to charge your customers cards only when\n"
 "you are sure you can ship the goods to them."
 msgstr ""
-"Capturar el importe de Odoo cuando la entrega se ha completado.\n"
+"Capture el importe de Odoo cuando la entrega se haya completado.\n"
 "Utilícelo si desea hacer el cargo a la tarjeta de sus clientes solo cuando\n"
-"seguro de que puede enviarles los artículos."
+"esté seguro de que puede enviarles los artículos."
 
 #. module: payment_demo
 #: model_terms:ir.ui.view,arch_db:payment_demo.express_checkout_form
@@ -158,19 +158,26 @@ msgstr "Demostración"
 #. module: payment_demo
 #: model_terms:ir.ui.view,arch_db:payment_demo.express_checkout_form
 msgid "Demo Express Checkout"
-msgstr "Pago rápido de demostración"
+msgstr "Pago exprés de demostración"
 
 #. module: payment_demo
 #. odoo-python
 #: code:addons/payment_demo/models/payment_provider.py:0
 #, python-format
 msgid "Demo providers should never be enabled."
-msgstr "Los proveedores de prueba demonstración no deben estar activados."
+msgstr "Los proveedores de demostración no deben estar activados."
 
 #. module: payment_demo
 #: model:ir.model.fields.selection,name:payment_demo.selection__payment_token__demo_simulated_state__error
 msgid "Error"
 msgstr "Error"
+
+#. module: payment_demo
+#. odoo-javascript
+#: code:addons/payment_demo/static/src/js/express_checkout_form.js:0
+#, python-format
+msgid "No delivery method is available."
+msgstr "No hay ningún método de entrega disponible."
 
 #. module: payment_demo
 #. odoo-python
@@ -183,7 +190,7 @@ msgstr ""
 #. module: payment_demo
 #: model_terms:ir.ui.view,arch_db:payment_demo.express_checkout_form
 msgid "Pay"
-msgstr "Paga"
+msgstr "Pagar"
 
 #. module: payment_demo
 #: model_terms:ir.ui.view,arch_db:payment_demo.express_checkout_form
@@ -223,7 +230,7 @@ msgid ""
 "Payments made with this payment method will be automatically "
 "<b>canceled</b>."
 msgstr ""
-"Los pagos con este método de pago se <b>cancelarán</b> de automáticamente."
+"Los pagos con este método de pago se <b>cancelarán</b> automáticamente."
 
 #. module: payment_demo
 #: model_terms:ir.ui.view,arch_db:payment_demo.token_inline_form
@@ -283,6 +290,13 @@ msgid "Unpublished"
 msgstr "No publicado"
 
 #. module: payment_demo
+#. odoo-javascript
+#: code:addons/payment_demo/static/src/js/express_checkout_form.js:0
+#, python-format
+msgid "Validation Error"
+msgstr "Error de validación"
+
+#. module: payment_demo
 #: model_terms:ir.ui.view,arch_db:payment_demo.payment_details
 msgid "XXXX XXXX XXXX XXXX"
 msgstr "XXXX XXXX XXXX XXXX"
@@ -292,4 +306,4 @@ msgstr "XXXX XXXX XXXX XXXX"
 #: code:addons/payment_demo/models/payment_transaction.py:0
 #, python-format
 msgid "You selected the following demo payment status: %s"
-msgstr "Seleccionó el siguiente estado de demostración de pago: %s"
+msgstr "Seleccionó el siguiente estado de pago de demostración: %s"

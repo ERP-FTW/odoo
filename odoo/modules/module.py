@@ -50,7 +50,7 @@ _DEFAULT_MANIFEST = {
     'new_page_templates': {},  # website themes
     #name, mandatory
     'post_init_hook': '',
-    'post_load': None,
+    'post_load': '',
     'pre_init_hook': '',
     'sequence': 100,
     'summary': '',
@@ -348,7 +348,8 @@ def load_manifest(module, mod_path=None):
     try:
         manifest['version'] = adapt_version(manifest['version'])
     except ValueError as e:
-        raise ValueError(f"Module {module}: invalid manifest") from e
+        if manifest.get("installable", True):
+            raise ValueError(f"Module {module}: invalid manifest") from e
     manifest['addons_path'] = normpath(opj(mod_path, os.pardir))
 
     return manifest
@@ -430,7 +431,7 @@ def get_modules():
             _logger.warning("addons path does not exist: %s", ad)
             continue
         plist.extend(listdir(ad))
-    return list(set(plist))
+    return sorted(set(plist))
 
 def get_modules_with_version():
     modules = get_modules()

@@ -5,13 +5,13 @@
 # Translators:
 # matjaz k <matjaz@mentis.si>, 2023
 # laznikd <laznik@mentis.si>, 2023
-# Grega Vavtar <grega@hbs.si>, 2023
 # Boris Kodelja <boris@hbs.si>, 2023
 # Tomaž Jug <tomaz@editor.si>, 2023
 # Jasmina Macur <jasmina@hbs.si>, 2023
 # Martin Trigaux, 2023
 # Tadej Lupšina <tadej@hbs.si>, 2023
 # Matjaz Mozetic <m.mozetic@matmoz.si>, 2023
+# Grega Vavtar <grega@hbs.si>, 2024
 # Katja Deržič, 2024
 # 
 msgid ""
@@ -267,7 +267,7 @@ msgstr "Moje ocene"
 #. module: rating
 #: model:ir.model.fields,field_description:rating.field_rating_rating__rated_partner_name
 msgid "Name"
-msgstr "Ime in priimek"
+msgstr "Naziv"
 
 #. module: rating
 #: model:ir.model.fields.selection,name:rating.selection__discuss_channel__rating_avg_text__none
@@ -316,7 +316,7 @@ msgstr "Število sporočil, ki niso bila pravilno dostavljena."
 #: model_terms:ir.ui.view,arch_db:rating.rating_rating_view_search
 #, python-format
 msgid "Okay"
-msgstr ""
+msgstr "Okej"
 
 #. module: rating
 #: model:ir.model.fields,field_description:rating.field_rating_rating__parent_res_id
@@ -351,7 +351,7 @@ msgstr ""
 #. module: rating
 #: model:ir.model.fields,help:rating.field_rating_parent_mixin__rating_percentage_satisfaction
 msgid "Percentage of happy ratings"
-msgstr ""
+msgstr "Odstotek zadovoljnih ocen"
 
 #. module: rating
 #. odoo-python

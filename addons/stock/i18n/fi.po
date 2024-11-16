@@ -32,18 +32,19 @@
 # Miku Laitinen <miku.laitinen@gmail.com>, 2023
 # Tuomas Lyyra <tuomas.lyyra@legenda.fi>, 2023
 # Mikko Närjänen <mikko.narjanen@web-veistamo.fi>, 2023
-# Tuomo Aura <tuomo.aura@web-veistamo.fi>, 2023
-# Ossi Mantylahti <ossi.mantylahti@obs-solutions.fi>, 2023
-# Jarmo Kortetjärvi <jarmo.kortetjarvi@gmail.com>, 2024
 # Jolien De Paepe, 2024
+# Jarmo Kortetjärvi <jarmo.kortetjarvi@gmail.com>, 2024
+# Tuomo Aura <tuomo.aura@web-veistamo.fi>, 2024
+# Ossi Mantylahti <ossi.mantylahti@obs-solutions.fi>, 2024
+# Jessica Jakara, 2024
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 17.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-01-05 12:31+0000\n"
+"POT-Creation-Date: 2024-08-13 10:26+0000\n"
 "PO-Revision-Date: 2023-10-26 23:09+0000\n"
-"Last-Translator: Jolien De Paepe, 2024\n"
+"Last-Translator: Jessica Jakara, 2024\n"
 "Language-Team: Finnish (https://app.transifex.com/odoo/teams/41243/fi/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -141,7 +142,7 @@ msgstr "# Palautuksia"
 #: code:addons/stock/models/stock_warehouse.py:0
 #, python-format
 msgid "%(name)s (copy)(%(id)s)"
-msgstr ""
+msgstr "%(name)s (kopio)(%(id)s)"
 
 #. module: stock
 #. odoo-python
@@ -552,7 +553,7 @@ msgstr "<span class=\"o_stat_text\">Jakaminen</span>"
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.view_picking_form
 msgid "<span class=\"o_stat_text\">Detailed Operations</span>"
-msgstr ""
+msgstr "<span class=\"o_stat_text\">Yksityiskohtaiset toiminnot</span>"
 
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.product_form_view_procurement_button
@@ -1226,6 +1227,11 @@ msgid "Archived"
 msgstr "Arkistoitu"
 
 #. module: stock
+#: model_terms:ir.ui.view,arch_db:stock.view_picking_form
+msgid "Are you sure you want to cancel this transfer?"
+msgstr "Haluatko varmasti peruuttaa tämän siirron?"
+
+#. module: stock
 #: model:ir.model.fields.selection,name:stock.selection__stock_picking__move_type__direct
 msgid "As soon as possible"
 msgstr "Niin pian kuin mahdollista"
@@ -1281,7 +1287,7 @@ msgstr "Vahvistuksessa"
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.search_product_lot_filter
 msgid "At Customer"
-msgstr ""
+msgstr "Asiakkaassa"
 
 #. module: stock
 #: model:ir.model.fields,field_description:stock.field_stock_lot__message_attachment_count
@@ -3557,6 +3563,13 @@ msgid "Generate Serials numbers"
 msgstr "Luo sarjanumeroita"
 
 #. module: stock
+#. odoo-javascript
+#: code:addons/stock/static/src/widgets/lots_dialog.xml:0
+#, python-format
+msgid "Generate Serials/Lots"
+msgstr "Sarjojen/erien luominen"
+
+#. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.res_config_settings_view_form
 msgid "Get a full traceability from vendors to customers"
 msgstr "Täydellinen jäljitettävyys myyjiltä asiakkaille"
@@ -4043,6 +4056,13 @@ msgid "Import Lots"
 msgstr "Tuo eriä"
 
 #. module: stock
+#. odoo-javascript
+#: code:addons/stock/static/src/widgets/lots_dialog.xml:0
+#, python-format
+msgid "Import Serials/Lots"
+msgstr "Tuo sarjat/erät"
+
+#. module: stock
 #. odoo-python
 #: code:addons/stock/models/stock_quant.py:0
 #, python-format
@@ -4052,7 +4072,7 @@ msgstr "Tuontimalli varaston määrän korjauksia varten"
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.quant_search_view
 msgid "In Stock"
-msgstr ""
+msgstr "Varastossa"
 
 #. module: stock
 #: model:ir.model.fields,field_description:stock.field_stock_warehouse__in_type_id
@@ -4500,7 +4520,7 @@ msgstr "Pidä ero"
 #: code:addons/stock/static/src/widgets/lots_dialog.xml:0
 #, python-format
 msgid "Keep current lines"
-msgstr ""
+msgstr "Säilytä nykyiset rivit"
 
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.stock_inventory_conflict_form_view
@@ -4767,7 +4787,7 @@ msgstr "Linkitetyt siirrot"
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.view_picking_form
 msgid "List view of detailed operations"
-msgstr ""
+msgstr "Yksityiskohtaisten toimintojen luettelonäkymä"
 
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.view_picking_form
@@ -4854,6 +4874,13 @@ msgid "Locations"
 msgstr "Paikat"
 
 #. module: stock
+#. odoo-python
+#: code:addons/stock/models/stock_picking.py:0
+#, python-format
+msgid "Locations to update"
+msgstr "Päivitettävät sijainnit"
+
+#. module: stock
 #: model:ir.actions.server,name:stock.action_toggle_is_locked
 msgid "Lock/Unlock"
 msgstr "Lukitus/avaus"
@@ -4874,6 +4901,11 @@ msgstr "Erä/sarjanumero"
 #: model:ir.model.fields,field_description:stock.field_stock_picking_type__lot_label_format
 msgid "Lot Label Format to auto-print"
 msgstr "Erän etiketin formaatti automaattista tulostusta varten"
+
+#. module: stock
+#: model:ir.model,name:stock.model_report_stock_label_lot_template_view
+msgid "Lot Label Report"
+msgstr "Erän etikettiraportti"
 
 #. module: stock
 #: model:ir.model.fields,field_description:stock.field_product_product__lot_properties_definition
@@ -5482,6 +5514,13 @@ msgid "No operations found. Let's create a transfer!"
 msgstr "Mitään toimintoja ei löytynyt. Luodaan siirto!"
 
 #. module: stock
+#. odoo-python
+#: code:addons/stock/models/stock_move.py:0
+#, python-format
+msgid "No product found to generate Serials/Lots for."
+msgstr "Ei löytynyt tuotetta, jolle voitaisiin luoda sarja- tai eränumeroita."
+
+#. module: stock
 #: model_terms:ir.actions.act_window,help:stock.product_template_action_product
 msgid "No product found. Let's create one!"
 msgstr "Tuotetta ei löydy. Tehdään uusi!"
@@ -6061,6 +6100,11 @@ msgstr "Paketti"
 #: model_terms:ir.ui.view,arch_db:stock.report_picking
 msgid "Package A"
 msgstr "Paketti A"
+
+#. module: stock
+#: model_terms:ir.ui.view,arch_db:stock.report_picking
+msgid "Package B"
+msgstr "Paketti B"
 
 #. module: stock
 #: model:ir.actions.report,name:stock.action_report_quant_package_barcode_small
@@ -7763,6 +7807,14 @@ msgstr ""
 "tuoteryhmiin"
 
 #. module: stock
+#. odoo-python
+#: code:addons/stock/models/stock_location.py:0
+#: code:addons/stock/models/stock_rule.py:0
+#, python-format
+msgid "Rule %s belongs to %s while the route belongs to %s."
+msgstr "Sääntö %s kuuluu kohtaan %s, kun taas reitti kuuluu kohtaan %s."
+
+#. module: stock
 #: model:ir.model.fields,field_description:stock.field_stock_rule__rule_message
 msgid "Rule Message"
 msgstr "Sääntöviesti"
@@ -7840,7 +7892,7 @@ msgstr "SSCC:"
 #. module: stock
 #: model_terms:res.company,invoice_terms_html:stock.res_company_1
 msgid "STANDARD TERMS AND CONDITIONS OF SALE"
-msgstr "VAKIOMUOTOISET MYYNTIEHDOT"
+msgstr "YLEISET MYYNTIEHDOT"
 
 #. module: stock
 #. odoo-javascript
@@ -8189,11 +8241,6 @@ msgstr ""
 #: model:ir.ui.menu,name:stock.menu_stock_general_settings
 msgid "Settings"
 msgstr "Asetukset"
-
-#. module: stock
-#: model_terms:ir.ui.view,arch_db:stock.report_picking
-msgid "Shelf 1"
-msgstr "Hylly 1"
 
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.report_inventory
@@ -8750,7 +8797,7 @@ msgstr "Varastointipaikat"
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.view_stock_move_line_operation_tree
 msgid "Store To"
-msgstr ""
+msgstr "Varastoi paikkaan"
 
 #. module: stock
 #: model:ir.model.fields,help:stock.field_res_config_settings__group_stock_multi_locations
@@ -8877,9 +8924,10 @@ msgid ""
 "order to be valid, any derogation must be expressly agreed to in advance in "
 "writing."
 msgstr ""
-"Asiakas luopuu nimenomaisesti omista vakioehdoistaan, vaikka ne olisi "
-"laadittu näiden vakiomyyntiehtojen jälkeen. Jotta poikkeukset olisivat "
-"päteviä, niistä on sovittava etukäteen kirjallisesti ja nimenomaisesti."
+"Asiakas luopuu nimenomaisesti omista yleisistä sopimusehdoistaan, vaikka ne "
+"olisi laadittu näiden yleisten myyntiehtojen jälkeen. Jotta poikkeukset "
+"olisivat päteviä, niistä on sovittava etukäteen kirjallisesti ja "
+"nimenomaisesti."
 
 #. module: stock
 #. odoo-python
@@ -8922,7 +8970,7 @@ msgstr "Ensimmäinen järjestyksessä on oletusarvo."
 #: code:addons/stock/wizard/product_replenish.py:0
 #, python-format
 msgid "The following replenishment order have been generated"
-msgstr ""
+msgstr "Seuraavat täydennystilaukset on laadittu"
 
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.view_product_replenish
@@ -9973,7 +10021,7 @@ msgstr "Käytä vastaanottoraporttia"
 #. module: stock
 #: model:res.groups,name:stock.group_stock_picking_wave
 msgid "Use wave pickings"
-msgstr "Käytä aaltopoimintaa"
+msgstr "Käytä poiminta-aaltoja"
 
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.res_config_settings_view_form
@@ -9993,6 +10041,7 @@ msgid "Used to order the 'All Operations' kanban view"
 msgstr "Käytetään tilaukseen \"Kaikki toiminnot\" kanban-näkymää"
 
 #. module: stock
+#: model:ir.model,name:stock.model_res_users
 #: model:ir.model.fields,field_description:stock.field_stock_request_count__user_id
 #: model:res.groups,name:stock.group_stock_user
 #: model_terms:ir.ui.view,arch_db:stock.view_stock_quant_tree_inventory_editable
@@ -10587,6 +10636,16 @@ msgstr "Jo käytetyn tuotteen tyyppiä ei voi muuttaa."
 
 #. module: stock
 #. odoo-python
+#: code:addons/stock/models/stock_orderpoint.py:0
+#, python-format
+msgid ""
+"You can not create a snoozed orderpoint that is not manually triggered."
+msgstr ""
+"Et voi luoda torkutettua tilauspistettä, jota ei ole käynnistetty "
+"manuaalisesti."
+
+#. module: stock
+#. odoo-python
 #: code:addons/stock/models/stock_move.py:0
 #, python-format
 msgid "You can not delete moves linked to another operation"
@@ -10646,6 +10705,18 @@ msgstr ""
 msgid "You can only process 1.0 %s of products with unique serial number."
 msgstr ""
 "Voit käsitellä vain 1,0 %s tuotteita, joilla on yksilöllinen sarjanumero."
+
+#. module: stock
+#. odoo-python
+#: code:addons/stock/models/stock_orderpoint.py:0
+#, python-format
+msgid ""
+"You can only snooze manual orderpoints. You should rather archive 'auto-"
+"trigger' orderpoints if you do not want them to be triggered."
+msgstr ""
+"Voit torkuttaa vain manuaalisia tilauspisteitä. Sinun pitäisi pikemminkin "
+"arkistoida \"automaattisen käynnistyksen\" tilauspisteet, jos et halua, että"
+" ne käynnistyvät."
 
 #. module: stock
 #. odoo-python
@@ -10754,6 +10825,18 @@ msgstr "Et voi poistaa vahvistettua romutusta."
 
 #. module: stock
 #. odoo-python
+#: code:addons/stock/models/stock_move_line.py:0
+#, python-format
+msgid ""
+"You cannot directly pack quantities from different transfers into the same "
+"package through this view. Try adding them to a batch picking and pack it "
+"there."
+msgstr ""
+"Et voi pakata eri siirtojen määriä suoraan samaan pakettiin tämän näkymän "
+"kautta. Kokeile lisätä ne erän poimintaan ja pakkaa se siellä."
+
+#. module: stock
+#. odoo-python
 #: code:addons/stock/models/stock_quant.py:0
 #, python-format
 msgid "You cannot modify inventory loss quantity"
@@ -10769,6 +10852,17 @@ msgid ""
 msgstr ""
 "Et voi siirtää samaa paketin sisältöä useammin kuin kerran samaan siirtoon "
 "tai jakaa saman paketin kahteen paikkaan."
+
+#. module: stock
+#. odoo-python
+#: code:addons/stock/models/stock_picking.py:0
+#, python-format
+msgid ""
+"You cannot pack products into the same package when they are from different "
+"transfers with different operation types."
+msgstr ""
+"Tuotteita ei voi pakata samaan pakkaukseen, jos ne ovat peräisin eri "
+"siirroista, joissa on eri toimintatyypit."
 
 #. module: stock
 #. odoo-python
@@ -10952,14 +11046,7 @@ msgstr ""
 #: code:addons/stock/wizard/product_replenish.py:0
 #, python-format
 msgid "You need to select a route to replenish your products"
-msgstr ""
-
-#. module: stock
-#. odoo-python
-#: code:addons/stock/models/stock_move.py:0
-#, python-format
-msgid "You need to set a Serial Number before generating more."
-msgstr "Sinun on määritettävä sarjanumero, ennen kuin voit luoda lisää."
+msgstr "Sinun on valittava reitti, jonka kautta täydennät tuotteitasi"
 
 #. module: stock
 #. odoo-python
@@ -11145,7 +11232,7 @@ msgstr "esim. vastaanotot"
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.view_stock_move_line_operation_tree
 msgid "e.g. SN000001"
-msgstr ""
+msgstr "esim. SN000001"
 
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.view_location_form

@@ -45,7 +45,6 @@
     --Ribbon-gap-right: 0;
     --Ribbon-wrapper-width: 6.5rem;
     --Ribbon-height:  calc(var(--Ribbon-font-size) * 2);
-    --Ribbon-z-index: 0;
 
     // ----------------------------------------------------------------------------
 
@@ -214,6 +213,11 @@
                     left: 0;
                 }
 
+                &:not(.o_kanban_image_full) {
+                    max-height: 140px;
+                    height: calc(100% + var(--KanbanRecord-padding-v) * 2);
+                    align-self: center;
+                }
                 &.o_kanban_image_full {
                     background-size: contain;
                     > img {

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _, Command
 from odoo.exceptions import UserError, ValidationError
+from odoo.tools import frozendict
 
 from datetime import date
 
@@ -18,7 +19,7 @@ class AccountPartialReconcile(models.Model):
         index=True, required=True)
     full_reconcile_id = fields.Many2one(
         comodel_name='account.full.reconcile',
-        string="Full Reconcile", copy=False)
+        string="Full Reconcile", copy=False, index='btree_not_null')
     exchange_move_id = fields.Many2one(comodel_name='account.move', index='btree_not_null')
 
     # ==== Currency fields ====
@@ -53,9 +54,11 @@ class AccountPartialReconcile(models.Model):
     company_id = fields.Many2one(
         comodel_name='res.company',
         string="Company", store=True, readonly=False,
+        precompute=True,
         compute='_compute_company_id')
     max_date = fields.Date(
         string="Max Date of Matched Lines", store=True,
+        precompute=True,
         compute='_compute_max_date')
         # used to determine at which date this reconciliation needs to be shown on the aged receivable/payable reports
 
@@ -168,18 +171,19 @@ class AccountPartialReconcile(models.Model):
                 line2number[partial.debit_move_id.id] = partial.id
                 line2number[partial.credit_move_id.id] = partial.id
 
-        processed_aml_ids = []
-        with amls.move_id._check_balanced({'records': amls.move_id}):  # avoid checking the consistency for each individual write
-            for min_partial_id, line_ids in number2lines.items():
-                min_partial = self.browse(min_partial_id)
-                lines = self.env['account.move.line'].browse(line_ids).with_context(skip_matching_number_check=True)
-                lines.matching_number = (
-                    str(min_partial.full_reconcile_id.id)
-                    if min_partial.full_reconcile_id else
-                    f"P{min_partial.id}"
-                )
-                processed_aml_ids.extend(line_ids)
-            self.env['account.move.line'].browse(set(amls.ids) - set(processed_aml_ids)).matching_number = False
+        amls.flush_recordset(['full_reconcile_id'])
+        self.env.cr.execute_values("""
+            UPDATE account_move_line l
+               SET matching_number = CASE
+                       WHEN l.full_reconcile_id IS NOT NULL THEN l.full_reconcile_id::text
+                       ELSE 'P' || source.number
+                   END
+              FROM (VALUES %s) AS source(number, ids)
+             WHERE l.id = ANY(source.ids)
+        """, list(number2lines.items()), page_size=1000)
+        processed_amls = self.env['account.move.line'].browse([_id for ids in number2lines.values() for _id in ids])
+        processed_amls.invalidate_recordset(['matching_number'])
+        (amls - processed_amls).matching_number = False
 
     # -------------------------------------------------------------------------
     # RECONCILIATION METHODS
@@ -268,12 +272,15 @@ class AccountPartialReconcile(models.Model):
                 if source_line.currency_id != counterpart_line.currency_id:
                     # When the invoice and the payment are not sharing the same foreign currency, the rate is computed
                     # on-the-fly using the payment date.
-                    payment_rate = self.env['res.currency']._get_conversion_rate(
-                        counterpart_line.company_currency_id,
-                        source_line.currency_id,
-                        counterpart_line.company_id,
-                        payment_date,
-                    )
+                    if 'forced_rate_from_register_payment' in self._context:
+                        payment_rate = self._context['forced_rate_from_register_payment']
+                    else:
+                        payment_rate = self.env['res.currency']._get_conversion_rate(
+                            counterpart_line.company_currency_id,
+                            source_line.currency_id,
+                            counterpart_line.company_id,
+                            payment_date,
+                        )
                 elif rate_amount:
                     payment_rate = rate_amount_currency / rate_amount
                 else:
@@ -322,6 +329,7 @@ class AccountPartialReconcile(models.Model):
             'account_id': account.id,
             'tax_ids': [Command.set(tax_ids.ids)],
             'tax_tag_ids': [Command.set(all_tags.ids)],
+            'analytic_distribution': base_line.analytic_distribution,
         }
 
     @api.model
@@ -341,6 +349,7 @@ class AccountPartialReconcile(models.Model):
             'amount_currency': -cb_base_line_vals['amount_currency'],
             'currency_id': cb_base_line_vals['currency_id'],
             'partner_id': cb_base_line_vals['partner_id'],
+            'analytic_distribution': cb_base_line_vals['analytic_distribution'],
         }
 
     @api.model
@@ -370,6 +379,7 @@ class AccountPartialReconcile(models.Model):
             'amount_currency': amount_currency,
             'currency_id': tax_line.currency_id.id,
             'partner_id': tax_line.partner_id.id,
+            'analytic_distribution': tax_line.analytic_distribution,
             # No need to set tax_tag_invert as on the base line; it will be computed from the repartition line
         }
 
@@ -391,6 +401,7 @@ class AccountPartialReconcile(models.Model):
             'amount_currency': -cb_tax_line_vals['amount_currency'],
             'currency_id': cb_tax_line_vals['currency_id'],
             'partner_id': cb_tax_line_vals['partner_id'],
+            'analytic_distribution': cb_tax_line_vals['analytic_distribution'],
         }
 
     @api.model
@@ -406,6 +417,7 @@ class AccountPartialReconcile(models.Model):
             base_line_vals['partner_id'],
             base_line_vals['account_id'],
             tuple(base_taxes.filtered(lambda x: x.tax_exigibility == 'on_payment').ids),
+            frozendict(base_line_vals['analytic_distribution'] or {}),
         )
 
     @api.model
@@ -420,6 +432,7 @@ class AccountPartialReconcile(models.Model):
             base_line.partner_id.id,
             (account or base_line.account_id).id,
             tuple(base_line.tax_ids.flatten_taxes_hierarchy().filtered(lambda x: x.tax_exigibility == 'on_payment').ids),
+            frozendict(base_line.analytic_distribution or {}),
         )
 
     @api.model
@@ -436,6 +449,7 @@ class AccountPartialReconcile(models.Model):
             tax_line_vals['account_id'],
             tuple(base_taxes.filtered(lambda x: x.tax_exigibility == 'on_payment').ids),
             tax_line_vals['tax_repartition_line_id'],
+            frozendict(tax_line_vals['analytic_distribution'] or {}),
         )
 
     @api.model
@@ -451,6 +465,7 @@ class AccountPartialReconcile(models.Model):
             (account or tax_line.account_id).id,
             tuple(tax_line.tax_ids.filtered(lambda x: x.tax_exigibility == 'on_payment').ids),
             tax_line.tax_repartition_line_id.id,
+            frozendict(tax_line.analytic_distribution or {}),
         )
 
     def _create_tax_cash_basis_moves(self):

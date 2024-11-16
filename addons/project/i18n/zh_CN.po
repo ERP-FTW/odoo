@@ -3,19 +3,20 @@
 # 	* project
 # 
 # Translators:
-# Wil Odoo, 2023
 # 山西清水欧度(QQ:54773801) <54773801@qq.com>, 2023
-# Jeffery CHEN <jeffery9@gmail.com>, 2023
 # 何彬 <vnsoft.he@gmail.com>, 2024
+# 湘子 南 <1360857908@qq.com>, 2024
 # Chloe Wang, 2024
+# Wil Odoo, 2024
+# Jeffery CHEN <jeffery9@gmail.com>, 2024
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 17.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-01-05 12:31+0000\n"
+"POT-Creation-Date: 2024-08-13 10:26+0000\n"
 "PO-Revision-Date: 2023-10-26 23:09+0000\n"
-"Last-Translator: Chloe Wang, 2024\n"
+"Last-Translator: Jeffery CHEN <jeffery9@gmail.com>, 2024\n"
 "Language-Team: Chinese (China) (https://app.transifex.com/odoo/teams/41243/zh_CN/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -758,7 +759,7 @@ msgstr "添加有关此任务的详细信息..."
 #. module: project
 #: model:ir.model.fields,help:project.field_project_share_wizard__note
 msgid "Add extra content to display in the email"
-msgstr "添加额外内容以显示在电邮中"
+msgstr "添加额外内容以显示在电子邮件中"
 
 #. module: project
 #. odoo-javascript
@@ -849,6 +850,7 @@ msgid "Allocated Time"
 msgstr "已分配时间"
 
 #. module: project
+#: model_terms:ir.ui.view,arch_db:project.portal_my_task
 #: model_terms:ir.ui.view,arch_db:project.portal_my_task_allocated_hours_template
 msgid "Allocated Time:"
 msgstr "已分配时间："
@@ -1006,8 +1008,6 @@ msgid "Assigned to"
 msgstr "指派给"
 
 #. module: project
-#. odoo-python
-#: code:addons/project/controllers/portal.py:0
 #: model:ir.model.fields,field_description:project.field_project_task__user_ids
 #: model:ir.model.fields,field_description:project.field_project_task_burndown_chart_report__user_ids
 #: model:ir.model.fields,field_description:project.field_report_project_task_user__user_ids
@@ -1015,7 +1015,6 @@ msgstr "指派给"
 #: model_terms:ir.ui.view,arch_db:project.project_sharing_project_task_view_form
 #: model_terms:ir.ui.view,arch_db:project.project_sharing_project_task_view_tree
 #: model_terms:ir.ui.view,arch_db:project.view_task_search_form_base
-#, python-format
 msgid "Assignees"
 msgstr "受托人"
 
@@ -1634,7 +1633,7 @@ msgid ""
 "Customers propose feedbacks by email; Odoo creates tasks automatically, and you can\n"
 "      communicate on the task directly."
 msgstr ""
-"客户通过电子邮件提出反馈意见；Odoo 自动创建任务，您可以\n"
+"客户通过电子邮件提出反馈意见；ERP 自动创建任务，您可以\n"
 "      直接就任务进行沟通。"
 
 #. module: project
@@ -1965,7 +1964,7 @@ msgstr "草稿"
 msgid ""
 "Each user should have at least one personal stage. Create a new stage to "
 "which the tasks can be transferred after the selected ones are deleted."
-msgstr "每个用户至少应有一个个人阶段。创建一个新阶段，删除选定任务后可将任务转移到该阶段。"
+msgstr "每个用户至少应有一个个人阶段。创建一个新阶段，删除选定任务后可将任务调拨到该阶段。"
 
 #. module: project
 #: model:ir.model.fields.selection,name:project.selection__project_share_wizard__access_mode__edit
@@ -2008,6 +2007,11 @@ msgstr "从该任务中收到的电子邮件的抄送地址，且当前未与现
 #: model:ir.model.fields,field_description:project.field_project_update__email_cc
 msgid "Email cc"
 msgstr "邮件抄送"
+
+#. module: project
+#: model:ir.model.fields,help:project.field_project_project__alias_domain
+msgid "Email domain e.g. 'example.com' in 'odoo@example.com'"
+msgstr "电子邮件域名，例如 'odoo@example.com' 中的 'example.com'"
 
 #. module: project
 #: model_terms:digest.tip,tip_description:project.digest_tip_project_1
@@ -2441,7 +2445,7 @@ msgstr "和这个项目相关的内部邮件。收件会自动同步为任务（
 #: code:addons/project/static/src/project_sharing/components/chatter/chatter_messages.xml:0
 #, python-format
 msgid "Internal notes are only displayed to internal users."
-msgstr "内部注释仅向内部用户显示."
+msgstr "内部说明仅向内部用户显示."
 
 #. module: project
 #. odoo-python
@@ -3026,6 +3030,13 @@ msgid "Next Activity"
 msgstr "下一个活动"
 
 #. module: project
+#: model:ir.model.fields,field_description:project.field_project_project__activity_calendar_event_id
+#: model:ir.model.fields,field_description:project.field_project_task__activity_calendar_event_id
+#: model:ir.model.fields,field_description:project.field_project_update__activity_calendar_event_id
+msgid "Next Activity Calendar Event"
+msgstr "下一活动日历事件"
+
+#. module: project
 #: model:ir.model.fields,field_description:project.field_project_project__activity_date_deadline
 #: model:ir.model.fields,field_description:project.field_project_task__activity_date_deadline
 #: model:ir.model.fields,field_description:project.field_project_update__activity_date_deadline
@@ -3232,6 +3243,13 @@ msgid "Once a Month"
 msgstr "一个月一次"
 
 #. module: project
+#. odoo-python
+#: code:addons/project/controllers/portal.py:0
+#, python-format
+msgid "Only jpeg, png, bmp and tiff images are allowed as attachments."
+msgstr "只接受 jpeg、png、bmp 和 tiff 图像作为附件。"
+
+#. module: project
 #. odoo-javascript
 #: code:addons/project/static/src/project_sharing/components/chatter/chatter_composer.xml:0
 #, python-format
@@ -3241,7 +3259,7 @@ msgstr "出错。请尝试重新加载页面并登录。"
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_project__open_task_count
 msgid "Open Task Count"
-msgstr ""
+msgstr "开放任务计数"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_digest_digest__kpi_project_task_opened
@@ -3497,7 +3515,7 @@ msgstr "优先级"
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.portal_my_tasks_priority_widget_template
 msgid "Priority: {{'Important' if task.priority == '1' else 'Normal'}}"
-msgstr "Priority: {{'Important' if task.priority == '1' else 'Normal'}}"
+msgstr "优先级: {{'Important' if task.priority == '1' else 'Normal'}}"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_project__privacy_visibility_warning
@@ -4053,6 +4071,20 @@ msgstr "短信发送错误"
 #: model_terms:ir.ui.view,arch_db:project.view_task_kanban
 msgid "Sad face"
 msgstr "悲伤的表情"
+
+#. module: project
+#. odoo-javascript
+#: code:addons/project/static/src/project_sharing/views/form/project_sharing_form_controller.js:0
+#, python-format
+msgid "Save the task to be able to drag images in description"
+msgstr "保存任务，以便在“说明”中拖动图片"
+
+#. module: project
+#. odoo-javascript
+#: code:addons/project/static/src/project_sharing/views/form/project_sharing_form_controller.js:0
+#, python-format
+msgid "Save the task to be able to paste images in description"
+msgstr "保存任务，以便在描述中粘贴图片"
 
 #. module: project
 #. odoo-javascript
@@ -4658,6 +4690,7 @@ msgstr "任务：要求评分"
 #. odoo-python
 #: code:addons/project/models/project_project.py:0
 #: code:addons/project/models/project_project.py:0
+#: code:addons/project/models/project_project.py:0
 #: model:ir.actions.act_window,name:project.act_project_project_2_project_task_all
 #: model:ir.actions.act_window,name:project.action_view_task
 #: model:ir.actions.act_window,name:project.action_view_task_from_milestone
@@ -4747,6 +4780,14 @@ msgstr "当前用户的个人任务阶段。"
 
 #. module: project
 #. odoo-python
+#: code:addons/project/controllers/portal.py:0
+#, python-format
+msgid ""
+"The document does not exist or you do not have the rights to access it."
+msgstr "该文档不存在或您无权访问。"
+
+#. module: project
+#. odoo-python
 #: code:addons/project/models/project_task_recurrence.py:0
 #, python-format
 msgid "The end date should be in the future"
@@ -4776,14 +4817,14 @@ msgid ""
 " email that does not reply to an existing record will cause the creation of "
 "a new record of this model (e.g. a Project Task)"
 msgstr ""
-"相应于这个别名对应的模型(Odoo单据种类)。任何一封不属于对某个已存在的记录的到来邮件，将导致此模块中新记录的创建(例如，一个新的项目任务)。"
+"相应于这个别名对应的模型(ERP 单据种类)。任何一封不属于对某个已存在的记录的到来电子邮件，将导致此模型中新记录的创建(例如，一个新的项目任务)."
 
 #. module: project
 #: model:ir.model.fields,help:project.field_project_project__alias_name
 msgid ""
 "The name of the email alias, e.g. 'jobs' if you want to catch emails for "
 "<jobs@example.odoo.com>"
-msgstr "邮件别名的名称，例如，如果您要收取 <jobs@example.odoo.com> 的EMail,别名就要设为：\"jobs\""
+msgstr "邮件别名的名称，例如，如果您要收取 <jobs@example.baidu.com> 的EMail,别名就要设为：\"jobs\""
 
 #. module: project
 #. odoo-python
@@ -5269,19 +5310,21 @@ msgstr "利用聊天工具<b>发送电子邮件</b> ，与客户进行高效沟�
 msgid ""
 "Use these keywords in the title to set new tasks:\n"
 "\n"
-"            #tags Set tags on the task\n"
-"            @user Assign the task to a user\n"
-"            ! Set the task a high priority\n"
+"        30h Allocate 30 hours to the task\n"
+"        #tags Set tags on the task\n"
+"        @user Assign the task to a user\n"
+"        ! Set the task a high priority\n"
 "\n"
-"            Make sure to use the right format and order e.g. Improve the configuration screen #feature #v16 @Mitchell !"
+"        Make sure to use the right format and order e.g. Improve the configuration screen 5h #feature #v16 @Mitchell !"
 msgstr ""
-"在标题中使用这些关键字来设置新任务： \n"
+"在标题中使用这些关键字来设置新任务：\n"
 "\n"
-"#tags 为任务设置标签\n"
-"@user 将任务分配给某个用户 !\n"
-"! 将任务设置为高优先级\n"
+"        30h 为任务指派 30 小时\n"
+"        #tags 为任务设置标签\n"
+"        @user 将任务指派给某个用户\n"
+"        ! 为任务设置高优先级\n"
 "\n"
-"确保使用正确的格式和顺序，例如改进配置屏幕 #feature #v16 @Mitchell ！"
+"        确保格式和顺序正确 例如，改进配置屏幕，5h #feature #v16 @Mitchell !"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_task_stage_personal__user_id
@@ -5760,6 +5803,13 @@ msgstr "状态，将任务标记为完成。"
 
 #. module: project
 #. odoo-javascript
+#: code:addons/project/static/src/project_sharing/components/chatter/chatter_composer.xml:0
+#, python-format
+msgid "state.message"
+msgstr "state.message"
+
+#. module: project
+#. odoo-javascript
 #: code:addons/project/static/src/components/project_task_name_with_subtask_count_char_field/project_task_name_with_subtask_count_char_field.xml:0
 #, python-format
 msgid "sub-tasks)"
@@ -5817,8 +5867,11 @@ msgstr "将创建任务在您的"
 
 #. module: project
 #: model:mail.template,subject:project.rating_project_request_email_template
-msgid "{{ object.project_id.company_id.name }}: Satisfaction Survey"
-msgstr "{{ object.project_id.company_id.name }}:满意度调查"
+msgid ""
+"{{ object.project_id.company_id.name or user.env.company.name }}: "
+"Satisfaction Survey"
+msgstr ""
+"{{ object.project_id.company_id.name or user.env.company.name }}: 满意度调查"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.view_task_kanban

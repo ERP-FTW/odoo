@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 17.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-01-05 12:31+0000\n"
+"POT-Creation-Date: 2024-01-29 10:44+0000\n"
 "PO-Revision-Date: 2023-10-26 23:09+0000\n"
 "Last-Translator: Thi Huong Nguyen, 2024\n"
 "Language-Team: Vietnamese (https://app.transifex.com/odoo/teams/41243/vi/)\n"
@@ -329,7 +329,7 @@ msgstr "Quy tắc khách hàng thân thiết"
 #: code:addons/pos_loyalty/static/src/overrides/components/product_screen/product_screen.xml:0
 #, python-format
 msgid "New Total"
-msgstr ""
+msgstr "Tổng mới"
 
 #. module: pos_loyalty
 #. odoo-javascript
@@ -347,21 +347,14 @@ msgstr "Không thể dùng phiếu giảm giá này để đổi thưởng."
 
 #. module: pos_loyalty
 #. odoo-javascript
-#: code:addons/pos_loyalty/static/src/app/control_buttons/reward_button/reward_button.js:0
-#, python-format
-msgid "No rewards available."
-msgstr "Không có phần thưởng nào."
-
-#. module: pos_loyalty
-#. odoo-javascript
-#: code:addons/pos_loyalty/static/src/js/ControlButtons/eWalletButton.js:0
+#: code:addons/pos_loyalty/static/src/app/control_buttons/e_wallet_button/e_wallet_button.js:0
 #, python-format
 msgid "No valid eWallet found"
-msgstr ""
+msgstr "Không tìm thấy ví điện tử hợp lệ nào"
 
 #. module: pos_loyalty
 #. odoo-javascript
-#: code:addons/pos_loyalty/static/src/js/ControlButtons/RewardButton.js:0
+#: code:addons/pos_loyalty/static/src/app/control_buttons/reward_button/reward_button.js:0
 #, python-format
 msgid "Please select a product for this reward"
 msgstr "Vui lòng chọn một sản phẩm cho phần thưởng này"
@@ -436,14 +429,14 @@ msgstr "Giá trị điểm"
 #: code:addons/pos_loyalty/static/src/overrides/components/product_screen/product_screen.xml:0
 #, python-format
 msgid "Points Spent"
-msgstr ""
+msgstr "Điểm đã dùng"
 
 #. module: pos_loyalty
 #. odoo-javascript
 #: code:addons/pos_loyalty/static/src/overrides/components/product_screen/product_screen.xml:0
 #, python-format
 msgid "Points Won"
-msgstr ""
+msgstr "Điểm đạt được"
 
 #. module: pos_loyalty
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_mail__pos_report_print_id
@@ -566,6 +559,20 @@ msgstr "Chương trình mã khuyến mại đó đã được kích hoạt."
 #. odoo-javascript
 #: code:addons/pos_loyalty/static/src/overrides/models/loyalty.js:0
 #, python-format
+msgid "That promo code program is expired."
+msgstr "Chương trình mã khuyến mại đó đã hết hạn."
+
+#. module: pos_loyalty
+#. odoo-javascript
+#: code:addons/pos_loyalty/static/src/overrides/models/loyalty.js:0
+#, python-format
+msgid "That promo code program is not yet valid."
+msgstr "Chương trình mã khuyến mại đó chưa có hiệu lực."
+
+#. module: pos_loyalty
+#. odoo-javascript
+#: code:addons/pos_loyalty/static/src/overrides/models/loyalty.js:0
+#, python-format
 msgid "That promo code program requires a specific pricelist."
 msgstr "Chương trình mã khuyến mãi đó yêu cầu một bảng giá cụ thể."
 
@@ -591,7 +598,7 @@ msgid ""
 "The report action to be executed when creating a coupon/gift card/loyalty "
 "card in the PoS."
 msgstr ""
-"Hành động báo cáo sẽ được thực thi khi tạo phiếu giảm giá/thẻ quà tặng/thẻ "
+"Tác vụ báo cáo sẽ được thực thi khi tạo phiếu giảm giá/thẻ quà tặng/thẻ "
 "khách hàng thân thiết trong POS."
 
 #. module: pos_loyalty
@@ -808,11 +815,11 @@ msgstr ""
 
 #. module: pos_loyalty
 #. odoo-javascript
-#: code:addons/pos_loyalty/static/src/js/ControlButtons/eWalletButton.js:0
+#: code:addons/pos_loyalty/static/src/app/control_buttons/e_wallet_button/e_wallet_button.js:0
 #, python-format
 msgid ""
 "You either have not created an eWallet or all your eWallets have expired."
-msgstr ""
+msgstr "Bạn chưa tạo Ví điện tử hoặc tất cả Ví điện tử của bạn đã hết hạn."
 
 #. module: pos_loyalty
 #. odoo-python

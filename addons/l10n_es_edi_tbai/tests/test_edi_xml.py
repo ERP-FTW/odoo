@@ -43,6 +43,18 @@ class TestEdiTbaiXmls(TestEsEdiTbaiCommon):
             xml_expected = etree.fromstring(super().L10N_ES_TBAI_SAMPLE_XML_POST)
             self.assertXmlTreeEqual(xml_doc, xml_expected)
 
+    def test_xml_tree_post_generic_sequence(self):
+        """Test TBAI on moves whose sequence does not contain a '/'"""
+        with freeze_time(self.frozen_today):
+            invoice = self.out_invoice.copy({
+                'name': 'INV01',
+                'invoice_date': date(2022, 1, 1),
+            })
+            xml_doc = self.edi_format._get_l10n_es_tbai_invoice_xml(invoice, cancel=False)[invoice]['xml_file']
+            xml_doc.remove(xml_doc.find("Signature", namespaces=NS_MAP))
+            xml_expected = etree.fromstring(super().L10N_ES_TBAI_SAMPLE_XML_POST)
+            self.assertXmlTreeEqual(xml_doc, xml_expected)
+
     def test_xml_tree_post_multicurrency(self):
         """Test of Customer Invoice XML. The invoice is not in company currency and has a line with a 100% discount"""
 
@@ -113,6 +125,20 @@ class TestEdiTbaiXmls(TestEsEdiTbaiCommon):
                         <OperacionEnRecargoDeEquivalenciaORegimenSimplificado>N</OperacionEnRecargoDeEquivalenciaORegimenSimplificado>
                       </DetalleIVA>
                     </DesgloseIVA>
+                </xpath>
+            """
+            xml_expected = self.with_applied_xpath(xml_expected_base, xpath)
+            self.assertXmlTreeEqual(xml_doc, xml_expected)
+
+    def test_xml_tree_post_retention(self):
+        self.out_invoice.invoice_line_ids.tax_ids = [(4, self._get_tax_by_xml_id('s_irpf15').id)]
+        with freeze_time(self.frozen_today):
+            xml_doc = self.edi_format._get_l10n_es_tbai_invoice_xml(self.out_invoice, cancel=False)[self.out_invoice]['xml_file']
+            xml_doc.remove(xml_doc.find("Signature", namespaces=NS_MAP))
+            xml_expected_base = etree.fromstring(super().L10N_ES_TBAI_SAMPLE_XML_POST)
+            xpath = """
+                <xpath expr="//ImporteTotalFactura" position="after">
+                    <RetencionSoportada>600.00</RetencionSoportada>
                 </xpath>
             """
             xml_expected = self.with_applied_xpath(xml_expected_base, xpath)

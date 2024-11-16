@@ -82,18 +82,6 @@ export class MassMailingWysiwyg extends Wysiwyg {
         }
     }
 
-    /**
-     * @override
-     */
-    setValue(currentValue) {
-        const initialDropZone = this.$editable[0].querySelector('.o_mail_wrapper_td');
-        const parsedHtml = new DOMParser().parseFromString(currentValue, "text/html");
-        if (initialDropZone && !parsedHtml.querySelector('.o_mail_wrapper_td')) {
-            initialDropZone.replaceChildren(...parsedHtml.body.childNodes);
-        } else {
-            super.setValue(...arguments);
-        }
-    }
     //--------------------------------------------------------------------------
     // Private
     //--------------------------------------------------------------------------
@@ -145,6 +133,15 @@ export class MassMailingWysiwyg extends Wysiwyg {
         if (isWithinBackgroundImage) {
             this.toolbarEl.querySelector('#create-link').classList.toggle('d-none', true);
         }
+    }
+
+    /**
+     * @override
+     */
+    _getEditorOptions() {
+        const options = super._getEditorOptions(...arguments);
+        const finalOptions = { autoActivateContentEditable: false, ...options };
+        return finalOptions;
     }
 }
 

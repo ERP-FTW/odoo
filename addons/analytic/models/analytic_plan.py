@@ -5,7 +5,7 @@ from random import randint
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
-from odoo.tools import ormcache
+from odoo.tools import ormcache, make_index_name, create_index
 
 
 class AccountAnalyticPlan(models.Model):
@@ -233,7 +233,12 @@ class AccountAnalyticPlan(models.Model):
         else:
             score = 0
             applicability = self.default_applicability
-            for applicability_rule in self.applicability_ids:
+            for applicability_rule in self.applicability_ids.filtered(
+                    lambda rule:
+                    not rule.company_id
+                    or not kwargs.get('company_id')
+                    or rule.company_id.id == kwargs.get('company_id')
+            ):
                 score_rule = applicability_rule._get_score(**kwargs)
                 if score_rule > score:
                     applicability = applicability_rule.applicability
@@ -246,7 +251,7 @@ class AccountAnalyticPlan(models.Model):
         return super().unlink()
 
     def _find_plan_column(self):
-        return self.env['ir.model.fields'].search([
+        return self.env['ir.model.fields'].sudo().search([
             ('name', 'in', [plan._strict_column_name() for plan in self]),
             ('model', '=', 'account.analytic.line'),
         ])
@@ -260,20 +265,27 @@ class AccountAnalyticPlan(models.Model):
             elif prev:
                 prev.field_description = plan.name
             elif not plan.parent_id:
-                self.env['ir.model.fields'].with_context(update_custom_fields=True).create({
-                    'name': plan._strict_column_name(),
+                column = plan._strict_column_name()
+                self.env['ir.model.fields'].with_context(update_custom_fields=True).sudo().create({
+                    'name': column,
                     'field_description': plan.name,
                     'state': 'manual',
                     'model': 'account.analytic.line',
                     'model_id': self.env['ir.model']._get_id('account.analytic.line'),
                     'ttype': 'many2one',
                     'relation': 'account.analytic.account',
+                    'store': True,
                 })
+                tablename = self.env['account.analytic.line']._table
+                indexname = make_index_name(tablename, column)
+                create_index(self.env.cr, indexname, tablename, [column], 'btree', f'{column} IS NOT NULL')
 
 
 class AccountAnalyticApplicability(models.Model):
     _name = 'account.analytic.applicability'
     _description = "Analytic Plan's Applicabilities"
+    _check_company_auto = True
+    _check_company_domain = models.check_company_domain_parent_of
 
     analytic_plan_id = fields.Many2one('account.analytic.plan')
     business_domain = fields.Selection(
@@ -300,7 +312,10 @@ class AccountAnalyticApplicability(models.Model):
     def _get_score(self, **kwargs):
         """ Gives the score of an applicability with the parameters of kwargs """
         self.ensure_one()
+        # 0.5 is because company is less important than other fields for an equal number of valid fields
+        # No company on the applicability and the kwargs together are not considered a more fitting rule
+        score = 0.5 if self.company_id and kwargs.get('company_id') else 0
         if not kwargs.get('business_domain'):
-            return 0
+            return score
         else:
-            return 1 if kwargs.get('business_domain') == self.business_domain else -1
+            return score + 1 if kwargs.get('business_domain') == self.business_domain else -1

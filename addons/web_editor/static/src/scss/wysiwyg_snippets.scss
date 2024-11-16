@@ -524,6 +524,10 @@
                 display: none; // remove ballon
             }
 
+            .fa {
+                font-size: $o-we-sidebar-font-size;
+            }
+
             .btn {
                 @extend %we-generic-button;
                 display: flex;
@@ -550,6 +554,10 @@
                 &:hover, &:focus {
                     background: $o-we-dropdown-item-bg-hover;
                     color: $o-we-dropdown-item-hover-color;
+                }
+                &.active {
+                    background: $o-we-dropdown-item-active-bg;
+                    color: $o-we-dropdown-item-active-color;
                 }
             }
 
@@ -605,11 +613,11 @@
                 }
                 .dropdown {
                     position: unset;
-                    width: -webkit-fill-available;
+                    width: 100%;
 
                     .dropdown-toggle {
                         padding: 0;
-                        width: inherit;
+                        width: 100%;
 
                         &::after {
                             display: none;
@@ -618,8 +626,17 @@
                     .dropdown-menu.show {
                         position: absolute !important;
                         padding: 0;
+                        width: 100%;
+                        border-color: $o-we-dropdown-border-color;
+
+                        &[data-popper-placement$="start"] {
+                            left: -$o-we-sidebar-content-padding-base !important;
+                        }
 
                         we-button:not(.fa) {
+                            display: flex;
+                            align-items: center;
+                            height: $o-we-sidebar-content-field-dropdown-item-height;
                             text-align: left;
                             font-family: $o-we-font-family;
                             font-size: 12px;
@@ -628,6 +645,10 @@
                             div {
                                 width: 100%;
                             }
+                        }
+
+                        .dropdown-item::before {
+                            display: none;
                         }
                     }
                 }
@@ -708,6 +729,8 @@
                     justify-content: space-between;
 
                     span {
+                        overflow: hidden;
+                        text-overflow: ellipsis;
                         color: white;
 
                         pre, blockquote {
@@ -855,8 +878,15 @@
 
         we-title {
             display: block;
-            text-transform: capitalize;
             text-align: left;
+        }
+
+        // TODO in master, remove the text-transform rule entirely and rely on
+        // developers writing their label with the intended "design". The
+        // "where" change here was added as a way to minimize the impact of this
+        // fix in stable. That CSS style was breaking translations.
+        we-title:where(:lang(en)) {
+            text-transform: capitalize;
         }
 
         we-customizeblock-options {
@@ -2253,7 +2283,7 @@ we-select.o_we_border_preview_aligned_select {
         transition: opacity 400ms linear 0s;
 
         &.o_overlay_hidden {
-            opacity: 0;
+            opacity: 0 !important;
             transition: none;
         }
         &.oe_active {
@@ -2413,6 +2443,7 @@ we-select.o_we_border_preview_aligned_select {
 
                 &.readonly {
                     cursor: default;
+                    pointer-events: none;
 
                     &.o_column_handle.o_side_y {
                         border: none;

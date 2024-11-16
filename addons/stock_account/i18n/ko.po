@@ -4,15 +4,16 @@
 # 
 # Translators:
 # Wil Odoo, 2023
-# Daye Jeong, 2023
+# Sarah Park, 2024
+# Daye Jeong, 2024
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 17.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-01-05 12:31+0000\n"
+"POT-Creation-Date: 2024-08-13 10:27+0000\n"
 "PO-Revision-Date: 2023-10-26 23:09+0000\n"
-"Last-Translator: Daye Jeong, 2023\n"
+"Last-Translator: Daye Jeong, 2024\n"
 "Language-Team: Korean (https://app.transifex.com/odoo/teams/41243/ko/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -613,7 +614,7 @@ msgstr "재평가 사유"
 #. module: stock_account
 #: model:ir.model.fields,field_description:stock_account.field_stock_valuation_layer__warehouse_id
 msgid "Receipt WH"
-msgstr ""
+msgstr "창고 입고"
 
 #. module: stock_account
 #: model:ir.model.fields,field_description:stock_account.field_stock_valuation_layer__reference
@@ -835,7 +836,7 @@ msgstr "이동 명세가 일관된 상태가 아닙니다. 동일한 출발지 �
 msgid ""
 "The value of a stock valuation layer cannot be negative. Landed cost could "
 "be use to correct a specific transfer."
-msgstr ""
+msgstr "주식 가치 평가값은 음수가 될 수 없습니다. 도입 원가를 사용하여 특정한 이전 항목을 수정해 보세요."
 
 #. module: stock_account
 #: model_terms:ir.actions.act_window,help:stock_account.inventory_aging_action
@@ -849,7 +850,7 @@ msgstr "평가 단계가 없습니다. 재고 평가에 영향을 미칠 수 있
 #. module: stock_account
 #: model_terms:ir.ui.view,arch_db:stock_account.stock_valuation_layer_tree
 msgid "Total Moved Quantity"
-msgstr ""
+msgstr "이동한 총 수량"
 
 #. module: stock_account
 #: model_terms:ir.ui.view,arch_db:stock_account.stock_valuation_layer_report_tree
@@ -1048,6 +1049,15 @@ msgid ""
 "You don't have any input valuation account defined on your product category."
 " You must define one before processing this operation."
 msgstr "제품 범주에 정의된 입고 평가 계정이 없습니다. 이 작업을 처리하기 전에 하나를 정의해야 합니다."
+
+#. module: stock_account
+#. odoo-python
+#: code:addons/stock_account/models/product.py:0
+#, python-format
+msgid ""
+"You don't have any output valuation account defined on your product "
+"category. You must define one before processing this operation."
+msgstr "품목 카테고리에 정의되어 있는 출고 평가 계정이 없습니다. 이 작업을 처리하기 전 항목을 설정해야 합니다."
 
 #. module: stock_account
 #. odoo-python

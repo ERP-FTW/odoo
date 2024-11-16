@@ -5,14 +5,15 @@
 # Translators:
 # Reinaldo Ramos <reinaldo.ramos@arxi.pt>, 2023
 # Wil Odoo, 2023
+# Rita Bastos, 2024
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 17.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-10-26 21:55+0000\n"
+"POT-Creation-Date: 2024-08-13 10:26+0000\n"
 "PO-Revision-Date: 2023-10-26 23:09+0000\n"
-"Last-Translator: Wil Odoo, 2023\n"
+"Last-Translator: Rita Bastos, 2024\n"
 "Language-Team: Portuguese (https://app.transifex.com/odoo/teams/41243/pt/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -256,7 +257,7 @@ msgstr "Encerrado A"
 #: model_terms:ir.ui.view,arch_db:project_todo.project_task_view_todo_conversion_form
 #, python-format
 msgid "Convert to Task"
-msgstr ""
+msgstr "Converter em Tarefa"
 
 #. module: project_todo
 #: model_terms:ir.ui.view,arch_db:project_todo.todo_user_onboarding
@@ -441,8 +442,8 @@ msgid "Todos"
 msgstr ""
 
 #. module: project_todo
-#. odoo-python
 #. odoo-javascript
+#. odoo-python
 #: code:addons/project_todo/models/project_task.py:0
 #: code:addons/project_todo/static/src/components/todo_editable_breadcrumb_name/todo_editable_breadcrumb_name.js:0
 #, python-format

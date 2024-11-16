@@ -2273,6 +2273,12 @@
     }
 
     let currentNode = null;
+    function saveCurrent() {
+        let n = currentNode;
+        return () => {
+            currentNode = n;
+        };
+    }
     function getCurrent() {
         if (!currentNode) {
             throw new OwlError("No active component (a hook function should only be called in 'setup')");
@@ -2601,42 +2607,47 @@
     }
 
     const TIMEOUT = Symbol("timeout");
+    const HOOK_TIMEOUT = {
+        onWillStart: 3000,
+        onWillUpdateProps: 3000,
+    };
     function wrapError(fn, hookName) {
-        const error = new OwlError(`The following error occurred in ${hookName}: `);
-        const timeoutError = new OwlError(`${hookName}'s promise hasn't resolved after 3 seconds`);
+        const error = new OwlError();
+        const timeoutError = new OwlError();
         const node = getCurrent();
         return (...args) => {
             const onError = (cause) => {
                 error.cause = cause;
-                if (cause instanceof Error) {
-                    error.message += `"${cause.message}"`;
-                }
-                else {
-                    error.message = `Something that is not an Error was thrown in ${hookName} (see this Error's "cause" property)`;
-                }
+                error.message =
+                    cause instanceof Error
+                        ? `The following error occurred in ${hookName}: "${cause.message}"`
+                        : `Something that is not an Error was thrown in ${hookName} (see this Error's "cause" property)`;
                 throw error;
             };
+            let result;
             try {
-                const result = fn(...args);
-                if (result instanceof Promise) {
-                    if (hookName === "onWillStart" || hookName === "onWillUpdateProps") {
-                        const fiber = node.fiber;
-                        Promise.race([
-                            result.catch(() => { }),
-                            new Promise((resolve) => setTimeout(() => resolve(TIMEOUT), 3000)),
-                        ]).then((res) => {
-                            if (res === TIMEOUT && node.fiber === fiber) {
-                                console.warn(timeoutError);
-                            }
-                        });
-                    }
-                    return result.catch(onError);
-                }
-                return result;
+                result = fn(...args);
             }
             catch (cause) {
                 onError(cause);
             }
+            if (!(result instanceof Promise)) {
+                return result;
+            }
+            const timeout = HOOK_TIMEOUT[hookName];
+            if (timeout) {
+                const fiber = node.fiber;
+                Promise.race([
+                    result.catch(() => { }),
+                    new Promise((resolve) => setTimeout(() => resolve(TIMEOUT), timeout)),
+                ]).then((res) => {
+                    if (res === TIMEOUT && node.fiber === fiber && node.status <= 2) {
+                        timeoutError.message = `${hookName}'s promise hasn't resolved after ${timeout / 1000} seconds`;
+                        console.log(timeoutError);
+                    }
+                });
+            }
+            return result.catch(onError);
         };
     }
     // -----------------------------------------------------------------------------
@@ -3189,7 +3200,7 @@
                         if (line[columnIndex]) {
                             msg +=
                                 `\nThe error might be located at xml line ${lineNumber} column ${columnIndex}\n` +
-                                    `${line}\n${"-".repeat(columnIndex - 1)}^`;
+                                `${line}\n${"-".repeat(columnIndex - 1)}^`;
                         }
                     }
                 }
@@ -3323,9 +3334,9 @@
      * only expressive enough to understand the shape of objects, of arrays, and
      * various operators.
      */
-    //------------------------------------------------------------------------------
-    // Misc types, constants and helpers
-    //------------------------------------------------------------------------------
+        //------------------------------------------------------------------------------
+        // Misc types, constants and helpers
+        //------------------------------------------------------------------------------
     const RESERVED_WORDS = "true,false,NaN,null,undefined,debugger,console,window,in,instanceof,new,function,return,eval,void,Math,RegExp,Array,Object,Date".split(",");
     const WORD_REPLACEMENT = Object.assign(Object.create(null), {
         and: "&&",
@@ -3515,7 +3526,7 @@
         const localVars = new Set();
         const tokens = tokenize(expr);
         let i = 0;
-        let stack = []; // to track last opening [ or {
+        let stack = []; // to track last opening (, [ or {
         while (i < tokens.length) {
             let token = tokens[i];
             let prevToken = tokens[i - 1];
@@ -3524,10 +3535,12 @@
             switch (token.type) {
                 case "LEFT_BRACE":
                 case "LEFT_BRACKET":
+                case "LEFT_PAREN":
                     stack.push(token.type);
                     break;
                 case "RIGHT_BRACE":
                 case "RIGHT_BRACKET":
+                case "RIGHT_PAREN":
                     stack.pop();
             }
             let isVar = token.type === "SYMBOL" && !RESERVED_WORDS.includes(token.value);
@@ -3638,6 +3651,13 @@
                 return key === "disabled";
         }
         return false;
+    }
+    /**
+     * Returns a template literal that evaluates to str. You can add interpolation
+     * sigils into the string if required
+     */
+    function toStringExpression(str) {
+        return `\`${str.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$\{/, "\\${")}\``;
     }
     // -----------------------------------------------------------------------------
     // BlockDescription
@@ -3819,15 +3839,14 @@
                 mainCode.push(``);
                 for (let block of this.blocks) {
                     if (block.dom) {
-                        let xmlString = block.asXmlString();
-                        xmlString = xmlString.replace(/\\/g, "\\\\").replace(/`/g, "\\`");
+                        let xmlString = toStringExpression(block.asXmlString());
                         if (block.dynamicTagName) {
-                            xmlString = xmlString.replace(/^<\w+/, `<\${tag || '${block.dom.nodeName}'}`);
-                            xmlString = xmlString.replace(/\w+>$/, `\${tag || '${block.dom.nodeName}'}>`);
-                            mainCode.push(`let ${block.blockName} = tag => createBlock(\`${xmlString}\`);`);
+                            xmlString = xmlString.replace(/^`<\w+/, `\`<\${tag || '${block.dom.nodeName}'}`);
+                            xmlString = xmlString.replace(/\w+>`$/, `\${tag || '${block.dom.nodeName}'}>\``);
+                            mainCode.push(`let ${block.blockName} = tag => createBlock(${xmlString});`);
                         }
                         else {
-                            mainCode.push(`let ${block.blockName} = createBlock(\`${xmlString}\`);`);
+                            mainCode.push(`let ${block.blockName} = createBlock(${xmlString});`);
                         }
                     }
                 }
@@ -3927,16 +3946,16 @@
             const mapping = new Map();
             return tokens
                 .map((tok) => {
-                if (tok.varName && !tok.isLocal) {
-                    if (!mapping.has(tok.varName)) {
-                        const varId = generateId("v");
-                        mapping.set(tok.varName, varId);
-                        this.define(varId, tok.value);
+                    if (tok.varName && !tok.isLocal) {
+                        if (!mapping.has(tok.varName)) {
+                            const varId = generateId("v");
+                            mapping.set(tok.varName, varId);
+                            this.define(varId, tok.value);
+                        }
+                        tok.value = mapping.get(tok.varName);
                     }
-                    tok.value = mapping.get(tok.varName);
-                }
-                return tok.value;
-            })
+                    return tok.value;
+                })
                 .join("");
         }
         translate(str) {
@@ -4005,7 +4024,7 @@
             const isNewBlock = !block || forceNewBlock;
             if (isNewBlock) {
                 block = this.createBlock(block, "comment", ctx);
-                this.insertBlock(`comment(\`${ast.value}\`)`, block, {
+                this.insertBlock(`comment(${toStringExpression(ast.value)})`, block, {
                     ...ctx,
                     forceNewBlock: forceNewBlock && !block,
                 });
@@ -4027,7 +4046,7 @@
             }
             if (!block || forceNewBlock) {
                 block = this.createBlock(block, "text", ctx);
-                this.insertBlock(`text(\`${value}\`)`, block, {
+                this.insertBlock(`text(${toStringExpression(value)})`, block, {
                     ...ctx,
                     forceNewBlock: forceNewBlock && !block,
                 });
@@ -4043,11 +4062,11 @@
                 .split(".")
                 .slice(1)
                 .map((m) => {
-                if (!MODS.has(m)) {
-                    throw new OwlError(`Unknown event modifier: '${m}'`);
-                }
-                return `"${m}"`;
-            });
+                    if (!MODS.has(m)) {
+                        throw new OwlError(`Unknown event modifier: '${m}'`);
+                    }
+                    return `"${m}"`;
+                });
             let modifiersCode = "";
             if (modifiers.length) {
                 modifiersCode = `${modifiers.join(",")}, `;
@@ -4248,7 +4267,8 @@
                 expr = compileExpr(ast.expr);
                 if (ast.defaultValue) {
                     this.helpers.add("withDefault");
-                    expr = `withDefault(${expr}, \`${ast.defaultValue}\`)`;
+                    // FIXME: defaultValue is not translated
+                    expr = `withDefault(${expr}, ${toStringExpression(ast.defaultValue)})`;
                 }
             }
             if (!block || forceNewBlock) {
@@ -4501,7 +4521,7 @@
                     this.addLine(`${ctxVar}[zero] = ${bl};`);
                 }
             }
-            const key = `key + \`${this.generateComponentKey()}\``;
+            const key = this.generateComponentKey();
             if (isDynamic) {
                 const templateVar = generateId("template");
                 if (!this.staticDefs.find((d) => d.id === "call")) {
@@ -4553,12 +4573,12 @@
             else {
                 let value;
                 if (ast.defaultValue) {
-                    const defaultValue = ctx.translate ? this.translate(ast.defaultValue) : ast.defaultValue;
+                    const defaultValue = toStringExpression(ctx.translate ? this.translate(ast.defaultValue) : ast.defaultValue);
                     if (ast.value) {
-                        value = `withDefault(${expr}, \`${defaultValue}\`)`;
+                        value = `withDefault(${expr}, ${defaultValue})`;
                     }
                     else {
-                        value = `\`${defaultValue}\``;
+                        value = defaultValue;
                     }
                 }
                 else {
@@ -4569,12 +4589,12 @@
             }
             return null;
         }
-        generateComponentKey() {
+        generateComponentKey(currentKey = "key") {
             const parts = [generateId("__")];
             for (let i = 0; i < this.target.loopLevel; i++) {
                 parts.push(`\${key${i + 1}}`);
             }
-            return parts.join("__");
+            return `${currentKey} + \`${parts.join("__")}\``;
         }
         /**
          * Formats a prop name and value into a string suitable to be inserted in the
@@ -4588,7 +4608,12 @@
          * "onClick.bind"    "onClick"        "onClick: bind(ctx, ctx['onClick'])"
          */
         formatProp(name, value) {
-            value = this.captureExpression(value);
+            if (name.endsWith(".translate")) {
+                value = toStringExpression(this.translateFn(value));
+            }
+            else {
+                value = this.captureExpression(value);
+            }
             if (name.includes(".")) {
                 let [_name, suffix] = name.split(".");
                 name = _name;
@@ -4597,6 +4622,7 @@
                         value = `(${value}).bind(this)`;
                         break;
                     case "alike":
+                    case "translate":
                         break;
                     default:
                         throw new OwlError("Invalid prop suffix");
@@ -4665,7 +4691,6 @@
                 this.addLine(`${propVar}.slots = markRaw(Object.assign(${slotDef}, ${propVar}.slots))`);
             }
             // cmap key
-            const key = this.generateComponentKey();
             let expr;
             if (ast.isDynamic) {
                 expr = generateId("Comp");
@@ -4681,7 +4706,7 @@
                 // todo: check the forcenewblock condition
                 this.insertAnchor(block);
             }
-            let keyArg = `key + \`${key}\``;
+            let keyArg = this.generateComponentKey();
             if (ctx.tKeyExpr) {
                 keyArg = `${ctx.tKeyExpr} + ${keyArg}`;
             }
@@ -4754,7 +4779,7 @@
             }
             let key = this.target.loopLevel ? `key${this.target.loopLevel}` : "key";
             if (isMultiple) {
-                key = `${key} + \`${this.generateComponentKey()}\``;
+                key = this.generateComponentKey(key);
             }
             const props = ast.attrs ? this.formatPropObject(ast.attrs) : [];
             const scope = this.getPropString(props, dynProps);
@@ -4795,7 +4820,6 @@
             }
             let { block } = ctx;
             const name = this.compileInNewTarget("slot", ast.content, ctx);
-            const key = this.generateComponentKey();
             let ctxStr = "ctx";
             if (this.target.loopLevel || !this.hasSafeContext) {
                 ctxStr = generateId("ctx");
@@ -4808,7 +4832,8 @@
                 expr: `app.createComponent(null, false, true, false, false)`,
             });
             const target = compileExpr(ast.target);
-            const blockString = `${id}({target: ${target},slots: {'default': {__render: ${name}.bind(this), __ctx: ${ctxStr}}}}, key + \`${key}\`, node, ctx, Portal)`;
+            const key = this.generateComponentKey();
+            const blockString = `${id}({target: ${target},slots: {'default': {__render: ${name}.bind(this), __ctx: ${ctxStr}}}}, ${key}, node, ctx, Portal)`;
             if (block) {
                 this.insertAnchor(block);
             }
@@ -5541,7 +5566,7 @@
     }
 
     // do not modify manually. This file is generated by the release script.
-    const version = "2.2.9";
+    const version = "2.4.1";
 
     // -----------------------------------------------------------------------------
     //  Scheduler
@@ -5552,6 +5577,7 @@
             this.frame = 0;
             this.delayedRenders = [];
             this.cancelledNodes = new Set();
+            this.processing = false;
             this.requestAnimationFrame = Scheduler.requestAnimationFrame;
         }
         addFiber(fiber) {
@@ -5582,6 +5608,10 @@
             }
         }
         processTasks() {
+            if (this.processing) {
+                return;
+            }
+            this.processing = true;
             this.frame = 0;
             for (let node of this.cancelledNodes) {
                 node._destroy();
@@ -5595,6 +5625,7 @@
                     this.tasks.delete(task);
                 }
             }
+            this.processing = false;
         }
         processFiber(fiber) {
             if (fiber.root !== fiber) {
@@ -5636,6 +5667,7 @@ See https://github.com/odoo/owl/blob/${hash}/doc/reference/app.md#configuration 
         constructor(Root, config = {}) {
             super(config);
             this.scheduler = new Scheduler();
+            this.subRoots = new Set();
             this.root = null;
             this.name = config.name || "";
             this.Root = Root;
@@ -5654,14 +5686,44 @@ See https://github.com/odoo/owl/blob/${hash}/doc/reference/app.md#configuration 
             this.props = config.props || {};
         }
         mount(target, options) {
-            App.validateTarget(target);
-            if (this.dev) {
-                validateProps(this.Root, this.props, { __owl__: { app: this } });
+            const root = this.createRoot(this.Root, { props: this.props });
+            this.root = root.node;
+            this.subRoots.delete(root.node);
+            return root.mount(target, options);
+        }
+        createRoot(Root, config = {}) {
+            const props = config.props || {};
+            // hack to make sure the sub root get the sub env if necessary. for owl 3,
+            // would be nice to rethink the initialization process to make sure that
+            // we can create a ComponentNode and give it explicitely the env, instead
+            // of looking it up in the app
+            const env = this.env;
+            if (config.env) {
+                this.env = config.env;
             }
-            const node = this.makeNode(this.Root, this.props);
-            const prom = this.mountNode(node, target, options);
-            this.root = node;
-            return prom;
+            const restore = saveCurrent();
+            const node = this.makeNode(Root, props);
+            restore();
+            if (config.env) {
+                this.env = env;
+            }
+            this.subRoots.add(node);
+            return {
+                node,
+                mount: (target, options) => {
+                    App.validateTarget(target);
+                    if (this.dev) {
+                        validateProps(Root, props, { __owl__: { app: this } });
+                    }
+                    const prom = this.mountNode(node, target, options);
+                    return prom;
+                },
+                destroy: () => {
+                    this.subRoots.delete(node);
+                    node.destroy();
+                    this.scheduler.processTasks();
+                },
+            };
         }
         makeNode(Component, props) {
             return new ComponentNode(Component, props, this, null, null);
@@ -5693,6 +5755,9 @@ See https://github.com/odoo/owl/blob/${hash}/doc/reference/app.md#configuration 
         }
         destroy() {
             if (this.root) {
+                for (let subroot of this.subRoots) {
+                    subroot.destroy();
+                }
                 this.root.destroy();
                 this.scheduler.processTasks();
             }
@@ -5972,6 +6037,7 @@ See https://github.com/odoo/owl/blob/${hash}/doc/reference/app.md#configuration 
     exports.EventBus = EventBus;
     exports.OwlError = OwlError;
     exports.__info__ = __info__;
+    exports.batched = batched;
     exports.blockDom = blockDom;
     exports.loadFile = loadFile;
     exports.markRaw = markRaw;
@@ -6006,8 +6072,8 @@ See https://github.com/odoo/owl/blob/${hash}/doc/reference/app.md#configuration 
     Object.defineProperty(exports, '__esModule', { value: true });
 
 
-    __info__.date = '2024-01-12T14:43:56.804Z';
-    __info__.hash = '7b3e39b';
+    __info__.date = '2024-10-31T09:42:30.824Z';
+    __info__.hash = 'b8d09e5';
     __info__.url = 'https://github.com/odoo/owl';
 
 

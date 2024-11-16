@@ -98,6 +98,9 @@ class AccountEdiFormat(models.Model):
                 error_message.append(_("- Transport document number and date is required when Transportation Mode is Rail,Air or Ship"))
         if error_message:
             error_message.insert(0, _("The following information are missing on the invoice (see eWayBill tab):"))
+        goods_lines = move.invoice_line_ids.filtered(lambda line: not (line.display_type in ('line_section', 'line_note', 'rounding') or line.product_id.type == "service"))
+        if not goods_lines:
+            error_message.append(_('You need at least one product having "Product Type" as stockable or consumable.'))
         if base == "irn":
             # already checked by E-invoice (l10n_in_edi) so no need to check
             return error_message
@@ -107,9 +110,7 @@ class AccountEdiFormat(models.Model):
         if not re.match("^.{1,16}$", is_purchase and move.ref or move.name):
             error_message.append(_("%s number should be set and not more than 16 characters",
                 (is_purchase and "Bill Reference" or "Invoice")))
-        goods_line_is_available = False
-        for line in move.invoice_line_ids.filtered(lambda line: not (line.display_type in ('line_section', 'line_note', 'rounding') or line.product_id.type == "service")):
-            goods_line_is_available = True
+        for line in goods_lines:
             if line.product_id:
                 hsn_code = self._l10n_in_edi_extract_digits(line.product_id.l10n_in_hsn_code)
                 if not hsn_code:
@@ -120,8 +121,6 @@ class AccountEdiFormat(models.Model):
                     ))
             else:
                 error_message.append(_("product is required to get HSN code"))
-        if not goods_line_is_available:
-            error_message.append(_('You need at least one product having "Product Type" as stockable or consumable.'))
         if error_message:
             error_message.insert(0, _("Impossible to send the Ewaybill."))
         return error_message
@@ -195,6 +194,12 @@ class AccountEdiFormat(models.Model):
             res[invoices] = inv_res
         return res
 
+    def _l10n_in_edi_ewaybill_handle_zero_distance_alert_if_present(self, invoice, response):
+        if invoice.l10n_in_distance == 0 and (alert := response.get("data", {}).get('alert')):
+            pattern = r", Distance between these two pincodes is \d+, "
+            if re.fullmatch(pattern, alert) and (distance := int(re.search(r'\d+', alert).group())) > 0:
+                invoice.l10n_in_distance = distance
+
     def _l10n_in_edi_ewaybill_irn_post_invoice_edi(self, invoices):
         response = {}
         res = {}
@@ -252,6 +257,22 @@ class AccountEdiFormat(models.Model):
             })
             inv_res = {"success": True, "attachment": attachment}
             res[invoices] = inv_res
+            body = Markup("""
+                <b>{}</b><br/>
+                <ul>
+                    <li>{}<i class="o-mail-Message-trackingSeparator fa fa-long-arrow-right mx-1 text-600"></i>{}</li>
+                    <li>{}<i class="o-mail-Message-trackingSeparator fa fa-long-arrow-right mx-1 text-600"></i>{}</li>
+                </ul>
+            """).format(
+                _('E-wayBill Sent'),
+                _('Number'),
+                str(response.get("data", {}).get('EwbNo')),
+                _('Validity'),
+                str(response.get("data", {}).get('EwbValidTill'))
+            )
+
+            invoices.message_post(body=body)
+            self._l10n_in_edi_ewaybill_handle_zero_distance_alert_if_present(invoices, response)
         return res
 
     def _l10n_in_edi_irn_ewaybill_generate_json(self, invoice):
@@ -336,6 +357,21 @@ class AccountEdiFormat(models.Model):
             })
             inv_res = {"success": True, "attachment": attachment}
             res[invoices] = inv_res
+            body = Markup("""
+                <b>{}</b><br/>
+                <ul>
+                    <li>{}<i class="o-mail-Message-trackingSeparator fa fa-long-arrow-right mx-1 text-600"></i>{}</li>
+                    <li>{}<i class="o-mail-Message-trackingSeparator fa fa-long-arrow-right mx-1 text-600"></i>{}</li>
+                </ul>
+            """).format(
+                _('E-wayBill Sent'),
+                _('Number'),
+                str(response.get("data", {}).get('ewayBillNo')),
+                _('Validity'),
+                str(response.get("data", {}).get('validUpto'))
+            )
+            invoices.message_post(body=body)
+            self._l10n_in_edi_ewaybill_handle_zero_distance_alert_if_present(invoices, response)
         return res
 
     def _l10n_in_edi_ewaybill_get_error_message(self, code):

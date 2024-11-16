@@ -4,15 +4,15 @@
 # 
 # Translators:
 # Wil Odoo, 2023
-# Malaz Abuidris <msea@odoo.com>, 2023
+# Malaz Abuidris <msea@odoo.com>, 2024
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 17.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-10-26 21:55+0000\n"
+"POT-Creation-Date: 2024-08-13 10:28+0000\n"
 "PO-Revision-Date: 2023-10-26 23:09+0000\n"
-"Last-Translator: Malaz Abuidris <msea@odoo.com>, 2023\n"
+"Last-Translator: Malaz Abuidris <msea@odoo.com>, 2024\n"
 "Language-Team: Arabic (https://app.transifex.com/odoo/teams/41243/ar/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -30,6 +30,12 @@ msgstr ""
 "'Order - %s' % (object.name)"
 
 #. module: sale_pdf_quote_builder
+#: model_terms:ir.ui.view,arch_db:sale_pdf_quote_builder.res_config_settings_view_form
+#: model_terms:ir.ui.view,arch_db:sale_pdf_quote_builder.sale_order_template_form
+msgid "<i class=\"fa fa-arrow-right\"/> Download examples"
+msgstr "<i class=\"fa fa-arrow-right\"/> تنزيل الأمثلة "
+
+#. module: sale_pdf_quote_builder
 #: model:ir.model.fields,help:sale_pdf_quote_builder.field_product_document__attached_on
 msgid ""
 "Allows you to share the document with your customers within a sale.\n"
@@ -38,15 +44,9 @@ msgid ""
 "e.g. this option can be useful to share Product description files.\n"
 "Confirmed order: the document will be sent to and accessible by customers.\n"
 "e.g. this option can be useful to share User Manual or digital content bought on ecommerce. \n"
-"Inside quote: The document will be included in the pdf of the quotation between the header pages and the quote table. "
+"Inside quote: The document will be included in the pdf of the quotation \n"
+"and sales order between the header pages and the quote table. "
 msgstr ""
-"يسمح لك بمشاركة المستند مع عملائك ضمن عملية بيع.\n"
-"اتركه فارغًا إذا كنت لا تريد مشاركة هذا المستند مع عميل المبيعات.\n"
-"عرض الأسعار: سيتم إرسال المستند إلى العملاء ويمكن الوصول إليهم في أي وقت.\n"
-"على سبيل المثال يمكن أن يكون هذا الخيار مفيدًا لمشاركة ملفات وصف المنتج.\n"
-"أمر مؤكد: سيتم إرسال الوثيقة إلى العملاء ويمكن الوصول إليها من قبلهم.\n"
-"على سبيل المثال يمكن أن يكون هذا الخيار مفيدًا لمشاركة دليل المستخدم أو المحتوى الرقمي الذي تم شراؤه عبر التجارة الإلكترونية.\n"
-"الاقتباس الداخلي: سيتم تضمين المستند في ملف pdf للاقتباس بين صفحات الرأس وجدول الاقتباس. "
 
 #. module: sale_pdf_quote_builder
 #: model:ir.model,name:sale_pdf_quote_builder.model_res_company
@@ -76,6 +76,22 @@ msgstr "صفحات الترويسة "
 #: model:ir.model.fields.selection,name:sale_pdf_quote_builder.selection__product_document__attached_on__inside
 msgid "Inside quote"
 msgstr "داخل عرض السعر "
+
+#. module: sale_pdf_quote_builder
+#. odoo-python
+#: code:addons/sale_pdf_quote_builder/utils.py:0
+#, python-format
+msgid ""
+"It seems that we're not able to process this pdf inside a quotation. It is "
+"either encrypted, or encoded in a format we do not support."
+msgstr ""
+"لم نتمكن من معالجة ملف PDF الموجود داخل عرض السعر. قد يكون مشفراً أو تم "
+"ترميزه بصيغة لا ندعمها. "
+
+#. module: sale_pdf_quote_builder
+#: model_terms:ir.ui.view,arch_db:sale_pdf_quote_builder.sale_order_template_form
+msgid "Learn more from the documentation."
+msgstr "اعرف المزيد من وثائق أودو. "
 
 #. module: sale_pdf_quote_builder
 #: model_terms:ir.ui.view,arch_db:sale_pdf_quote_builder.res_config_settings_view_form
@@ -129,12 +145,14 @@ msgid ""
 "Provide header pages and footer pages to compose an attractive quotation\n"
 "                            with more information about your company, your products and your services.\n"
 "                            The pdf of your quotes will be built by putting together header pages,\n"
-"                            product descriptions, details of the quote and then the footer pages."
+"                            product descriptions, details of the quote and then the footer pages.\n"
+"                            If empty, it will use those define in the company settings.<br/>"
 msgstr ""
 "احصل على صفحات ترويسية وصفحات تذييلية لإنشاء عروض أسعار جذابة\n"
 "                            بها المزيد من المعلومات حول شركتك ومنتجاتك وخدماتك.\n"
 "                            سيتم إنشاء ملف pdf لعروض أسعارك عن طريق تجميع الصفحات الترويسية\n"
-"                            وأوصاف المنتج وتفاصيل عرض السعر ثم صفحات التذييل. "
+"                            وأوصاف المنتج وتفاصيل عرض السعر ثم صفحات التذييل.\n"
+"                            إذا تم تركه فارغاً، سيتم استخدام المحدد في إعدادات الشركة.<br/>"
 
 #. module: sale_pdf_quote_builder
 #: model:ir.actions.report,name:sale_pdf_quote_builder.action_report_saleorder_raw
@@ -185,3 +203,12 @@ msgstr ""
 #: model:ir.model.fields,field_description:sale_pdf_quote_builder.field_product_document__attached_on
 msgid "Visible at"
 msgstr "مرئي في "
+
+#. module: sale_pdf_quote_builder
+#. odoo-python
+#: code:addons/sale_pdf_quote_builder/models/product_document.py:0
+#, python-format
+msgid "When attached inside a quote, the document must be a file, not a URL."
+msgstr ""
+"عندما يكون مرفقاً داخل عرض السعر، يجب أن يكون المستند عبارة عن ملف، وليس "
+"رابط URL. "

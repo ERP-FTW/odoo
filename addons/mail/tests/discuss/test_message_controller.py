@@ -265,6 +265,7 @@ class TestMessageController(HttpCaseWithUserDemo):
                         "thread_model": self.channel._name,
                         "thread_id": self.channel.id,
                         "emails": ["john@test.be"],
+                        'additional_values': {"john@test.be": {'phone': '123456789'}},
                     },
                 }
             ),
@@ -273,7 +274,7 @@ class TestMessageController(HttpCaseWithUserDemo):
         self.assertEqual(res3.status_code, 200)
         self.assertEqual(
             1,
-            self.env["res.partner"].search_count([('email', '=', "john@test.be")]),
+            self.env["res.partner"].search_count([('email', '=', "john@test.be"), ('phone', '=', "123456789")]),
             "authenticated users can create a partner from an email",
         )
         # should not create another partner with same email
@@ -309,6 +310,7 @@ class TestMessageController(HttpCaseWithUserDemo):
                         "post_data": {
                             "body": "test",
                             "partner_emails": ["john2@test.be"],
+                            "partner_additional_values": {"john2@test.be": {'phone': '123456789'}},
                         },
                     },
                 }
@@ -318,7 +320,7 @@ class TestMessageController(HttpCaseWithUserDemo):
         self.assertEqual(res5.status_code, 200)
         self.assertEqual(
             1,
-            self.env["res.partner"].search_count([('email', '=', "john2@test.be")]),
+            self.env["res.partner"].search_count([('email', '=', "john2@test.be"), ('phone', '=', "123456789")]),
             "authenticated users can create a partner from an email from message_post",
         )
         # should not create another partner with same email
@@ -359,32 +361,32 @@ class TestMessageController(HttpCaseWithUserDemo):
         res = self.url_open(
             url=f"/discuss/channel/{self.channel.id}/avatar_128?unique={self.channel._get_avatar_cache_key()}"
         )
-        self.assertEqual(res.headers["Cache-Control"], f"public, max-age={STATIC_CACHE_LONG}")
+        self.assertIn(f"max-age={STATIC_CACHE_LONG}", res.headers["Cache-Control"])
 
         res = self.url_open(
             url=f"/discuss/channel/{self.channel.id}/avatar_128"
         )
-        self.assertEqual(res.headers["Cache-Control"], "no-cache")
+        self.assertIn("no-cache", res.headers["Cache-Control"])
 
         res = self.url_open(
             url=f"/discuss/channel/{self.channel.id}/partner/{partner.id}/avatar_128?unique={partner.write_date.isoformat()}"
         )
-        self.assertEqual(res.headers["Cache-Control"], f"public, max-age={STATIC_CACHE_LONG}")
+        self.assertIn(f"max-age={STATIC_CACHE_LONG}", res.headers["Cache-Control"])
 
         res = self.url_open(
             url=f"/discuss/channel/{self.channel.id}/partner/{partner.id}/avatar_128"
         )
-        self.assertEqual(res.headers["Cache-Control"], "no-cache")
+        self.assertIn("no-cache", res.headers["Cache-Control"])
 
         res = self.url_open(
             url=f"/discuss/channel/{self.channel.id}/guest/{self.guest.id}/avatar_128?unique={self.guest.write_date.isoformat()}"
         )
-        self.assertEqual(res.headers["Cache-Control"], f"public, max-age={STATIC_CACHE_LONG}")
+        self.assertIn(f"max-age={STATIC_CACHE_LONG}", res.headers["Cache-Control"])
 
         res = self.url_open(
             url=f"/discuss/channel/{self.channel.id}/guest/{self.guest.id}/avatar_128"
         )
-        self.assertEqual(res.headers["Cache-Control"], "no-cache")
+        self.assertIn("no-cache", res.headers["Cache-Control"])
 
     def test_chatter_on_archived_record(self):
         self.authenticate("admin", "admin")

@@ -1050,9 +1050,13 @@ export class MockServer {
                         if (func === "array_agg") {
                             group[name] = records.map((r) => r[fieldName]);
                         } else {
-                            group[name] = 0;
-                            for (const r of records) {
-                                group[name] += r[fieldName];
+                            if (!records.length) {
+                                group[name] = false;
+                            } else {
+                                group[name] = 0;
+                                for (const r of records) {
+                                    group[name] += r[fieldName];
+                                }
                             }
                         }
                         break;
@@ -1128,7 +1132,7 @@ export class MockServer {
         }
 
         if (!groupBy.length) {
-            const group = { __count: records.length };
+            const group = { __count: records.length, __domain: kwargs.domain };
             aggregateFields(group, records);
             return [group];
         }
@@ -1327,6 +1331,9 @@ export class MockServer {
         for (const group of groups) {
             const records = this.getRecords(modelName, group.__domain || []);
             let groupByValue = group[groupBy]; // always technical value here
+            if (Array.isArray(groupByValue)) {
+                groupByValue = groupByValue[1];
+            }
 
             // special case for bool values: rpc call response with capitalized strings
             if (!(groupByValue in data)) {

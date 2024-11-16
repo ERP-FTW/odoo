@@ -9,6 +9,7 @@ import { Component, EventBus, onWillStart, useSubEnv, useState } from "@odoo/owl
 export class BomOverviewComponent extends Component {
     setup() {
         this.orm = useService("orm");
+        this.context = this.props.action.context;
         this.actionService = useService("action");
 
         this.variants = [];
@@ -48,7 +49,11 @@ export class BomOverviewComponent extends Component {
 
     async initBomData() {
         const variantId = this.props.action.context.active_product_id;
-        this.state.currentVariantId = variantId ? variantId : false;
+        const resModel = this.props.action.context.active_model;
+        this.state.currentVariantId = false;
+        if (resModel === 'product.product' && variantId !== undefined) {
+            this.state.currentVariantId = variantId;
+        }
 
         const bomData = await this.getBomData();
         this.state.bomQuantity = bomData["bom_qty"];
@@ -68,7 +73,10 @@ export class BomOverviewComponent extends Component {
             this.state.bomQuantity,
             this.state.currentVariantId,
         ];
-        const context = this.state.currentWarehouse ? { warehouse: this.state.currentWarehouse.id } : {};
+        const context = { ...this.context};
+        if (this.state.currentWarehouse) {
+            context.warehouse = this.state.currentWarehouse.id;
+        }
         const bomData = await this.orm.call(
             "report.mrp.report_bom_structure",
             "get_html",

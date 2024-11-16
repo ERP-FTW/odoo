@@ -6,8 +6,9 @@ from uuid import uuid4
 import pytz
 
 from odoo import api, fields, models, _, Command
+from odoo.http import request
 from odoo.osv.expression import OR, AND
-from odoo.exceptions import ValidationError, UserError
+from odoo.exceptions import AccessError, ValidationError, UserError
 
 
 class PosConfig(models.Model):
@@ -19,7 +20,7 @@ class PosConfig(models.Model):
         return self.env['stock.warehouse'].search(self.env['stock.warehouse']._check_company_domain(self.env.company), limit=1).id
 
     def _default_picking_type_id(self):
-        return self.env['stock.warehouse'].search(self.env['stock.warehouse']._check_company_domain(self.env.company), limit=1).pos_type_id.id
+        return self.env['stock.warehouse'].with_context(active_test=False).search(self.env['stock.warehouse']._check_company_domain(self.env.company), limit=1).pos_type_id.id
 
     def _default_sale_journal(self):
         return self.env['account.journal'].search([
@@ -182,7 +183,7 @@ class PosConfig(models.Model):
     auto_validate_terminal_payment = fields.Boolean(default=True, help="Automatically validates orders paid with a payment terminal.")
     trusted_config_ids = fields.Many2many("pos.config", relation="pos_config_trust_relation", column1="is_trusting",
                                           column2="is_trusted", string="Trusted Point of Sale Configurations",
-                                          domain="[('id', '!=', pos_config_id), ('module_pos_restaurant', '=', False)]")
+                                          domain="[('id', '!=', pos_config_id), ('module_pos_restaurant', '=', False), ('company_id', '=', company_id)]")
 
     @api.depends('payment_method_ids')
     def _compute_cash_control(self):
@@ -203,9 +204,9 @@ class PosConfig(models.Model):
     def _compute_currency(self):
         for pos_config in self:
             if pos_config.journal_id:
-                pos_config.currency_id = pos_config.journal_id.currency_id.id or pos_config.journal_id.company_id.currency_id.id
+                pos_config.currency_id = pos_config.journal_id.currency_id.id or pos_config.journal_id.company_id.sudo().currency_id.id
             else:
-                pos_config.currency_id = pos_config.company_id.currency_id.id
+                pos_config.currency_id = pos_config.company_id.sudo().currency_id.id
 
     @api.depends('session_ids', 'session_ids.state')
     def _compute_current_session(self):
@@ -303,7 +304,7 @@ class PosConfig(models.Model):
                 if pm.journal_id and pm.journal_id.currency_id and pm.journal_id.currency_id != config.currency_id:
                     raise ValidationError(_("All payment methods must be in the same currency as the Sales Journal or the company currency if that is not set."))
 
-            if config.use_pricelist and config.pricelist_id and any(config.available_pricelist_ids.mapped(lambda pricelist: pricelist.currency_id != config.currency_id)):
+            if config.use_pricelist and any(config.available_pricelist_ids.mapped(lambda pricelist: pricelist.currency_id != config.currency_id)):
                 raise ValidationError(_("All available pricelists must be in the same currency as the company or"
                                         " as the Sales Journal set on this point of sale if you use"
                                         " the Accounting application."))
@@ -368,9 +369,14 @@ class PosConfig(models.Model):
             else:
                 config.display_name = f"{config.name} ({last_session.user_id.name})"
 
+    def _check_header_footer(self, values):
+        if not self.env.is_admin() and {'is_header_or_footer', 'receipt_header', 'receipt_footer'} & values.keys():
+            raise AccessError(_('Only administrators can edit receipt headers and footers'))
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            self._check_header_footer(vals)
             IrSequence = self.env['ir.sequence'].sudo()
             val = {
                 'name': _('POS Order %s', vals['name']),
@@ -405,6 +411,7 @@ class PosConfig(models.Model):
             prepa_printers_menuitem.active = self.sudo().env['pos.config'].search_count([('is_order_printer', '=', True)], limit=1) > 0
 
     def write(self, vals):
+        self._check_header_footer(vals)
         self._reset_default_on_vals(vals)
         if ('is_order_printer' in vals and not vals['is_order_printer']):
             vals['printer_ids'] = [fields.Command.clear()]
@@ -564,9 +571,13 @@ class PosConfig(models.Model):
         if not self.current_session_id:
             self.env['pos.session'].create({'user_id': self.env.uid, 'config_id': self.id})
         path = '/pos/web' if self._force_http() else '/pos/ui'
+        pos_url = path + '?config_id=%d' % self.id
+        debug = request and request.session.debug
+        if debug:
+            pos_url += '&debug=%s' % debug
         return {
             'type': 'ir.actions.act_url',
-            'url': path + '?config_id=%d' % self.id,
+            'url': pos_url,
             'target': 'self',
         }
 
@@ -813,6 +824,10 @@ class PosConfig(models.Model):
             return int(config_param)
         except (TypeError, ValueError, OverflowError):
             return default_limit
+
+    def toggle_images(self, for_products, for_categories):
+        self.env['ir.config_parameter'].sudo().set_param('point_of_sale.show_product_images', for_products)
+        self.env['ir.config_parameter'].sudo().set_param('point_of_sale.show_category_images', for_categories)
 
     def get_limited_partners_loading(self):
         self.env.cr.execute("""

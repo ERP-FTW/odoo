@@ -79,7 +79,14 @@ export function makeFakeRPCService(mockRPC) {
                             env.bus.trigger("RPC:RESPONSE", { data, settings, result });
                             resolve(result);
                         })
-                        .catch(reject);
+                        .catch((error) => {
+                            env.bus.trigger("RPC:RESPONSE", {
+                                data,
+                                settings,
+                                error,
+                            });
+                            reject(error);
+                        });
                 });
                 rpcProm.abort = (rejectError = true) => {
                     if (rejectError) {
@@ -251,11 +258,12 @@ export function makeFakeNotificationService(mock) {
     };
 }
 
-export function makeFakeDialogService(addDialog) {
+export function makeFakeDialogService(addDialog, closeAllDialog) {
     return {
         start() {
             return {
                 add: addDialog || (() => () => {}),
+                closeAll: closeAllDialog || (() => () => {}),
             };
         },
     };

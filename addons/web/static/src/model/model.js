@@ -5,7 +5,7 @@ import { SEARCH_KEYS } from "@web/search/with_search/with_search";
 import { useSetupView } from "@web/views/view_hook";
 import { buildSampleORM } from "./sample_server";
 
-import { EventBus, onWillStart, onWillUpdateProps, useComponent } from "@odoo/owl";
+import { EventBus, onWillStart, onWillUpdateProps, status, useComponent } from "@odoo/owl";
 
 /**
  * @typedef {import("@web/search/search_model").SearchParams} SearchParams
@@ -120,6 +120,10 @@ export function useModelWithSampleData(ModelClass, params, options = {}) {
     }
     services.orm = services.orm || useService("orm");
 
+    if (!("isAlive" in params)) {
+        params.isAlive = () => status(component) !== "destroyed";
+    }
+
     const model = new ModelClass(component.env, params, services);
 
     useBus(
@@ -133,11 +137,9 @@ export function useModelWithSampleData(ModelClass, params, options = {}) {
 
     const globalState = component.props.globalState || {};
     const localState = component.props.state || {};
-    let useSampleModel = Boolean(
-        "useSampleModel" in globalState
-            ? globalState.useSampleModel
-            : component.props.useSampleModel
-    );
+    let useSampleModel =
+        component.props.useSampleModel &&
+        (!("useSampleModel" in globalState) || globalState.useSampleModel);
     model.useSampleModel = useSampleModel;
     const orm = model.orm;
     let sampleORM = localState.sampleORM;
@@ -179,7 +181,9 @@ export function useModelWithSampleData(ModelClass, params, options = {}) {
 
     useSetupView({
         getGlobalState() {
-            return { useSampleModel };
+            if (component.props.useSampleModel) {
+                return { useSampleModel };
+            }
         },
         getLocalState: () => {
             return { sampleORM };

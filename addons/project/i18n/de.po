@@ -3,17 +3,18 @@
 # 	* project
 # 
 # Translators:
-# Wil Odoo, 2023
-# Larissa Manderfeld, 2024
 # Felix Schubert <felix.schubert@go-erp.com>, 2024
+# Larissa Manderfeld, 2024
+# Wil Odoo, 2024
+# Thorsten Vocks <thorsten.vocks@openbig.org>, 2024
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 17.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-01-05 12:31+0000\n"
+"POT-Creation-Date: 2024-08-13 10:26+0000\n"
 "PO-Revision-Date: 2023-10-26 23:09+0000\n"
-"Last-Translator: Felix Schubert <felix.schubert@go-erp.com>, 2024\n"
+"Last-Translator: Thorsten Vocks <thorsten.vocks@openbig.org>, 2024\n"
 "Language-Team: German (https://app.transifex.com/odoo/teams/41243/de/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -189,7 +190,7 @@ msgstr "- erreicht am"
 #, python-format
 msgid "<b>Drag &amp; drop</b> the card to change your task from stage."
 msgstr ""
-"Verschieben Sie die Karte per <b>Drag-und-Drop</b> in eine andere Stufe."
+"Verschieben Sie die Karte per <b>Drag-und-Drop</b> in eine andere Phase."
 
 #. module: project
 #. odoo-javascript
@@ -338,10 +339,10 @@ msgstr ""
 "        <tr><td valign=\"top\" style=\"font-size: 13px;\">\n"
 "            Wir schätzen Ihr Feedback. Es hilft uns, uns kontinuierlich zu verbessern.\n"
 "            <t t-if=\"object.project_id.rating_status == 'stage'\">\n"
-"                <br><span style=\"margin: 0; font-size: 12px; opacity: 0.5; color: #454748;\">Diese Zufriedenheitsumfrage wurde versendet, weil Ihre Aufgabe in die Stufe <b t-out=\"object.stage_id.name or ''\">In Bearbeitung</b> verschoben wurde</span>\n"
+"                <br><span style=\"margin: 0; font-size: 12px; opacity: 0.5; color: #454748;\">Diese Zufriedenheitsumfrage wurde versendet, weil Ihre Aufgabe in die Phase <b t-out=\"object.stage_id.name or ''\">In Bearbeitung</b> verschoben wurde</span>\n"
 "            </t>\n"
 "            <t t-if=\"object.project_id.rating_status == 'periodic'\">\n"
-"                <br><span style=\"margin: 0; font-size: 12px; opacity: 0.5; color: #454748;\">Diese Zufriedenheitsumfrage wird <b t-out=\"object.project_id.rating_status_period or ''\">wöchentlich</b> versendet, solange die Aufgabe sich in der Stufe <b t-out=\"object.stage_id.name or ''\">In Bearbeitung</b> befindet.</span>\n"
+"                <br><span style=\"margin: 0; font-size: 12px; opacity: 0.5; color: #454748;\">Diese Zufriedenheitsumfrage wird <b t-out=\"object.project_id.rating_status_period or ''\">wöchentlich</b> versendet, solange die Aufgabe sich in der Phase <b t-out=\"object.stage_id.name or ''\">In Bearbeitung</b> befindet.</span>\n"
 "            </t>\n"
 "        </td></tr>\n"
 "        <tr><td><br>Mit freundlichen Grüßen</td></tr>\n"
@@ -384,7 +385,7 @@ msgstr ""
 "        <t t-out=\"user.signature or ''\">--<br>Mitchell Admin</t>\n"
 "    </t>\n"
 "</div>\n"
-"<br><span style=\"margin: 0px 0px 0px 0px; font-size: 12px; opacity: 0.5; color: #454748;\" groups=\"project.group_project_stages\">Sie erhalten diese E-Mail, weil Ihr Projekt in die nächste Stufe <b t-out=\"object.stage_id.name or ''\">Erledigt</b> verschoben wurde.</span>\n"
+"<br><span style=\"margin: 0px 0px 0px 0px; font-size: 12px; opacity: 0.5; color: #454748;\" groups=\"project.group_project_stages\">Sie erhalten diese E-Mail, weil Ihr Projekt in die nächste Phase <b t-out=\"object.stage_id.name or ''\">Erledigt</b> verschoben wurde.</span>\n"
 "            "
 
 #. module: project
@@ -464,7 +465,7 @@ msgstr "<i title=\"Private Task\" class=\"fa fa-lock\"/>"
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.portal_my_task
 msgid "<small class=\"text-end\">Stage:</small>"
-msgstr "<small class=\"text-end\">Stufe:</small>"
+msgstr "<small class=\"text-end\">Phase:</small>"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.portal_my_task
@@ -555,8 +556,8 @@ msgid ""
 msgstr ""
 "<span colspan=\"2\" class=\"text-muted o_row ps-1\">\n"
 "                                                    <i class=\"fa fa-lightbulb-o pe-2\"/>\n"
-"                                                    <span invisible=\"rating_status == 'periodic'\">Eine Bewertungsanfrage wird gesendet, sobald die Aufgabe eine Stufe erreicht, für die eine Bewertungsmailvorlage definiert ist.</span>\n"
-"                                                    <span invisible=\"rating_status == 'stage'\">Bewertungsanfragen werden gesendet, solange sich die Aufgabe in einer Stufe befindet, für die eine Bewertungsmailvorlage definiert ist.</span>\n"
+"                                                    <span invisible=\"rating_status == 'periodic'\">Eine Bewertungsanfrage wird gesendet, sobald die Aufgabe eine Phase erreicht, für die eine Bewertungsmailvorlage definiert ist.</span>\n"
+"                                                    <span invisible=\"rating_status == 'stage'\">Bewertungsanfragen werden gesendet, solange sich die Aufgabe in einer Phase befindet, für die eine Bewertungsmailvorlage definiert ist.</span>\n"
 "                                                </span>"
 
 #. module: project
@@ -626,7 +627,7 @@ msgid ""
 "A personal stage cannot be linked to a project because it is only visible to"
 " its corresponding user."
 msgstr ""
-"Eine persönliche Stufe kann nicht mit einem Projekt verknüpft werden, da sie"
+"Eine persönliche Phase kann nicht mit einem Projekt verknüpft werden, da sie"
 " nur für den entsprechenden Benutzer sichtbar ist."
 
 #. module: project
@@ -648,7 +649,7 @@ msgstr "Es besteht bereits ein Stichwort mit demselben Namen."
 #: model:ir.model.constraint,message:project.constraint_project_task_user_rel_project_personal_stage_unique
 msgid "A task can only have a single personal stage per user."
 msgstr ""
-"Eine Aufgabe kann nur eine einzige persönliche Stufe pro Benutzer haben."
+"Eine Aufgabe kann nur eine einzige persönliche Phase pro Benutzer haben."
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.edit_project
@@ -757,7 +758,7 @@ msgid ""
 "Add columns to organize your tasks into <b>stages</b> <i>e.g. New - In "
 "Progress - Done</i>."
 msgstr ""
-"Fügen Sie Spalten hinzu, um Ihre Aufgaben in verschiedenen <b>Stufen</b> zu "
+"Fügen Sie Spalten hinzu, um Ihre Aufgaben in verschiedenen <b>Phasen</b> zu "
 "organisieren <i>z. B. Neu - In Bearbeitung - Abgeschlossen</i>."
 
 #. module: project
@@ -866,6 +867,7 @@ msgid "Allocated Time"
 msgstr "Zugewiesene Zeit"
 
 #. module: project
+#: model_terms:ir.ui.view,arch_db:project.portal_my_task
 #: model_terms:ir.ui.view,arch_db:project.portal_my_task_allocated_hours_template
 msgid "Allocated Time:"
 msgstr "Zugewiesene Zeit:"
@@ -948,7 +950,7 @@ msgstr "Genehmigt"
 #: model_terms:ir.ui.view,arch_db:project.view_project_project_stage_delete_wizard
 #: model_terms:ir.ui.view,arch_db:project.view_project_task_type_delete_wizard
 msgid "Archive Stages"
-msgstr "Stufen archivieren"
+msgstr "Phasen archivieren"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.edit_project
@@ -973,7 +975,7 @@ msgstr "Sind Sie sicher, dass Sie fortfahren möchten?"
 #: model_terms:ir.ui.view,arch_db:project.view_project_project_stage_delete_wizard
 #: model_terms:ir.ui.view,arch_db:project.view_project_task_type_delete_wizard
 msgid "Are you sure you want to delete these stages?"
-msgstr "Sind Sie sicher, dass Sie diese Stufen löschen möchten?"
+msgstr "Sind Sie sicher, dass Sie diese Phasen löschen möchten?"
 
 #. module: project
 #. odoo-javascript
@@ -1005,7 +1007,7 @@ msgstr "Montage"
 #: code:addons/project/static/src/js/tours/project.js:0
 #, python-format
 msgid "Assign a responsible to your task"
-msgstr "Weisen Sie Ihrer Aufgabe einem Verantwortlichen zu"
+msgstr "Weisen Sie Ihrer Aufgabe einen Verantwortlichen zu"
 
 #. module: project
 #. odoo-javascript
@@ -1027,8 +1029,6 @@ msgid "Assigned to"
 msgstr "Zugewiesen an"
 
 #. module: project
-#. odoo-python
-#: code:addons/project/controllers/portal.py:0
 #: model:ir.model.fields,field_description:project.field_project_task__user_ids
 #: model:ir.model.fields,field_description:project.field_project_task_burndown_chart_report__user_ids
 #: model:ir.model.fields,field_description:project.field_report_project_task_user__user_ids
@@ -1036,7 +1036,6 @@ msgstr "Zugewiesen an"
 #: model_terms:ir.ui.view,arch_db:project.project_sharing_project_task_view_form
 #: model_terms:ir.ui.view,arch_db:project.project_sharing_project_task_view_tree
 #: model_terms:ir.ui.view,arch_db:project.view_task_search_form_base
-#, python-format
 msgid "Assignees"
 msgstr "Zugewiesen an"
 
@@ -1109,7 +1108,7 @@ msgid ""
 " * Good feedback from the customer will update the state to 'Approved' (green bullet).\n"
 " * Neutral or bad feedback will set the kanban state to 'Changes Requested' (orange bullet).\n"
 msgstr ""
-"Ändern Sie den Status automatisch, wenn der Kunde auf das Feedback für diese Stufe antwortet.\n"
+"Ändern Sie den Status automatisch, wenn der Kunde auf das Feedback für diese Phase antwortet.\n"
 "* Positives Feedback des Kunden aktualisiert den Status auf „Genehmigt“ (grüner Punkt).\n"
 "* Neutrales oder negatives Feedback setzt den Kanban-Status auf „Änderungen angefragt“ (roter Punkt).\n"
 
@@ -1198,7 +1197,7 @@ msgstr "Blockierend"
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.view_task_form2
 msgid "Blocking Tasks"
-msgstr "Blockierende Aufgaben"
+msgstr "Blockierte Aufgaben"
 
 #. module: project
 #. odoo-javascript
@@ -1348,9 +1347,9 @@ msgid ""
 "Rating when changing stage: an email will be automatically sent when the task reaches the stage on which the rating email template is set.\n"
 "Periodic rating: an email will be automatically sent at regular intervals as long as the task remains in the stage in which the rating email template is set."
 msgstr ""
-"Sammeln Sie Feedback von Ihren Kunden, indem Sie ihnen eine Bewertungsanfrage senden, wenn eine Aufgabe eine bestimmte Stufe erreicht. Definieren Sie dazu eine Bewertungs-E-Mail-Vorlage für die entsprechenden Stufen.\n"
-"Bewertung bei Stufenwechsel: Eine E-Mail wird automatisch gesendet, wenn die Aufgabe die Stufe erreicht, für die die E-Mail-Vorlage zur Bewertung festgelegt wurde.\n"
-"Regelmäßige Bewertung: Eine E-Mail wird automatisch in regelmäßigen Abständen versendet, solange sich die Aufgabe in der Stufe befindet, für die die E-Mail-Vorlage für die Bewertung festgelegt wurde."
+"Sammeln Sie Feedback von Ihren Kunden, indem Sie ihnen eine Bewertungsanfrage senden, wenn eine Aufgabe eine bestimmte Phase erreicht. Definieren Sie dazu eine Bewertungs-E-Mail-Vorlage für die entsprechenden Phasen.\n"
+"Bewertung bei Stufenwechsel: Eine E-Mail wird automatisch gesendet, wenn die Aufgabe die Phase erreicht, für die die E-Mail-Vorlage zur Bewertung festgelegt wurde.\n"
+"Regelmäßige Bewertung: Eine E-Mail wird automatisch in regelmäßigen Abständen versendet, solange sich die Aufgabe in der Phase befindet, für die die E-Mail-Vorlage für die Bewertung festgelegt wurde."
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_tags__color
@@ -1404,7 +1403,7 @@ msgstr "Konfiguration"
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.res_config_settings_view_form
 msgid "Configure Stages"
-msgstr "Stufen konfigurieren"
+msgstr "Phasen konfigurieren"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.view_project_project_stage_unarchive_wizard
@@ -1498,7 +1497,7 @@ msgstr "Ein Projekt erstellen"
 #. module: project
 #: model_terms:ir.actions.act_window,help:project.open_task_type_form_domain
 msgid "Create a new stage in the task pipeline"
-msgstr "Neue Stufe in der Aufgaben-Pipeline hinzufügen"
+msgstr "Neue Phase in der Aufgaben-Pipeline hinzufügen"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.project_project_view_form_simplified_footer
@@ -1712,7 +1711,7 @@ msgstr "Datum"
 #: code:addons/project/static/src/views/burndown_chart/burndown_chart_search_model.js:0
 #, python-format
 msgid "Date and Stage"
-msgstr "Datum und Stufe"
+msgstr "Datum und Phase"
 
 #. module: project
 #: model:ir.model.fields,help:project.field_project_task__date_last_stage_update
@@ -1721,7 +1720,7 @@ msgid ""
 "Based on this information you can identify tasks that are stalling and get statistics on the time it usually takes to move tasks from one stage/state to another."
 msgstr ""
 "Datum, an dem der Status Ihrer Aufgabe zuletzt geändert wurde.\n"
-"Anhand dieser Informationen können Sie Aufgaben identifizieren, die sich verzögern, und Statistiken über die Zeit erhalten, die normalerweise benötigt wird, um Aufgaben von einer Stufe/einem Status zur nächsten zu verschieben."
+"Anhand dieser Informationen können Sie Aufgaben identifizieren, die sich verzögern, und Statistiken über die Zeit erhalten, die normalerweise benötigt wird, um Aufgaben von einer Phase/einem Status zur nächsten zu verschieben."
 
 #. module: project
 #: model:ir.model.fields,help:project.field_project_project__date
@@ -1787,7 +1786,7 @@ msgid ""
 msgstr ""
 "Definieren Sie die Projektphasen von der Erstellung einer Aufgabe\n"
 "                bis zum Abschluss.\n"
-"                Mithilfe der Stufen können Sie den Fortschritt Ihres Projekts\n"
+"                Mithilfe der Phasen können Sie den Fortschritt Ihres Projekts\n"
 "                im Detail verfolgen."
 
 #. module: project
@@ -1841,7 +1840,7 @@ msgstr "Projektphase löschen"
 #: model_terms:ir.ui.view,arch_db:project.view_project_task_type_unarchive_wizard
 #, python-format
 msgid "Delete Stage"
-msgstr "Stufe löschen"
+msgstr "Phase löschen"
 
 #. module: project
 #. odoo-javascript
@@ -2036,8 +2035,8 @@ msgid ""
 "Each user should have at least one personal stage. Create a new stage to "
 "which the tasks can be transferred after the selected ones are deleted."
 msgstr ""
-"Jeder Benutzer sollte mindestens eine persönliche Stufe haben. Erstellen Sie"
-" eine neue Stufe, in die Aufgaben geschoben werden können, nachdem "
+"Jeder Benutzer sollte mindestens eine persönliche Phase haben. Erstellen Sie"
+" eine neue Phase, in die Aufgaben geschoben werden können, nachdem "
 "ausgewählte gelöscht wurden."
 
 #. module: project
@@ -2083,6 +2082,11 @@ msgstr ""
 #: model:ir.model.fields,field_description:project.field_project_update__email_cc
 msgid "Email cc"
 msgstr "E-Mail-CC"
+
+#. module: project
+#: model:ir.model.fields,help:project.field_project_project__alias_domain
+msgid "Email domain e.g. 'example.com' in 'odoo@example.com'"
+msgstr "E-Mail-Domain z. B. 'example.com' in 'odoo@example.com'"
 
 #. module: project
 #: model_terms:digest.tip,tip_description:project.digest_tip_project_1
@@ -2437,8 +2441,8 @@ msgid ""
 "If enabled, this stage will be displayed as folded in the Kanban view of "
 "your projects. Projects in a folded stage are considered as closed."
 msgstr ""
-"Wenn diese Option aktiviert ist, wird diese Stufe in der Kanban-Ansicht "
-"Ihrer Projekte eingeklappt. Projekte, die sich in einer eingeklappten Stufe "
+"Wenn diese Option aktiviert ist, wird diese Phase in der Kanban-Ansicht "
+"Ihrer Projekte eingeklappt. Projekte, die sich in einer eingeklappten Phase "
 "befinden, gelten als abgeschlossen."
 
 #. module: project
@@ -2448,8 +2452,8 @@ msgid ""
 "Alternatively, it will be sent at a regular interval as long as the task remains in this stage, depending on the configuration of your project. \n"
 "To use this feature make sure that the 'Customer Ratings' option is enabled on your project."
 msgstr ""
-"Wenn diese Option aktiviert ist, wird automatisch eine Bewertungsanfrage per E-Mail an den Kunden gesendet, wenn die Aufgabe diese Stufe erreicht. \n"
-"Alternativ wird sie in regelmäßigen Abständen gesendet, solange sich die Aufgabe in dieser Stufe befindet, je nach Konfiguration Ihres Projekts. \n"
+"Wenn diese Option aktiviert ist, wird automatisch eine Bewertungsanfrage per E-Mail an den Kunden gesendet, wenn die Aufgabe diese Phase erreicht. \n"
+"Alternativ wird sie in regelmäßigen Abständen gesendet, solange sich die Aufgabe in dieser Phase befindet, je nach Konfiguration Ihres Projekts. \n"
 "Um diese Funktion zu nutzen, müssen Sie sicherstellen, dass die Option „Kundenbewertungen“ in Ihrem Projekt aktiviert ist."
 
 #. module: project
@@ -2459,7 +2463,7 @@ msgid ""
 " reaches this stage."
 msgstr ""
 "Wenn diese Option aktiviert ist, wird automatisch eine E-Mail an den Kunden "
-"gesendet, wenn das Projekt diese Stufe erreicht."
+"gesendet, wenn das Projekt diese Phase erreicht."
 
 #. module: project
 #: model:ir.model.fields,help:project.field_project_task_type__mail_template_id
@@ -2468,7 +2472,7 @@ msgid ""
 "reaches this stage."
 msgstr ""
 "Wenn diese Option aktiviert ist, wird automatisch eine E-Mail an den Kunden "
-"gesendet, wenn die Aufgabe diese Stufe erreicht."
+"gesendet, wenn die Aufgabe diese Phase erreicht."
 
 #. module: project
 #: model:ir.model.fields,help:project.field_project_project__alias_bounced_content
@@ -2624,7 +2628,7 @@ msgstr "Ist Ein/Aus-Modus"
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.project_tags_search_view
 msgid "Issue Version"
-msgstr "Tichetversion"
+msgstr "Ticketversion"
 
 #. module: project
 #: model:ir.model.fields,help:project.field_project_task__duration_tracking
@@ -2672,7 +2676,7 @@ msgstr "Letzter Monat"
 #: model_terms:ir.ui.view,arch_db:project.view_task_search_form_base
 #, python-format
 msgid "Last Stage Update"
-msgstr "Letzte Stufenaktualisierung"
+msgstr "Letzte Phasenaktualisierung"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_project__last_update_id
@@ -2767,7 +2771,7 @@ msgstr "Erstellen Sie Ihr erstes <b>Projekt</b>."
 #: code:addons/project/static/src/js/tours/project.js:0
 #, python-format
 msgid "Let's create your first <b>stage</b>."
-msgstr "Erstellen Sie Ihre erste <b>Stufe</b>."
+msgstr "Erstellen Sie Ihre erste <b>Phase</b>."
 
 #. module: project
 #. odoo-javascript
@@ -2781,7 +2785,7 @@ msgstr "Erstellen Sie Ihre erste <b>Aufgabe</b>."
 #: code:addons/project/static/src/js/tours/project.js:0
 #, python-format
 msgid "Let's create your second <b>stage</b>."
-msgstr "Erstellen Sie Ihre zweite <b>Stufe</b>."
+msgstr "Erstellen Sie Ihre zweite <b>Phase</b>."
 
 #. module: project
 #. odoo-javascript
@@ -2896,7 +2900,7 @@ msgid ""
 "tasks reach a certain stage."
 msgstr ""
 "Messen Sie die Zufriedenheit Ihrer Kunden, indem Sie Bewertungsanfragen "
-"versenden, wenn Ihre Aufgaben eine bestimmte Stufe erreichen."
+"versenden, wenn Ihre Aufgaben eine bestimmte Phase erreichen."
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_project__favorite_user_ids
@@ -3138,6 +3142,13 @@ msgid "Next Activity"
 msgstr "Nächste Aktivität"
 
 #. module: project
+#: model:ir.model.fields,field_description:project.field_project_project__activity_calendar_event_id
+#: model:ir.model.fields,field_description:project.field_project_task__activity_calendar_event_id
+#: model:ir.model.fields,field_description:project.field_project_update__activity_calendar_event_id
+msgid "Next Activity Calendar Event"
+msgstr "Nächstes Aktivitätskalenderereignis"
+
+#. module: project
 #: model:ir.model.fields,field_description:project.field_project_project__activity_date_deadline
 #: model:ir.model.fields,field_description:project.field_project_task__activity_date_deadline
 #: model:ir.model.fields,field_description:project.field_project_update__activity_date_deadline
@@ -3214,7 +3225,7 @@ msgstr "Keine Projekte gefunden. Erstellen Sie eins!"
 #: model_terms:ir.actions.act_window,help:project.open_task_type_form
 #: model_terms:ir.actions.act_window,help:project.project_project_stage_configure
 msgid "No stages found. Let's create one!"
-msgstr "Keine Stufen gefunden. Erstellen Sie eine!"
+msgstr "Keine Phasen gefunden. Erstellen Sie eine!"
 
 #. module: project
 #: model_terms:ir.actions.act_window,help:project.project_tags_action
@@ -3344,6 +3355,13 @@ msgid "Once a Month"
 msgstr "Einmal pro Monat"
 
 #. module: project
+#. odoo-python
+#: code:addons/project/controllers/portal.py:0
+#, python-format
+msgid "Only jpeg, png, bmp and tiff images are allowed as attachments."
+msgstr "Nur jpeg-, png-, bmp- und tiff-Bilder sind als Anhänge erlaubt."
+
+#. module: project
 #. odoo-javascript
 #: code:addons/project/static/src/project_sharing/components/chatter/chatter_composer.xml:0
 #, python-format
@@ -3355,7 +3373,7 @@ msgstr ""
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_project__open_task_count
 msgid "Open Task Count"
-msgstr ""
+msgstr "Anzahl offener Aufgaben"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_digest_digest__kpi_project_task_opened
@@ -3520,17 +3538,17 @@ msgstr "Prozentsatz der zufriedenen Bewertungen"
 #: model_terms:ir.ui.view,arch_db:project.view_task_calendar
 #: model_terms:ir.ui.view,arch_db:project.view_task_form2
 msgid "Personal Stage"
-msgstr "Persönliche Stufe"
+msgstr "Persönliche Phase"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_task__personal_stage_id
 msgid "Personal Stage State"
-msgstr "Status der persönlichen Stufe"
+msgstr "Status der persönlichen Phase"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_task__personal_stage_type_ids
 msgid "Personal Stages"
-msgstr "Persönliche Stufen"
+msgstr "Persönliche Phasen"
 
 #. module: project
 #: model:ir.model,name:project.model_project_task_stage_personal
@@ -3902,8 +3920,8 @@ msgid ""
 " several projects, you can share this stage among them and get consolidated "
 "information this way."
 msgstr ""
-"Projekte, in denen diese Stufe vorhanden ist. Wenn Sie einen ähnlichen "
-"Arbeitsablauf in mehreren Projekten verfolgen, können Sie diese Stufe für "
+"Projekte, in denen diese Phase vorhanden ist. Wenn Sie einen ähnlichen "
+"Arbeitsablauf in mehreren Projekten verfolgen, können Sie diese Phase für "
 "alle Projekte freigeben und auf diese Weise zusammengeführte Informationen "
 "erhalten."
 
@@ -4197,6 +4215,23 @@ msgstr "Trauriges Gesicht"
 
 #. module: project
 #. odoo-javascript
+#: code:addons/project/static/src/project_sharing/views/form/project_sharing_form_controller.js:0
+#, python-format
+msgid "Save the task to be able to drag images in description"
+msgstr ""
+"Speichern Sie die Aufgabe, um Bilder in der Beschreibung platzieren zu "
+"können"
+
+#. module: project
+#. odoo-javascript
+#: code:addons/project/static/src/project_sharing/views/form/project_sharing_form_controller.js:0
+#, python-format
+msgid "Save the task to be able to paste images in description"
+msgstr ""
+"Speichern Sie die Aufgabe, um Bilder in die Beschreibung einfügen zu können"
+
+#. module: project
+#. odoo-javascript
 #: code:addons/project/static/src/js/tours/project.js:0
 #, python-format
 msgid "Schedule your activity once it is ready."
@@ -4287,7 +4322,7 @@ msgstr "In Ref. suchen"
 #: code:addons/project/controllers/portal.py:0
 #, python-format
 msgid "Search in Stages"
-msgstr "In Stufen suchen"
+msgstr "In Phasen suchen"
 
 #. module: project
 #. odoo-python
@@ -4341,7 +4376,7 @@ msgstr "Status festlegen"
 #: model_terms:ir.ui.view,arch_db:project.edit_project
 #: model_terms:ir.ui.view,arch_db:project.res_config_settings_view_form
 msgid "Set a Rating Email Template on Stages"
-msgstr "Bewertungs-E-Mail-Vorlage für Stufen festlegen"
+msgstr "Bewertungs-E-Mail-Vorlage für Phasen festlegen"
 
 #. module: project
 #: model:mail.template,description:project.project_done_email_template
@@ -4350,7 +4385,7 @@ msgid ""
 "stage"
 msgstr ""
 "Stellen Sie sie auf Projektphasen ein, um die Kunden zu informieren, wenn "
-"ein Projekt diese Stufe erreicht"
+"ein Projekt diese Phase erreicht"
 
 #. module: project
 #. odoo-javascript
@@ -4383,7 +4418,7 @@ msgid ""
 "stages"
 msgstr ""
 "Einstellung dieser Vorlage für eine Projektphase, um automatische E-Mails zu"
-" versenden, wenn Aufgaben bestimmte Stufen erreichen"
+" versenden, wenn Aufgaben bestimmte Phasen erreichen"
 
 #. module: project
 #: model:ir.actions.act_window,name:project.project_config_settings_action
@@ -4493,41 +4528,41 @@ msgstr "Sprint in Bearbeitung"
 #: model_terms:ir.ui.view,arch_db:project.view_task_search_form_base
 #, python-format
 msgid "Stage"
-msgstr "Stufe"
+msgstr "Phase"
 
 #. module: project
 #: model:mail.message.subtype,name:project.mt_task_stage
 msgid "Stage Changed"
-msgstr "Stufe geändert"
+msgstr "Phase geändert"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_task_type__user_id
 msgid "Stage Owner"
-msgstr "Stufenbesitzer"
+msgstr "Phasenbesitzer"
 
 #. module: project
 #: model:mail.message.subtype,description:project.mt_task_stage
 msgid "Stage changed"
-msgstr "Stufe geändert"
+msgstr "Phase geändert"
 
 #. module: project
 #. odoo-python
 #: code:addons/project/models/project_task.py:0
 #, python-format
 msgid "Stage: %s"
-msgstr "Stufe: %s"
+msgstr "Phase: %s"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_project_stage_delete_wizard__stages_active
 #: model:ir.model.fields,field_description:project.field_project_task_type_delete_wizard__stages_active
 msgid "Stages Active"
-msgstr "Aktive Stufen"
+msgstr "Aktive Phasen"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_project_stage_delete_wizard__stage_ids
 #: model:ir.model.fields,field_description:project.field_project_task_type_delete_wizard__stage_ids
 msgid "Stages To Delete"
-msgstr "Löschbare Stufen"
+msgstr "Löschbare Phasen"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.view_task_search_form_base
@@ -4811,6 +4846,7 @@ msgstr "Aufgabe: Bewertungsanfrage"
 #. odoo-python
 #: code:addons/project/models/project_project.py:0
 #: code:addons/project/models/project_project.py:0
+#: code:addons/project/models/project_project.py:0
 #: model:ir.actions.act_window,name:project.act_project_project_2_project_task_all
 #: model:ir.actions.act_window,name:project.action_view_task
 #: model:ir.actions.act_window,name:project.action_view_task_from_milestone
@@ -4891,12 +4927,20 @@ msgstr "Das Burndown-Diagramm muss gruppiert werden nach"
 #. module: project
 #: model:ir.model.fields,help:project.field_project_task__personal_stage_id
 msgid "The current user's personal stage."
-msgstr "Die persönliche Stufe des aktuellen Benutzers."
+msgstr "Die persönliche Phase des aktuellen Benutzers."
 
 #. module: project
 #: model:ir.model.fields,help:project.field_project_task__personal_stage_type_id
 msgid "The current user's personal task stage."
 msgstr "Die persönliche Aufgabenphase des aktuellen Benutzers."
+
+#. module: project
+#. odoo-python
+#: code:addons/project/controllers/portal.py:0
+#, python-format
+msgid ""
+"The document does not exist or you do not have the rights to access it."
+msgstr "Das Dokument existiert nicht oder Sie besitzen keine Zugriffsrechte."
 
 #. module: project
 #. odoo-python
@@ -5020,7 +5064,7 @@ msgstr ""
 #: code:addons/project/report/project_task_burndown_chart_report.py:0
 #, python-format
 msgid "The view must be grouped by date and by stage_id"
-msgstr "Die Ansicht muss nach Datum und Stufe gruppiert sein"
+msgstr "Die Ansicht muss nach Datum und Phase gruppiert sein"
 
 #. module: project
 #. odoo-javascript
@@ -5102,9 +5146,9 @@ msgid ""
 "update the company information for these records to align them under the "
 "same company."
 msgstr ""
-"Dieses Projekt ist mit %s verbunden, während die ausgewählte Stufe zu %s "
+"Dieses Projekt ist mit %s verbunden, während die ausgewählte Phase zu %s "
 "gehört. Es gibt mehrere Optionen: Entfernen Sie entweder die "
-"Unternehmensbezeichnung aus dem Projekt oder aus der Stufe. Alternativ "
+"Unternehmensbezeichnung aus dem Projekt oder aus der Phase. Alternativ "
 "können Sie die Unternehmensinformationen für diese Datensätze aktualisieren,"
 " um sie demselben Unternehmen zuzuordnen."
 
@@ -5118,10 +5162,10 @@ msgid ""
 "project's company to align with the stage's company or remove the company "
 "designation from the stage"
 msgstr ""
-"Dieses Projekt ist mit keinem Unternehmen verbunden, während die Stufe %s "
+"Dieses Projekt ist mit keinem Unternehmen verbunden, während die Phase %s "
 "zugeordnet ist. Es gibt mehrere Optionen: Entweder Sie ändern das "
-"Unternehmen des Projekts, um es an das Unternehmen der Stufe anzupassen, "
-"oder Sie entfernen die Unternehmensbezeichnung aus der Stufe"
+"Unternehmen des Projekts, um es an das Unternehmen der Phase anzupassen, "
+"oder Sie entfernen die Unternehmensbezeichnung aus der Phase"
 
 #. module: project
 #. odoo-javascript
@@ -5137,7 +5181,7 @@ msgid ""
 "This will archive the stages and all the tasks they contain from the "
 "following projects:"
 msgstr ""
-"Damit werden die Stufen und alle darin enthaltenen Aufgaben aus den "
+"Damit werden die Phasen und alle darin enthaltenen Aufgaben aus den "
 "folgenden Projekten archiviert:"
 
 #. module: project
@@ -5483,20 +5527,21 @@ msgstr ""
 msgid ""
 "Use these keywords in the title to set new tasks:\n"
 "\n"
-"            #tags Set tags on the task\n"
-"            @user Assign the task to a user\n"
-"            ! Set the task a high priority\n"
+"        30h Allocate 30 hours to the task\n"
+"        #tags Set tags on the task\n"
+"        @user Assign the task to a user\n"
+"        ! Set the task a high priority\n"
 "\n"
-"            Make sure to use the right format and order e.g. Improve the configuration screen #feature #v16 @Mitchell !"
+"        Make sure to use the right format and order e.g. Improve the configuration screen 5h #feature #v16 @Mitchell !"
 msgstr ""
 "Verwenden Sie diese Schlagwörter im Titel, um neue Aufgaben zu erstellen::\n"
 "\n"
-"            30 St. Der Aufgabe 30 Stunden zuteilen\n"
-"            #Stichwörter Stichwörter für Aufgabe festlegen\n"
-"            @Benutzer Die Aufgabe einem Benutzer zuweisen\n"
-"            ! Aufgabe als höchste Priorität einstellen\n"
+"        30 St. Der Aufgabe 30 Stunden zuteilen\n"
+"        #Stichwörter Stichwörter für Aufgabe festlegen\n"
+"        @Benutzer Die Aufgabe einem Benutzer zuweisen\n"
+"        ! Aufgabe als höchste Priorität einstellen\n"
 "\n"
-"            Stellen Sie sicher, dass Sie das richtige Format und die richtige Reihenfolge verwenden, z. B. Verbessern Sie den Konfigurationsbildschirm 5h #Funktion #v16 @Mitchell!"
+"        Stellen Sie sicher, dass Sie das richtige Format und die richtige Reihenfolge verwenden, z. B. Verbessern Sie den Konfigurationsbildschirm 5h #Funktion #v16 @Mitchell!"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_task_stage_personal__user_id
@@ -5513,7 +5558,7 @@ msgstr "Ansicht"
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.project_sharing_project_task_view_form
 msgid "View Task"
-msgstr "Aufgabe anzeigen"
+msgstr "Aufgaben ansehen"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.project_milestone_view_tree
@@ -5651,7 +5696,7 @@ msgid ""
 "Would you like to unarchive all of the projects contained in these stages as"
 " well?"
 msgstr ""
-"Möchten Sie die Archivierung aller Projekte, die sich in diesen Stufen "
+"Möchten Sie die Archivierung aller Projekte, die sich in diesen Phasen "
 "befinden, ebenfalls aufheben?"
 
 #. module: project
@@ -5660,7 +5705,7 @@ msgid ""
 "Would you like to unarchive all of the tasks contained in these stages as "
 "well?"
 msgstr ""
-"Möchten Sie die Archivierung aller Aufgaben, die sich in diesen Stufen "
+"Möchten Sie die Archivierung aller Aufgaben, die sich in diesen Phasen "
 "befinden, ebenfalls aufheben?"
 
 #. module: project
@@ -5699,9 +5744,9 @@ msgid ""
 "%(project_company_name)s. Please ensure that this stage exclusively consists"
 " of projects linked to %(company_name)s."
 msgstr ""
-"Sie können das Unternehmen dieser Stufe nicht auf %(company_name)s "
+"Sie können das Unternehmen dieser Phase nicht auf %(company_name)s "
 "umstellen, da sie derzeit Projekte enthält, die mit %(project_company_name)s"
-" verbunden sind. Bitte stellen Sie sicher, dass diese Stufe ausschließlich "
+" verbunden sind. Bitte stellen Sie sicher, dass diese Phase ausschließlich "
 "aus Projekten besteht, die mit %(company_name)s verbunden sind."
 
 #. module: project
@@ -5710,7 +5755,7 @@ msgstr ""
 #, python-format
 msgid "You can only set a personal stage on a private task."
 msgstr ""
-"Sie können eine persönliche Stufe nur bei einer privaten Aufgabe einstellen."
+"Sie können eine persönliche Phase nur bei einer privaten Aufgabe einstellen."
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.view_project_project_stage_delete_wizard
@@ -5718,7 +5763,7 @@ msgid ""
 "You cannot delete stages containing projects. You can either archive them or"
 " first delete all of their projects."
 msgstr ""
-"Sie können keine Stufen löschen, die Projekte enthalten. Sie können diese "
+"Sie können keine Phasen löschen, die Projekte enthalten. Sie können diese "
 "entweder archivieren oder zunächst alle ihre Projekte löschen."
 
 #. module: project
@@ -5727,7 +5772,7 @@ msgid ""
 "You cannot delete stages containing projects. You should first delete all of"
 " their projects."
 msgstr ""
-"Sie können keine Stufen löschen, die Projekte enthalten. Löschen Sie "
+"Sie können keine Phasen löschen, die Projekte enthalten. Löschen Sie "
 "zunächst alle ihre Projekte."
 
 #. module: project
@@ -5736,8 +5781,8 @@ msgid ""
 "You cannot delete stages containing tasks. You can either archive them or "
 "first delete all of their tasks."
 msgstr ""
-"Sie können keine Stufen löschen, die Aufgaben enthalten. Archivieren Sie die"
-" Stufen stattdessen oder löschen Sie zunächst alle enthaltenen Aufgaben."
+"Sie können keine Phasen löschen, die Aufgaben enthalten. Archivieren Sie die"
+" Phasen stattdessen oder löschen Sie zunächst alle enthaltenen Aufgaben."
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.view_project_task_type_delete_wizard
@@ -5745,7 +5790,7 @@ msgid ""
 "You cannot delete stages containing tasks. You should first delete all of "
 "their tasks."
 msgstr ""
-"Sie können keine Stufen löschen, die Aufgaben enthalten. Löschen Sie "
+"Sie können keine Phasen löschen, die Aufgaben enthalten. Löschen Sie "
 "zunächst die Aufgaben."
 
 #. module: project
@@ -5772,7 +5817,7 @@ msgstr "Sie wurden zugewiesen für %s"
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.project_message_user_assigned
 msgid "You have been assigned to the"
-msgstr "Ihnen wurde folgende Aufgabe zugewiesen"
+msgstr "Ihnen wurde folgende Aufgabe zugewiesen:"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.project_share_wizard_confirm_form
@@ -5941,7 +5986,7 @@ msgstr "."
 #: code:addons/project/static/src/project_sharing/components/chatter/chatter_composer.xml:0
 #, python-format
 msgid "logged in"
-msgstr "angemeldet sein"
+msgstr "angemeldet sein,"
 
 #. module: project
 #: model:ir.actions.server,name:project.action_server_view_my_task
@@ -5982,7 +6027,7 @@ msgstr ""
 msgid ""
 "state to inform your colleagues that a task is approved for the next stage."
 msgstr ""
-", um Ihre Kollegen zu informieren, dass eine Aufgabe für die nächste Stufe "
+", um Ihre Kollegen zu informieren, dass eine Aufgabe für die nächste Phase "
 "genehmigt wurde."
 
 #. module: project
@@ -5998,6 +6043,13 @@ msgstr ", um die Aufgabe als abgebrochen zu markieren."
 #, python-format
 msgid "state to mark the task as complete."
 msgstr ", um die Aufgabe als abgeschlossen zu markieren."
+
+#. module: project
+#. odoo-javascript
+#: code:addons/project/static/src/project_sharing/components/chatter/chatter_composer.xml:0
+#, python-format
+msgid "state.message"
+msgstr "state.message"
 
 #. module: project
 #. odoo-javascript
@@ -6032,7 +6084,7 @@ msgid ""
 "      ready for the next step."
 msgstr ""
 ", um zu bestimmen, ob das Projekt\n"
-"      bereit für die nächste Stufe ist."
+"      bereit für die nächste Phase ist."
 
 #. module: project
 #. odoo-javascript
@@ -6051,7 +6103,7 @@ msgstr ", um den aktuellen Status Ihrer Idee anzuzeigen."
 #. module: project
 #: model:ir.model.fields.selection,name:project.selection__project_project__rating_status__stage
 msgid "when reaching a given stage"
-msgstr "beim Erreichen einer bestimmten Stufe"
+msgstr "beim Erreichen einer bestimmten Phase"
 
 #. module: project
 #: model_terms:digest.tip,tip_description:project.digest_tip_project_1
@@ -6060,8 +6112,12 @@ msgstr "wird Aufgaben erstellen in Ihrem"
 
 #. module: project
 #: model:mail.template,subject:project.rating_project_request_email_template
-msgid "{{ object.project_id.company_id.name }}: Satisfaction Survey"
-msgstr "{{ object.project_id.company_id.name }}: Zufriedenheitsumfrage"
+msgid ""
+"{{ object.project_id.company_id.name or user.env.company.name }}: "
+"Satisfaction Survey"
+msgstr ""
+"{{ object.project_id.company_id.name or user.env.company.name }}: "
+"Zufriedenheitsumfrage"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.view_task_kanban

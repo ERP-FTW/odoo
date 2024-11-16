@@ -14,7 +14,7 @@ from odoo import exceptions
 from odoo.addons.mail.models.mail_thread import MailThread
 from odoo.addons.mail.tests.common import mail_new_test_user, MailCommon
 from odoo.addons.test_mail.data import test_mail_data
-from odoo.addons.test_mail.data.test_mail_data import MAIL_TEMPLATE
+from odoo.addons.test_mail.data.test_mail_data import MAIL_TEMPLATE, THAI_EMAIL_WINDOWS_874
 from odoo.addons.test_mail.models.test_mail_models import MailTestGateway
 from odoo.sql_db import Cursor
 from odoo.tests import tagged, RecordCapturer
@@ -1076,6 +1076,22 @@ class TestMailgateway(MailCommon):
         # No bounce email
         self.assertNotSentEmail()
 
+    @mute_logger('odoo.addons.mail.models.mail_thread', 'odoo.addons.mail.models.mail_mail', 'odoo.models.unlink')
+    def test_message_route_write_to_catchall_other_recipients_invalid(self):
+        """ Writing to catchall and other unroutable recipients should bounce. """
+        # Test: no group created, email bounced
+        with self.mock_mail_gateway():
+            record = self.format_and_process(
+                MAIL_TEMPLATE, self.partner_1.email_formatted,
+                f'"My Super Catchall" <{self.alias_catchall}@{self.alias_domain}>, Unroutable <unroutable@{self.alias_domain}>',
+                subject='Should Bounce')
+        self.assertFalse(record)
+        self.assertSentEmail(
+            self.mailer_daemon_email,
+            ['whatever-2a840@postmaster.twitter.com'],
+            subject='Re: Should Bounce'
+        )
+
     @mute_logger('odoo.addons.mail.models.mail_thread')
     def test_message_process_bounce_alias(self):
         """ Writing to bounce alias is considered as a bounce even if not multipart/report bounce structure """
@@ -1557,6 +1573,10 @@ class TestMailgateway(MailCommon):
     @mute_logger('odoo.addons.mail.models.mail_thread', 'odoo.models.unlink', 'odoo.addons.mail.models.mail_mail')
     def test_message_process_reply_to_new_thread(self):
         """ Test replies not being considered as replies but use destination information instead (aka, mass post + specific reply to using aliases) """
+        # shorten company name to prevent 68 character formatting from
+        # triggering and making the assert missmatch.
+        # See _notify_get_reply_to_formatted_email method
+        self.user_employee.company_id.name = "Forced"
         first_record = self.env['mail.test.simple'].with_user(self.user_employee).create({'name': 'Replies to Record'})
         record_msg = first_record.message_post(
             subject='Discussion',
@@ -1772,6 +1792,18 @@ class TestMailgateway(MailCommon):
             content
         )
 
+    def test_message_windows_874(self):
+        # Email for Thai customers who use Microsoft email service.
+        # The charset is windows-874 which isn't natively supported by
+        # python, check that Odoo is still capable of decoding it.
+        # windows-874 is the Microsoft equivalent of cp874.
+        with self.mock_mail_gateway(), \
+             RecordCapturer(self.env['mail.test.gateway'], []) as capture:
+            self.env['mail.thread'].message_process('mail.test.gateway', THAI_EMAIL_WINDOWS_874)
+        capture.records.ensure_one()
+        self.assertEqual(capture.records.name, 'เรื่อง')
+        self.assertEqual(str(capture.records.message_ids.body), '<pre>ร่างกาย</pre>\n')
+
     # --------------------------------------------------
     # Emails loop detection
     # --------------------------------------------------
@@ -1892,13 +1924,35 @@ class TestMailgateway(MailCommon):
         self.assertIn("Chauss������e de Bruxelles", record.message_ids.attachment_ids.raw.decode())
 
     @mute_logger('odoo.addons.mail.models.mail_thread')
-    def test_message_process_file_omitted_charset(self):
+    def test_message_process_file_omitted_charset_xml(self):
         """ For incoming email containing an xml attachment with omitted charset and containing an UTF8 payload we
         should parse the attachment using UTF-8.
         """
-        record = self.format_and_process(test_mail_data.MAIL_MULTIPART_OMITTED_CHARSET, self.email_from, f'groups@{self.alias_domain}')
+        record = self.format_and_process(test_mail_data.MAIL_MULTIPART_OMITTED_CHARSET_XML, self.email_from, f'groups@{self.alias_domain}')
         self.assertEqual(record.message_ids.attachment_ids.name, 'bis3.xml')
         self.assertEqual("<Invoice>Chaussée de Bruxelles</Invoice>", record.message_ids.attachment_ids.raw.decode())
+
+    @mute_logger('odoo.addons.mail.models.mail_thread')
+    def test_message_process_file_omitted_charset_csv(self):
+        """ For incoming email containing a csv attachment with omitted charset and containing an UTF8 payload we
+        should parse the attachment using UTF-8.
+        """
+        record = self.format_and_process(test_mail_data.MAIL_MULTIPART_OMITTED_CHARSET_CSV, self.email_from, f'groups@{self.alias_domain}')
+        self.assertEqual(record.message_ids.attachment_ids.name, 'bis3.csv')
+        self.assertEqual("\ufeffAuftraggeber;LieferadresseStraße;", record.message_ids.attachment_ids.raw.decode())
+
+    @mute_logger('odoo.addons.mail.models.mail_thread')
+    def test_message_process_file_omitted_charset_txt(self):
+        """ For incoming email containing a txt attachment with omitted charset and containing an UTF8 payload we
+        should parse the attachment using UTF-8.
+        """
+        test_string = ("Äpfel und Birnen sind Früchte, die im Herbst geerntet werden. In der Nähe des Flusses steht ein großes, "
+            "altes Schloss. Über den Dächern sieht man oft Vögel fliegen. Müller und Schröder sind typische deutsche Nachnamen. "
+            "Die Straße, in der ich wohne, heißt „Bachstraße“ und ist sehr ruhig. Überall im Wald wachsen Bäume mit kräftigen Ästen. "
+            "Können wir uns über die Pläne für das nächste Wochenende unterhalten?")
+        record = self.format_and_process(test_mail_data.MAIL_MULTIPART_OMITTED_CHARSET_TXT, self.email_from, f'groups@{self.alias_domain}')
+        self.assertEqual(record.message_ids.attachment_ids.name, 'bis3.txt')
+        self.assertEqual(test_string, record.message_ids.attachment_ids.raw.decode())
 
     @mute_logger('odoo.addons.mail.models.mail_thread')
     def test_message_route_reply_model_none(self):

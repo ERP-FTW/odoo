@@ -57,8 +57,8 @@ class ReportMoOverview(models.AbstractModel):
         doc['show_uom'] = self.env.user.user_has_groups('uom.group_uom')
         if doc['show_uom']:
             footer_colspan += 1
-        doc['data_mo_unit_cost'] = doc['summary'].get('mo_cost', 0) / doc['summary'].get('quantity', 1)
-        doc['data_real_unit_cost'] = doc['summary'].get('real_cost', 0) / doc['summary'].get('quantity', 1)
+        doc['data_mo_unit_cost'] = doc['summary'].get('mo_cost', 0) / (doc['summary'].get('quantity') or 1)
+        doc['data_real_unit_cost'] = doc['summary'].get('real_cost', 0) / (doc['summary'].get('quantity') or 1)
         doc['unfolded_ids'] = set(json.loads(data.get('unfoldedIds', '[]')))
         doc['footer_colspan'] = footer_colspan
         doc['get_color'] = get_color
@@ -93,15 +93,15 @@ class ReportMoOverview(models.AbstractModel):
 
     def _get_report_extra_lines(self, summary, components, operations, production_done=False):
         currency = summary.get('currency', self.env.company.currency_id)
-        unit_mo_cost = currency.round(summary.get('mo_cost', 0) / summary.get('quantity', 1))
-        unit_real_cost = currency.round(summary.get('real_cost', 0) / summary.get('quantity', 1))
+        unit_mo_cost = currency.round(summary.get('mo_cost', 0) / (summary.get('quantity') or 1))
+        unit_real_cost = currency.round(summary.get('real_cost', 0) / (summary.get('quantity') or 1))
         extras = {
             'unit_mo_cost': unit_mo_cost,
             'unit_mo_cost_decorator': self._get_comparison_decorator(unit_real_cost, unit_mo_cost, currency.rounding),
             'unit_real_cost': unit_real_cost,
         }
         if production_done:
-            production_qty = summary.get('quantity', 1.0)
+            production_qty = summary.get('quantity') or 1.0
             extras['total_mo_cost_components'] = sum(compo.get('summary', {}).get('mo_cost', 0.0) for compo in components)
             extras['total_real_cost_components'] = sum(compo.get('summary', {}).get('real_cost', 0.0) for compo in components)
             extras['total_mo_cost_components_decorator'] = self._get_comparison_decorator(extras['total_real_cost_components'], extras['total_mo_cost_components'], currency.rounding)
@@ -175,7 +175,7 @@ class ReportMoOverview(models.AbstractModel):
             'formatted_state': self._format_state(production, components),
             'quantity': production.product_qty if production.state != 'done' else production.qty_produced,
             'uom_name': production.product_uom_id.display_name,
-            'uom_precision': self._get_uom_precision(production.product_uom_id.rounding),
+            'uom_precision': self._get_uom_precision(production.product_uom_id.rounding or 0.01),
             'quantity_free': product.uom_id._compute_quantity(max(product.free_qty, 0), production.product_uom_id) if product.type == 'product' else False,
             'quantity_on_hand': product.uom_id._compute_quantity(product.qty_available, production.product_uom_id) if product.type == 'product' else False,
             'quantity_reserved': 0.0,
@@ -189,6 +189,8 @@ class ReportMoOverview(models.AbstractModel):
         }
 
     def _get_unit_cost(self, move):
+        if not move:
+            return 0.0
         return move.product_id.uom_id._compute_price(move.product_id.standard_price, move.product_uom)
 
     def _format_state(self, record, components=False):
@@ -366,7 +368,7 @@ class ReportMoOverview(models.AbstractModel):
                 'model': product._name,
                 'id': product.id,
                 'name': product.display_name,
-                'quantity': move_bp.product_uom_qty,
+                'quantity': move_bp.product_uom_qty if move_bp.state != 'done' else move_bp.quantity,
                 'uom_name': move_bp.product_uom.display_name,
                 'uom_precision': self._get_uom_precision(move_bp.product_uom.rounding),
                 'unit_cost': self._get_unit_cost(move_bp),
@@ -508,6 +510,7 @@ class ReportMoOverview(models.AbstractModel):
     def _get_replenishment_lines(self, production, move_raw, replenish_data, level, current_index):
         product = move_raw.product_id
         quantity = move_raw.product_uom_qty if move_raw.state != 'done' else move_raw.quantity
+        reserved_quantity = self._get_reserved_qty(move_raw, production.warehouse_id, replenish_data)
         currency = (production.company_id or self.env.company).currency_id
         forecast = replenish_data['products'][product.id].get('forecast', [])
         current_lines = filter(lambda line: line.get('document_in', False) and line.get('document_out', False)
@@ -515,7 +518,7 @@ class ReportMoOverview(models.AbstractModel):
         total_ordered = 0
         replenishments = []
         for count, forecast_line in enumerate(current_lines):
-            if float_compare(total_ordered, quantity, precision_rounding=move_raw.product_uom.rounding) == 0:
+            if float_compare(total_ordered, quantity - reserved_quantity, precision_rounding=move_raw.product_uom.rounding) >= 0:
                 # If a same product is used twice in the same MO, don't duplicate the replenishment lines
                 break
             doc_in = self.env[forecast_line['document_in']['_name']].browse(forecast_line['document_in']['id'])
@@ -565,7 +568,6 @@ class ReportMoOverview(models.AbstractModel):
             total_ordered += in_transit_line['summary']['quantity']
             replenishments.append(in_transit_line)
 
-        reserved_quantity = self._get_reserved_qty(move_raw, production.warehouse_id, replenish_data)
         # Avoid creating a "to_order" line to compensate for missing stock (i.e. negative free_qty).
         free_qty = max(0, product.uom_id._compute_quantity(product.free_qty, move_raw.product_uom))
         missing_quantity = quantity - (reserved_quantity + free_qty + total_ordered)

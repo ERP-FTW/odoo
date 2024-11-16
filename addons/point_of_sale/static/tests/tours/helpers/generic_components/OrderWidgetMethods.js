@@ -31,6 +31,8 @@ export function hasLine({
     comboParent,
     discount,
     oldPrice,
+    priceNoDiscount,
+    atts,
 } = {}) {
     let trigger = `.order-container .orderline${withClass}`;
     if (withoutClass) {
@@ -59,6 +61,14 @@ export function hasLine({
     }
     if (oldPrice) {
         trigger += `:has(.info-list .price-per-unit s:contains("${oldPrice}"))`;
+    }
+    if (priceNoDiscount) {
+        trigger += `:has(.info-list:contains("${priceNoDiscount}"))`;
+    }
+    if (atts) {
+        trigger += Object.entries(atts)
+            .map(([key, value]) => `:has(.info-list div:contains("${key}: ${value}"))`)
+            .join();
     }
     const args = JSON.stringify(arguments[0]);
     return [
@@ -93,4 +103,11 @@ export function hasTax(amount) {
         trigger: `.order-summary .tax:contains("${amount}")`,
         isCheck: true,
     };
+}
+
+export function hasNoTax() {
+    return {
+        content: 'order has not tax',
+        trigger: '.order-summary:not(:has(.tax))'
+    }
 }

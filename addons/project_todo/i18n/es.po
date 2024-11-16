@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 17.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-10-26 21:55+0000\n"
+"POT-Creation-Date: 2024-08-13 10:26+0000\n"
 "PO-Revision-Date: 2023-10-26 23:09+0000\n"
 "Last-Translator: Larissa Manderfeld, 2024\n"
 "Language-Team: Spanish (https://app.transifex.com/odoo/teams/41243/es/)\n"
@@ -164,7 +164,7 @@ msgid ""
 "    </span>"
 msgstr ""
 "<span style=\"font-size: 14px;\">\n"
-"        A las actividades pendientes, como sucede con las tareas privadas, solo pueden acceder los usuarios especificados como asignados. Puede utilizar el campo\n"
+"        A las actividades pendientes, como sucede con las tareas privadas, solo pueden acceder los usuarios especificados como personas asignadas. Puede utilizar el campo\n"
 "        <span style=\"font-weight: bolder;\">\n"
 "            <font class=\"text-o-color-2\">asignados</font>\n"
 "        </span>\n"
@@ -252,9 +252,8 @@ msgid ""
 "Actions may trigger specific behavior like opening calendar view or "
 "automatically mark as done when a document is uploaded"
 msgstr ""
-"Las acciones pueden desencadenar comportamientos específicos como abrir la "
-"vista de calendario o marcar automáticamente como hecho cuando un documento "
-"es subido"
+"Las acciones pueden activar comportamientos específicos, como abrir la vista"
+" de calendario o marcar automáticamente como hecha al subir un documento"
 
 #. module: project_todo
 #: model:ir.model,name:project_todo.model_mail_activity_type
@@ -288,13 +287,13 @@ msgstr "Archivado"
 #. module: project_todo
 #: model:ir.model.fields,field_description:project_todo.field_mail_activity_todo_create__user_id
 msgid "Assigned to"
-msgstr "Asignada a"
+msgstr "Asignado a"
 
 #. module: project_todo
 #: model_terms:ir.ui.view,arch_db:project_todo.project_task_view_todo_form
 #: model_terms:ir.ui.view,arch_db:project_todo.project_task_view_todo_search
 msgid "Assignees"
-msgstr "Asignados"
+msgstr "Personas asignadas"
 
 #. module: project_todo
 #: model_terms:ir.ui.view,arch_db:project_todo.project_task_view_todo_search
@@ -319,7 +318,7 @@ msgstr "Cerrado"
 #. module: project_todo
 #: model_terms:ir.ui.view,arch_db:project_todo.project_task_view_todo_search
 msgid "Closed On"
-msgstr "Cerrado en"
+msgstr "Cerrado el"
 
 #. module: project_todo
 #. odoo-javascript
@@ -328,12 +327,12 @@ msgstr "Cerrado en"
 #: model_terms:ir.ui.view,arch_db:project_todo.project_task_view_todo_conversion_form
 #, python-format
 msgid "Convert to Task"
-msgstr "Convertir a tarea"
+msgstr "Convertir en tarea"
 
 #. module: project_todo
 #: model_terms:ir.ui.view,arch_db:project_todo.todo_user_onboarding
 msgid "Create a task"
-msgstr "Crea una tarea"
+msgstr "Cree una tarea"
 
 #. module: project_todo
 #: model:ir.model,name:project_todo.model_mail_activity_todo_create
@@ -353,7 +352,7 @@ msgstr "Creado el"
 #. module: project_todo
 #: model_terms:ir.ui.view,arch_db:project_todo.project_task_view_todo_kanban
 msgid "Delete"
-msgstr "Suprimir"
+msgstr "Eliminar"
 
 #. module: project_todo
 #: model_terms:ir.ui.view,arch_db:project_todo.mail_activity_todo_create_popup
@@ -398,7 +397,7 @@ msgid ""
 "                Your to-do items are private by default, but you can choose to share them with others by adding them as assignees."
 msgstr ""
 "Mantenga su trabajo organizado mediante el uso de notas y listas de actividades pendientes.\n"
-"                Sus actividades pendientes son privadas de forma predeterminada, pero puede elegir compartirlas con otros si los agrega como asignados."
+"                Sus actividades pendientes son privadas por defecto, pero puede elegir compartirlas con otros si los agrega como personas asignadas."
 
 #. module: project_todo
 #: model:ir.model.fields,field_description:project_todo.field_mail_activity_todo_create__write_uid
@@ -413,7 +412,7 @@ msgstr "Última actualización el"
 #. module: project_todo
 #: model_terms:ir.ui.view,arch_db:project_todo.project_task_view_todo_search
 msgid "Late Activities"
-msgstr "Actividades tardías"
+msgstr "Actividades retrasadas"
 
 #. module: project_todo
 #. odoo-javascript
@@ -426,7 +425,7 @@ msgstr "Marcar como hecho"
 #. module: project_todo
 #: model_terms:ir.actions.act_window,help:project_todo.project_task_action_todo
 msgid "No to-do found. Let's create one!"
-msgstr "No se ha encontrado ninguna tarea pendiente. ¡Creemos una!"
+msgstr "No se encontraron actividades pendientes. ¡Creemos una!"
 
 #. module: project_todo
 #: model:ir.model.fields,field_description:project_todo.field_mail_activity_todo_create__note
@@ -493,7 +492,7 @@ msgstr "Tarea"
 #: model:ir.ui.menu,name:project_todo.menu_todo_todos
 #: model_terms:ir.ui.view,arch_db:project_todo.project_task_view_todo_form
 msgid "To-do"
-msgstr "Listado de \"pendientes\""
+msgstr "Actividades pendientes"
 
 #. module: project_todo
 #: model_terms:ir.ui.view,arch_db:project_todo.project_task_view_todo_quick_create_form
@@ -518,8 +517,8 @@ msgid "Todos"
 msgstr "Actividades pendientes"
 
 #. module: project_todo
-#. odoo-python
 #. odoo-javascript
+#. odoo-python
 #: code:addons/project_todo/models/project_task.py:0
 #: code:addons/project_todo/static/src/components/todo_editable_breadcrumb_name/todo_editable_breadcrumb_name.js:0
 #, python-format
@@ -548,12 +547,12 @@ msgstr "¿Quién tiene acceso a qué?"
 #: code:addons/project_todo/wizard/mail_activity_todo_create.py:0
 #, python-format
 msgid "Your to-do has been successfully added to your pipeline."
-msgstr "Su actividad pendiente se agregó con éxito a su pipeline."
+msgstr "Su actividad pendiente se ha agregado con éxito a su flujo."
 
 #. module: project_todo
 #: model_terms:ir.ui.view,arch_db:project_todo.project_task_view_todo_quick_create_form
 msgid "e.g. Send Invitations"
-msgstr "Por ejemplo, enviar invitaciones"
+msgstr "p. ej. enviar invitaciones"
 
 #. module: project_todo
 #: model:ir.actions.server,name:project_todo.project_task_preload_action_todo

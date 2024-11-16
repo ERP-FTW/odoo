@@ -1023,12 +1023,21 @@ class MailThread(models.AbstractModel):
     @api.model
     def _detect_write_to_catchall(self, msg_dict):
         """Return True if directly contacts catchall."""
-        catchall_aliases = self.env['mail.alias.domain'].search([]).mapped('catchall_email')
+        # Note: tweaked in stable to avoid doing two times same search due to bugfix
+        # (see odoo/odoo#161782), to clean when reaching master
+        if self.env.context.get("mail_catchall_aliases"):
+            catchall_aliases = self.env.context["mail_catchall_aliases"]
+        else:
+            catchall_aliases = self.env['mail.alias.domain'].search([]).mapped('catchall_email')
+
         email_to_list = [
             tools.email_normalize(e) or e
             for e in (tools.email_split(msg_dict['to']) or [''])
         ]
-        # check it does not directly contact catchall
+        # check it does not directly contact catchall; either (legacy) strict aka
+        # all TOs belong are catchall, either (optional) any catchall in all TOs
+        if self.env.context.get("mail_catchall_write_any_to"):
+            return catchall_aliases and any(email_to in catchall_aliases for email_to in email_to_list)
         return (
             catchall_aliases and email_to_list and
             all(email_to in catchall_aliases for email_to in email_to_list)
@@ -1166,6 +1175,9 @@ class MailThread(models.AbstractModel):
                 return []
 
         # 2. Handle new incoming email by checking aliases and applying their settings
+        # prefetch catchall aliases as they are used several times
+        catchall_aliases = self.env['mail.alias.domain'].search([]).mapped('catchall_email')
+        self = self.with_context(mail_catchall_aliases=catchall_aliases)
         if rcpt_tos_list:
             # no route found for a matching reference (or reply), so parent is invalid
             message_dict.pop('parent_id', None)
@@ -1212,6 +1224,18 @@ class MailThread(models.AbstractModel):
                     'Routing mail from %s to %s with Message-Id %s: fallback to model:%s, thread_id:%s, custom_values:%s, uid:%s',
                     email_from, message_dict['to'], message_id, fallback_model, thread_id, custom_values, user_id)
                 return [route]
+
+        # 4. Recipients contain catchall and unroutable emails -> bounce
+        if rcpt_tos_list and self.with_context(mail_catchall_write_any_to=True)._detect_write_to_catchall(message_dict):
+            _logger.info(
+                'Routing mail from %s to %s with Message-Id %s: write to catchall + other unroutable emails, bounce',
+                email_from, message_dict['to'], message_id
+            )
+            body = self.env['ir.qweb']._render('mail.mail_bounce_catchall', {
+                'message': message,
+            })
+            self._routing_create_bounce_email(email_from, body, message, references=message_id, reply_to=self.env.company.email)
+            return []
 
         # ValueError if no routes found and if no bounce occurred
         raise ValueError(
@@ -1517,8 +1541,8 @@ class MailThread(models.AbstractModel):
                     continue  # skip container
 
                 filename = part.get_filename()  # I may not properly handle all charsets
-                if part.get_content_type() == 'text/xml' and not part.get_param('charset'):
-                    # for text/xml with omitted charset, the charset is assumed to be ASCII by the `email` module
+                if part.get_content_type().startswith('text/') and not part.get_param('charset'):
+                    # for text/* with omitted charset, the charset is assumed to be ASCII by the `email` module
                     # although the payload might be in UTF8
                     part.set_charset('utf-8')
                 encoding = part.get_content_charset()  # None if attachment
@@ -1838,7 +1862,8 @@ class MailThread(models.AbstractModel):
         """ Returns suggested recipients for ids. Those are a list of
         tuple (partner_id, partner_name, reason, default_create_value), to be managed by Chatter. """
         result = dict((res_id, []) for res_id in self.ids)
-        if 'user_id' in self._fields:
+        user_field = self._fields.get('user_id')
+        if user_field and user_field.type == 'many2one' and user_field.comodel_name == 'res.users':
             for obj in self.sudo():  # SUPERUSER because of a read on res.users that would crash otherwise
                 if not obj.user_id or not obj.user_id.partner_id:
                     continue
@@ -1956,10 +1981,20 @@ class MailThread(models.AbstractModel):
 
         partners = self._mail_search_on_partner(remaining, extra_domain=extra_domain)
         done_partners += [partner for partner in partners]
-        remaining = [email for email in normalized_emails if email not in [partner.email_normalized for partner in done_partners]]
 
-        # prioritize current user if exists in list
-        done_partners.sort(key=lambda p: self.env.user.partner_id != p)
+        # prioritize current user if exists in list, and partners with matching company ids
+        if company_fname := records and records._mail_get_company_field():
+            def sort_key(p):
+                return (
+                    self.env.user.partner_id == p,           # prioritize user
+                    p.company_id in records[company_fname],  # then partner associated w/ records
+                    not p.company_id,                        # else pick partner w/out company_id
+                )
+        else:
+            def sort_key(p):
+                return (self.env.user.partner_id == p, not p.company_id)
+
+        done_partners.sort(key=sort_key, reverse=True)  # reverse because False < True
 
         # iterate and keep ordering
         partners = []
@@ -2299,11 +2334,11 @@ class MailThread(models.AbstractModel):
                 attachement_values_list.append(attachement_values)
 
                 # keep cid, name list and token synced with attachement_values_list length to match ids latter
-                attachement_extra_list.append((cid, name, token))
+                attachement_extra_list.append((cid, name, token, info))
 
-            new_attachments = self.env['ir.attachment'].sudo().create(attachement_values_list)
+            new_attachments = self._create_attachments_for_post(attachement_values_list, attachement_extra_list)
             attach_cid_mapping, attach_name_mapping = {}, {}
-            for attachment, (cid, name, token) in zip(new_attachments, attachement_extra_list):
+            for attachment, (cid, name, token, _info) in zip(new_attachments, attachement_extra_list):
                 if cid:
                     attach_cid_mapping[cid] = (attachment.id, token)
                 if name:
@@ -2329,6 +2364,12 @@ class MailThread(models.AbstractModel):
                     return_values['body'] = Markup(lxml.html.tostring(root, pretty_print=False, encoding='unicode'))
         return_values['attachment_ids'] = m2m_attachment_ids
         return return_values
+
+    def _create_attachments_for_post(self, values_list, extra_list):
+        """ Ease tweaking attachment creation when processing them in posting
+        process. Mainly meant for stable version, to be cleaned when reaching
+        master. """
+        return self.env['ir.attachment'].sudo().create(values_list)
 
     def _process_attachments_for_template_post(self, mail_template):
         """ Model specific management of attachments used with template attachments
@@ -3191,8 +3232,10 @@ class MailThread(models.AbstractModel):
         emails = self.env['mail.mail'].sudo()
 
         # loop on groups (customer, portal, user,  ... + model specific like group_sale_salesman)
+        gen_batch_size = int(
+            self.env['ir.config_parameter'].sudo().get_param('mail.batch_size')
+        ) or 50  # be sure to not have 0, as otherwise no iteration is done
         notif_create_values = []
-        recipients_max = 50
         for _lang, render_values, recipients_group in self._notify_get_classified_recipients_iterator(
             message,
             partners_data,
@@ -3212,7 +3255,7 @@ class MailThread(models.AbstractModel):
             recipients_ids = recipients_group.pop('recipients')
 
             # create email
-            for recipients_ids_chunk in split_every(recipients_max, recipients_ids):
+            for recipients_ids_chunk in split_every(gen_batch_size, recipients_ids):
                 mail_values = self._notify_by_email_get_final_mail_values(
                     recipients_ids_chunk,
                     base_mail_values,
@@ -3254,8 +3297,10 @@ class MailThread(models.AbstractModel):
         #      to prevent sending email during a simple update of the database
         #      using the command-line.
         test_mode = getattr(threading.current_thread(), 'testing', False)
-        force_send = self.env.context.get('mail_notify_force_send', force_send)
-        if force_send and len(emails) < recipients_max and (not self.pool._init or test_mode):
+        if force_send := self.env.context.get('mail_notify_force_send', force_send):
+            force_send_limit = int(self.env['ir.config_parameter'].sudo().get_param('mail.mail.force.send.limit', 100))
+            force_send = len(emails) < force_send_limit
+        if force_send and (not self.pool._init or test_mode):
             # unless asked specifically, send emails after the transaction to
             # avoid side effects due to emails being sent while the transaction fails
             if not test_mode and send_after_commit:
@@ -3538,10 +3583,10 @@ class MailThread(models.AbstractModel):
         # prepare notification mail values
         base_mail_values = {
             'mail_message_id': message.id,
-            'mail_server_id': message.mail_server_id.id, # 2 query, check acces + read, may be useless, Falsy, when will it be used?
             'references': references,
-            'subject': mail_subject,
         }
+        if mail_subject != message.subject:
+            base_mail_values['subject'] = mail_subject
         if additional_values:
             base_mail_values.update(additional_values)
 
@@ -4261,7 +4306,15 @@ class MailThread(models.AbstractModel):
 
     def _get_mail_thread_data_attachments(self):
         self.ensure_one()
-        return self.env['ir.attachment'].search([('res_id', '=', self.id), ('res_model', '=', self._name)], order='id desc')
+        res = self.env['ir.attachment'].search([('res_id', '=', self.id), ('res_model', '=', self._name)], order='id desc')
+        if 'original_id' in self.env['ir.attachment']._fields:
+            # If the image is SVG: We take the png version if exist otherwise we take the svg
+            # If the image is not SVG: We take the original one if exist otherwise we take it
+            svg_ids = res.filtered(lambda attachment: attachment.mimetype == 'image/svg+xml')
+            non_svg_ids = res - svg_ids
+            original_ids = res.mapped('original_id')
+            res = res.filtered(lambda attachment: (attachment in svg_ids and attachment not in original_ids) or (attachment in non_svg_ids and attachment.original_id not in non_svg_ids))
+        return res
 
     def _get_mail_thread_data(self, request_list):
         res = {'hasWriteAccess': False, 'hasReadAccess': True}
@@ -4323,7 +4376,7 @@ class MailThread(models.AbstractModel):
         author_id = [msg_vals.get('author_id')] if 'author_id' in msg_vals else msg_sudo.author_id.ids
         # never send to author and to people outside Odoo (email), except comments
         pids = set()
-        if msg_type == 'comment':
+        if msg_type in {'comment', 'whatsapp_message'}:
             pids = set(notif_pids) - set(author_id)
         elif msg_type in ('notification', 'user_notification', 'email'):
             pids = (set(notif_pids) - set(author_id) - set(no_inbox_pids))
@@ -4448,7 +4501,7 @@ class MailThread(models.AbstractModel):
 
         if author_name:
             title = "%s: %s" % (author_name, title)
-            icon = "/web/image/res.users/%d/avatar_128" % author_id[0]
+            icon = "/web/image/res.partner/%d/avatar_128" % author_id[0]
 
         payload = {
             'title': title,

@@ -339,8 +339,8 @@ class Field(MetaField('DummyField', (object,), {})):
 
     def __repr__(self):
         if self.name is None:
-            return "<%s.%s>" % (__name__, type(self).__name__)
-        return "%s.%s" % (self.model_name, self.name)
+            return f"{'<%s.%s>'!r}" % (__name__, type(self).__name__)
+        return f"{'%s.%s'!r}" % (self.model_name, self.name)
 
     ############################################################################
     #
@@ -1194,7 +1194,7 @@ class Field(MetaField('DummyField', (object,), {})):
         elif self.store and record._origin and not (self.compute and self.readonly):
             # new record with origin: fetch from origin
             value = self.convert_to_cache(record._origin[self.name], record, validate=False)
-            env.cache.set(record, self, value)
+            value = env.cache.patch_and_set(record, self, value)
 
         elif self.compute: #pylint: disable=using-constant-test
             # non-stored field or new record without origin: compute
@@ -1240,7 +1240,7 @@ class Field(MetaField('DummyField', (object,), {})):
         else:
             # non-stored field or stored field on new record: default value
             value = self.convert_to_cache(False, record, validate=False)
-            env.cache.set(record, self, value)
+            value = env.cache.patch_and_set(record, self, value)
             defaults = record.default_get([self.name])
             if self.name in defaults:
                 # The null value above is necessary to convert x2many field
@@ -1853,16 +1853,24 @@ class _String(Field):
             for term in new_terms:
                 text2terms[self.get_text_content(term)].append(term)
 
+            is_text = self.translate.is_text if hasattr(self.translate, 'is_text') else lambda term: True
+            term_adapter = self.translate.term_adapter if hasattr(self.translate, 'term_adapter') else None
             for old_term in list(translation_dictionary.keys()):
                 if old_term not in new_terms:
                     old_term_text = self.get_text_content(old_term)
                     matches = get_close_matches(old_term_text, text2terms, 1, 0.9)
                     if matches:
                         closest_term = get_close_matches(old_term, text2terms[matches[0]], 1, 0)[0]
-                        old_is_text = old_term == self.get_text_content(old_term)
-                        closest_is_text = closest_term == self.get_text_content(closest_term)
+                        if closest_term in translation_dictionary:
+                            continue
+                        old_is_text = is_text(old_term)
+                        closest_is_text = is_text(closest_term)
                         if old_is_text or not closest_is_text:
-                            translation_dictionary[closest_term] = translation_dictionary.pop(old_term)
+                            if not closest_is_text and records.env.context.get("install_mode") and lang == 'en_US' and term_adapter:
+                                adapter = term_adapter(closest_term)
+                                translation_dictionary[closest_term] = {k: adapter(v) for k, v in translation_dictionary.pop(old_term).items()}
+                            else:
+                                translation_dictionary[closest_term] = translation_dictionary.pop(old_term)
             # pylint: disable=not-callable
             new_translations = {
                 l: self.translate(lambda term: translation_dictionary.get(term, {l: None})[l], cache_value)
@@ -2398,18 +2406,18 @@ class Binary(Field):
             for record_no_bin_size, record in zip(records_no_bin_size, records):
                 try:
                     value = cache.get(record_no_bin_size, self)
-                    try:
-                        value = base64.b64decode(value)
-                    except (TypeError, binascii.Error):
-                        pass
+                    # don't decode non-attachments to be consistent with pg_size_pretty
+                    if not (self.store and self.column_type):
+                        with contextlib.suppress(TypeError, binascii.Error):
+                            value = base64.b64decode(value)
                     try:
                         if isinstance(value, (bytes, _BINARY)):
                             value = human_size(len(value))
                     except (TypeError):
                         pass
                     cache_value = self.convert_to_cache(value, record)
-                    dirty = self.column_type and self.store and any(records._ids)
-                    cache.set(record, self, cache_value, dirty=dirty)
+                    # the dirty flag is independent from this assignment
+                    cache.set(record, self, cache_value, check_dirty=False)
                 except CacheMiss:
                     pass
         else:
@@ -2450,6 +2458,7 @@ class Binary(Field):
         ])
 
     def write(self, records, value):
+        records = records.with_context(bin_size=False)
         if not self.attachment:
             super().write(records, value)
             return
@@ -2529,10 +2538,11 @@ class Image(Binary):
     def create(self, record_values):
         new_record_values = []
         for record, value in record_values:
-            # strange behavior when setting related image field, when `self`
-            # does not resize the same way as its related field
             new_value = self._image_process(value, record.env)
             new_record_values.append((record, new_value))
+            # when setting related image field, keep the unprocessed image in
+            # cache to let the inverse method use the original image; the image
+            # will be resized once the inverse has been applied
             cache_value = self.convert_to_cache(value if self.related else new_value, record)
             record.env.cache.update(record, self, itertools.repeat(cache_value))
         super(Image, self).create(new_record_values)
@@ -2554,6 +2564,16 @@ class Image(Binary):
         cache_value = self.convert_to_cache(value if self.related else new_value, records)
         dirty = self.column_type and self.store and any(records._ids)
         records.env.cache.update(records, self, itertools.repeat(cache_value), dirty=dirty)
+
+    def _inverse_related(self, records):
+        super()._inverse_related(records)
+        if not (self.max_width and self.max_height):
+            return
+        # the inverse has been applied with the original image; now we fix the
+        # cache with the resized value
+        for record in records:
+            value = self._process_related(record[self.name], record.env)
+            record.env.cache.set(record, self, value, dirty=(self.store and self.column_type))
 
     def _image_process(self, value, env):
         if self.readonly and not self.max_width and not self.max_height:
@@ -3567,7 +3587,7 @@ class Properties(Field):
             current_model = env[self.model_name]
             definition_record_field = current_model._fields[self.definition_record]
             container_model_name = definition_record_field.comodel_name
-            container_id = env[container_model_name].browse(container_id)
+            container_id = env[container_model_name].sudo().browse(container_id)
 
         properties_definition = container_id[self.definition_record_field]
         if not (properties_definition or (
@@ -3711,8 +3731,7 @@ class Properties(Field):
                 # E.G. convert zero to False
                 property_value = bool(property_value)
 
-            elif property_type == 'char' and not isinstance(property_value, str) \
-                    and property_value is not None:
+            elif property_type == 'char' and not isinstance(property_value, str):
                 property_value = False
 
             elif property_value and property_type == 'selection':
@@ -4161,10 +4180,7 @@ class _RelationalMulti(_Relational):
 
     def _update(self, records, value):
         """ Update the cached value of ``self`` for ``records`` with ``value``. """
-        cache = records.env.cache
-        for record in records.with_context(active_test=False):
-            val = self.convert_to_cache(record[self.name] | value, record, validate=False)
-            cache.set(record, self, val)
+        records.env.cache.patch(records, self, value.id)
         records.modified([self.name])
 
     def convert_to_cache(self, value, record, validate=True):
@@ -4186,8 +4202,9 @@ class _RelationalMulti(_Relational):
                 browse = lambda it: comodel.browse((it and NewId(it),))
             else:
                 browse = comodel.browse
-            # determine the value ids
-            ids = OrderedSet(record[self.name]._ids if validate else ())
+            # determine the value ids: in case of a real record or a new record
+            # with origin, take its current value
+            ids = OrderedSet(record[self.name]._ids if record._origin else ())
             # modify ids with the commands
             for command in value:
                 if isinstance(command, (tuple, list)):

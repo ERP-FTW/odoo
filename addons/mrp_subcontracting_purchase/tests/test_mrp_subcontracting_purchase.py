@@ -3,6 +3,8 @@
 
 import logging
 
+from freezegun import freeze_time
+
 from odoo import Command
 from odoo.exceptions import UserError
 from odoo.fields import Date
@@ -335,26 +337,27 @@ class MrpSubcontractingPurchaseTest(TestMrpSubcontractingCommon):
         po_form.partner_id = self.subcontractor_partner1
         with po_form.order_line.new() as po_line:
             po_line.product_id = self.finished
-            po_line.product_qty = 1
+            po_line.product_qty = 2
             po_line.price_unit = 50   # should be 70
         po = po_form.save()
         po.button_confirm()
 
         action = po.action_view_subcontracting_resupply()
         resupply_picking = self.env[action['res_model']].browse(action['res_id'])
-        resupply_picking.move_ids.quantity = 1
+        resupply_picking.move_ids.quantity = 2
         resupply_picking.move_ids.picked = True
         resupply_picking.button_validate()
 
         action = po.action_view_picking()
         final_picking = self.env[action['res_model']].browse(action['res_id'])
-        final_picking.move_ids.quantity = 1
+        final_picking.move_ids.quantity = 2
         final_picking.move_ids.picked = True
         final_picking.button_validate()
 
         action = po.action_create_invoice()
         invoice = self.env['account.move'].browse(action['res_id'])
         invoice.invoice_date = Date.today()
+        invoice.invoice_line_ids.quantity = 1
         invoice.action_post()
 
         # price diff line should be 100 - 50 - 10 - 20
@@ -535,23 +538,41 @@ class MrpSubcontractingPurchaseTest(TestMrpSubcontractingCommon):
         bom_data = self.env['report.mrp.report_bom_structure']._get_bom_data(self.bom, self.warehouse, self.finished)
         self.assertEqual(bom_data['lead_time'], 15 + 5 + 5 + 0,
             "Lead time = Purchase lead time(finished) + Days to Purchase + Purchase security lead time + DTPMO on BOM")
-        self.assertEqual(bom_data['resupply_avail_delay'], 10 + 5 + 5 + 20,
-            "Component avail delay = Purchase lead time(comp1) + Days to Purchase + Purchase security lead time + Calculated DTPMO")
+        # Resupply delay = 0 (received from MRP, where route type != "manufacture")
+        # Vendor lead time = 15 (finished product supplier delay)
+        # Manufacture lead time = 10 (BoM.produce_delay)
+        # Max purchase component delay = max delay(comp1, comp2) + po_lead + days_to_purchase = 20
+        self.assertEqual(bom_data['resupply_avail_delay'], 0 + 15 + 20 + 5 + 5,
+            'Resupply avail delay = Resupply delay + Max(Vendor lead time, Manufacture lead time)'
+            ' + Max purchase component delay + Purchase security lead time + Days to Purchase'
+        )
 
         # Case 2: Vendor lead time < Manufacturing lead time + DTPMO on BOM
         self.bom.action_compute_bom_days()
         self.assertEqual(self.bom.days_to_prepare_mo, 10 + 5 + 5,
             "DTPMO = Purchase lead time(comp1) + Days to Purchase + Purchase security lead time")
+
         self.bom.days_to_prepare_mo = 10
+        # Temp increase BoM.produce_delay, to check if it is now used in the final calculation
+        self.bom.produce_delay = 30
+
         bom_data = self.env['report.mrp.report_bom_structure']._get_bom_data(self.bom, self.warehouse, self.finished)
-        self.assertEqual(bom_data['lead_time'], 10 + 5 + 5 + 10,
+        self.assertEqual(bom_data['lead_time'], 30 + 5 + 5 + 10,
             "Lead time = Manufacturing lead time + Days to Purchase + Purchase security lead time + DTPMO on BOM")
-        self.assertEqual(bom_data['resupply_avail_delay'], 10 + 5 + 5 + 20,
-            "Component avail delay = Manufacturing lead time + Days to Purchase + Purchase security lead time + Calculated DTPMO")
+        # Resupply delay = 0 (received from MRP, where route type != "manufacture")
+        # Vendor lead time = 15 (finished product supplier delay)
+        # Manufacture lead time = 30 (BoM.produce_delay)
+        # Max purchase component delay = max delay(comp1, comp2) + po_lead + days_to_purchase = 20
+        self.assertEqual(bom_data['resupply_avail_delay'], 0 + 30 + 20 + 5 + 5,
+            'Resupply avail delay = Resupply delay + Max(Vendor lead time, Manufacture lead time)'
+            ' + Max purchase component delay + Purchase security lead time + Days to Purchase'
+        )
+        # Continue the test with the original produce_delay
+        self.bom.produce_delay = 10
 
         # Update stock for components, calculate DTPMO should be 0
-        self.env['stock.quant']._update_available_quantity(self.comp1, self.warehouse.lot_stock_id, 100)
-        self.env['stock.quant']._update_available_quantity(self.comp2, self.warehouse.lot_stock_id, 100)
+        self.env['stock.quant']._update_available_quantity(self.comp1, self.env.company.subcontracting_location_id, 100)
+        self.env['stock.quant']._update_available_quantity(self.comp2, self.env.company.subcontracting_location_id, 100)
         self.env.invalidate_all()   # invalidate cache to get updated qty_available
         # Case 1: Vendor lead time >= Manufacturing lead time + DTPMO on BOM
         self.bom.days_to_prepare_mo = 2
@@ -616,3 +637,268 @@ class MrpSubcontractingPurchaseTest(TestMrpSubcontractingCommon):
         comp_receipt.move_ids.picked = True
         comp_receipt.button_validate()
         self.assertEqual(ressuply_pick.state, 'assigned')
+
+    def test_update_qty_purchased_with_subcontracted_product(self):
+        """
+        Test That we can update the quantity of a purchase order line with a subcontracted product
+        """
+        mto_route = self.env.ref('stock.route_warehouse0_mto')
+        buy_route = self.env['stock.route'].search([('name', '=', 'Buy')])
+        mto_route.active = True
+        self.finished.route_ids = mto_route.ids + buy_route.ids
+        seller = self.env['product.supplierinfo'].create({
+            'partner_id': self.vendor.id,
+            'price': 12.0,
+            'delay': 0
+        })
+        self.finished.seller_ids = [(6, 0, [seller.id])]
+
+        mo = self.env['mrp.production'].create({
+            'product_id': self.finished2.id,
+            'product_qty': 3.0,
+            'move_raw_ids': [(0, 0, {
+                'product_id': self.finished.id,
+                'product_uom_qty': 3.0,
+                'product_uom': self.finished.uom_id.id,
+            })]
+        })
+        mo.action_confirm()
+        po = self.env['purchase.order.line'].search([('product_id', '=', self.finished.id)]).order_id
+        po.button_confirm()
+        self.assertEqual(len(po.picking_ids), 1)
+        picking = po.picking_ids
+        picking.move_ids.quantity = 2.0
+        # When we validate the picking manually, we create a backorder.
+        backorder_wizard_dict = picking.button_validate()
+        backorder_wizard = Form(self.env[backorder_wizard_dict['res_model']].with_context(backorder_wizard_dict['context'])).save()
+        backorder_wizard.process()
+        self.assertEqual(len(po.picking_ids), 2)
+        picking.backorder_ids.action_cancel()
+        self.assertEqual(picking.backorder_ids.state, 'cancel')
+        po.order_line.product_qty = 2.0
+        self.assertEqual(po.order_line.product_qty, 2.0)
+
+    def test_mrp_report_bom_structure_subcontracting_quantities(self):
+        """Testing quantities and availablility states in subcontracted BoM report
+        1. Create a BoM of a finished product with a single component
+        2. Update the on hand quantity of BoM to 100
+        3. Move 20 components to subcontracting location
+        4. Check that the free/on-hand quantity of component is 100 (sum of warehouse stock and subcontracting location stock)
+        5. Check that producible quantity of 'Product' is equal to only subcontractor location stock
+        6. Check availability states when:
+            6a. Search quantity <= subcontractor quantity: component is available
+            6b. Subcontractor quantity <= search quantity <= total quantity: component is available
+            6c. Total quantity < search quantity: component is unavailable
+        """
+        search_qty_less_than_or_equal_moved = 10
+        moved_quantity_to_subcontractor = 20
+        search_qty_less_than_or_equal_total = 90
+        total_component_quantity = 100
+        search_qty_more_than_total = 110
+
+        resupply_route = self.env['stock.route'].search([('name', '=', 'Resupply Subcontractor on Order')])
+        finished, component = self.env['product.product'].create([{
+            'name': 'Finished Product',
+            'type': 'product',
+            'seller_ids': [(0, 0, {'partner_id': self.subcontractor_partner1.id})]
+        }, {
+            'name': 'Component',
+            'type': 'product',
+            'route_ids': [(4, resupply_route.id)],
+        }])
+
+        bom = self.env['mrp.bom'].create({
+            'product_tmpl_id': finished.product_tmpl_id.id,
+            'product_qty': 1.0,
+            'type': 'subcontract',
+            'subcontractor_ids': [(4, self.subcontractor_partner1.id)],
+            'bom_line_ids': [(0, 0, {'product_id': component.id, 'product_qty': 1.0})],
+        })
+
+        inventory_wizard = self.env['stock.change.product.qty'].create({
+            'product_id': component.id,
+            'product_tmpl_id': component.product_tmpl_id.id,
+            'new_quantity': total_component_quantity,
+        })
+        inventory_wizard.change_product_qty()
+        # Check quantity was updated
+        self.assertEqual(component.virtual_available, total_component_quantity)
+        self.assertEqual(component.qty_available, total_component_quantity)
+
+        quantity_before_move = self.env['stock.quant']._get_available_quantity(component, self.subcontractor_partner1.property_stock_subcontractor, allow_negative=True)
+        picking_form = Form(self.env['stock.picking'])
+        picking_form.picking_type_id = self.warehouse.subcontracting_resupply_type_id
+        picking_form.partner_id = self.subcontractor_partner1
+        with picking_form.move_ids_without_package.new() as move:
+            move.product_id = component
+            move.product_uom_qty = moved_quantity_to_subcontractor
+        picking = picking_form.save()
+        picking.action_confirm()
+        picking.move_ids.quantity = moved_quantity_to_subcontractor
+        picking.move_ids.picked = True
+        picking.button_validate()
+        quantity_after_move = self.env['stock.quant']._get_available_quantity(component, self.subcontractor_partner1.property_stock_subcontractor, allow_negative=True)
+        self.assertEqual(quantity_after_move, quantity_before_move + moved_quantity_to_subcontractor)
+
+        report_values = self.env['report.mrp.report_bom_structure']._get_report_data(bom.id, searchQty=search_qty_less_than_or_equal_moved, searchVariant=False)
+        self.assertEqual(report_values['lines']['components'][0]['quantity_available'], total_component_quantity)
+        self.assertEqual(report_values['lines']['components'][0]['quantity_on_hand'], total_component_quantity)
+        self.assertEqual(report_values['lines']['quantity_available'], 0)
+        self.assertEqual(report_values['lines']['quantity_on_hand'], 0)
+        self.assertEqual(report_values['lines']['producible_qty'], moved_quantity_to_subcontractor)
+        self.assertEqual(report_values['lines']['stock_avail_state'], 'unavailable')
+
+        self.assertEqual(report_values['lines']['components'][0]['stock_avail_state'], 'available')
+
+        report_values = self.env['report.mrp.report_bom_structure']._get_report_data(bom.id, searchQty=search_qty_less_than_or_equal_total, searchVariant=False)
+        self.assertEqual(report_values['lines']['components'][0]['stock_avail_state'], 'available')
+
+        report_values = self.env['report.mrp.report_bom_structure']._get_report_data(bom.id, searchQty=search_qty_more_than_total, searchVariant=False)
+        self.assertEqual(report_values['lines']['components'][0]['stock_avail_state'], 'unavailable')
+
+    @freeze_time('2024-01-01')
+    def test_bom_overview_availability_po_lead(self):
+        # Create routes for components and the main product
+        self.env['product.supplierinfo'].create({
+            'product_tmpl_id': self.finished.product_tmpl_id.id,
+            'partner_id': self.subcontractor_partner1.id,
+            'delay': 10
+        })
+        self.env['product.supplierinfo'].create({
+            'product_tmpl_id': self.comp1.product_tmpl_id.id,
+            'partner_id': self.subcontractor_partner1.id,
+            'delay': 5
+        })
+        self.env['product.supplierinfo'].create({
+            'product_tmpl_id': self.comp2.product_tmpl_id.id,
+            'partner_id': self.subcontractor_partner1.id,
+            'delay': 5
+        })
+
+        self.bom.produce_delay = 1
+        self.bom.days_to_prepare_mo = 3
+        # Security Lead Time for Purchase should always be added
+        self.env.company.po_lead = 2
+
+        # Add 4 units of each component to subcontractor's location
+        subcontractor_location = self.env.company.subcontracting_location_id
+        self.env['stock.quant']._update_available_quantity(self.comp1, subcontractor_location, 4)
+        self.env['stock.quant']._update_available_quantity(self.comp2, subcontractor_location, 4)
+
+        # Generate a report for 3 products: all products should be ready for production
+        bom_data = self.env['report.mrp.report_bom_structure']._get_report_data(self.bom.id, 3)
+
+        self.assertTrue(bom_data['lines']['components_available'])
+        for component in bom_data['lines']['components']:
+            self.assertEqual(component['quantity_on_hand'], 4)
+            self.assertEqual(component['availability_state'], 'available')
+        self.assertEqual(bom_data['lines']['earliest_capacity'], 3)
+        # 01/11 + 2 days of Security Lead Time = 01/13
+        self.assertEqual(bom_data['lines']['earliest_date'], '01/13/2024')
+        self.assertTrue('leftover_capacity' not in bom_data['lines']['earliest_date'])
+        self.assertTrue('leftover_date' not in bom_data['lines']['earliest_date'])
+
+        # Generate a report for 5 products: only 4 products should be ready for production
+        bom_data = self.env['report.mrp.report_bom_structure']._get_report_data(self.bom.id, 5)
+
+        self.assertFalse(bom_data['lines']['components_available'])
+        for component in bom_data['lines']['components']:
+            self.assertEqual(component['quantity_on_hand'], 4)
+            self.assertEqual(component['availability_state'], 'estimated')
+        self.assertEqual(bom_data['lines']['earliest_capacity'], 4)
+        # 01/11 + 2 days of Security Lead Time = 01/13
+        self.assertEqual(bom_data['lines']['earliest_date'], '01/13/2024')
+        self.assertEqual(bom_data['lines']['leftover_capacity'], 1)
+        # 01/16 + 2 x 2 days (for components and for final product) = 01/20
+        self.assertEqual(bom_data['lines']['leftover_date'], '01/20/2024')
+
+    def test_location_after_dest_location_update_backorder_production(self):
+        """
+        Buy 2 subcontracted products.
+        Receive 1 product after changing the destination location.
+        Create a backorder.
+        Receive the last one.
+        Check the locations.
+        """
+        grp_multi_loc = self.env.ref('stock.group_stock_multi_locations')
+        self.env.user.write({'groups_id': [Command.link(grp_multi_loc.id)]})
+        subcontract_loc = self.env.company.subcontracting_location_id
+        production_loc = self.finished.property_stock_production
+        final_loc = self.env['stock.location'].create({
+            'name': 'Final location',
+            'location_id': self.env.ref('stock.warehouse0').lot_stock_id.id,
+        })
+        # buy 2 subcontracted products
+        po = self.env['purchase.order'].create({
+            'partner_id': self.subcontractor_partner1.id,
+            'order_line': [Command.create({
+                'name': self.finished.name,
+                'product_id': self.finished.id,
+                'product_qty': 2.0,
+                'product_uom': self.finished.uom_id.id,
+                'price_unit': 1.0,
+            })],
+        })
+        po.button_confirm()
+
+        receipt = po.picking_ids
+        # receive 1 subcontracted product
+        receipt.move_ids.quantity = 1
+        receipt_form = Form(receipt)
+        # change the destination location
+        receipt_form.location_dest_id = final_loc
+        receipt_form.save()
+        # change the destination location on the move line too
+        receipt.move_line_ids.location_dest_id = final_loc
+        # create the backorder
+        backorder_wizard_dict = receipt.button_validate()
+        backorder_wizard = Form(self.env[backorder_wizard_dict['res_model']].with_context(backorder_wizard_dict['context'])).save()
+        backorder_wizard.process()
+        backorder = receipt.backorder_ids
+        # test the stock quantities after receiving 1 product
+        stock_quants = self.env['stock.quant'].search([('product_id', '=', self.finished.id)])
+        self.assertEqual(len(stock_quants), 3)
+        self.assertEqual(stock_quants.filtered(lambda q: q.location_id == final_loc).quantity, 1.0)
+        self.assertEqual(stock_quants.filtered(lambda q: q.location_id == subcontract_loc).quantity, 0.0)
+        self.assertEqual(stock_quants.filtered(lambda q: q.location_id == production_loc).quantity, -1.0)
+        # receive the last subcontracted product
+        backorder.move_ids.quantity = 1
+        backorder.button_validate()
+        # test the final stock quantities
+        stock_quants = self.env['stock.quant'].search([('product_id', '=', self.finished.id)])
+        self.assertEqual(len(stock_quants), 3)
+        self.assertEqual(stock_quants.filtered(lambda q: q.location_id == final_loc).quantity, 2.0)
+        self.assertEqual(stock_quants.filtered(lambda q: q.location_id == subcontract_loc).quantity, 0.0)
+        self.assertEqual(stock_quants.filtered(lambda q: q.location_id == production_loc).quantity, -2.0)
+
+    def test_return_subcontracted_product_to_supplier_location(self):
+        """
+        Test that we can return subcontracted product to the supplier location.
+        """
+        po = self.env['purchase.order'].create({
+            'partner_id': self.subcontractor_partner1.id,
+            'order_line': [Command.create({
+                'name': self.finished.name,
+                'product_id': self.finished.id,
+                'product_qty': 2.0,
+                'product_uom': self.finished.uom_id.id,
+                'price_unit': 10.0,
+            })],
+        })
+
+        po.button_confirm()
+        self.assertEqual(len(po.picking_ids), 1)
+        picking = po.picking_ids
+        picking.button_validate()
+        self.assertEqual(picking.state, 'done')
+        # create a return to the vendor location
+        supplier_location = self.env.ref('stock.stock_location_suppliers')
+        return_form = Form(self.env['stock.return.picking'].with_context(active_id=picking.id, active_model='stock.picking'))
+        wizard = return_form.save()
+        wizard.product_return_moves.quantity = 2.0
+        wizard.location_id = supplier_location
+        return_picking_id, _pick_type_id = wizard._create_returns()
+
+        return_picking = self.env['stock.picking'].browse(return_picking_id)
+        return_picking.button_validate()
+        self.assertEqual(return_picking.state, 'done')

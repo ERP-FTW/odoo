@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 17.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-01-05 12:31+0000\n"
+"POT-Creation-Date: 2024-08-13 10:26+0000\n"
 "PO-Revision-Date: 2023-10-26 23:09+0000\n"
 "Last-Translator: Alina Lisnenko <alina.lisnenko@erp.co.ua>, 2024\n"
 "Language-Team: Ukrainian (https://app.transifex.com/odoo/teams/41243/uk/)\n"
@@ -136,7 +136,7 @@ msgid ""
 "                    </li>\n"
 "                </t>\n"
 "                <t t-if=\"recurrent\">\n"
-"                    <li>When: <t t-out=\"object.recurrence_id.name or ''\">Every 1 Weeks, for 3 events</t></li>\n"
+"                    <li>When: <t t-out=\"object.recurrence_id.get_recurrence_name()\">Every 1 Weeks, for 3 events</t></li>\n"
 "                </t>\n"
 "                <t t-if=\"not object.event_id.allday and object.event_id.duration\">\n"
 "                    <li>Duration: <t t-out=\"('%dH%02d' % (object.event_id.duration,round(object.event_id.duration*60)%60)) or ''\">0H30</t></li>\n"
@@ -190,22 +190,22 @@ msgstr ""
 "        Вітаємо <t t-out=\"object.common_name or ''\">Ready Mat</t>,<br><br>\n"
 "        <t t-if=\"is_online and target_responsible\">\n"
 "            <t t-if=\"customer\">\n"
-"                Дату вашої зустрічі з <t t-out=\"customer.name or ''\">Jesse Brown</t> оновлено.\n"
+"                Дата вашої зустрічі з <t t-out=\"customer.name or ''\">Jesse Brown</t> оновлено.\n"
 "            </t>\n"
 "            <t t-else=\"\">\n"
-"                Вашу зустріч було оновлено.\n"
+"                Вашу зустріч оновлено.\n"
 "            </t>\n"
 "            Зустріч <strong t-out=\"object.event_id.appointment_type_id.name or ''\">Schedule a Demo</strong> тепер заплановано на\n"
 "            <t t-out=\"object.event_id.get_display_time_tz(tz=object.partner_id.tz) or ''\">05/04/2021 о (11:00:00 до 11:30:00) (Europe/Brussels)</t>\n"
 "        </t>\n"
 "        <t t-elif=\"is_online and target_customer\">\n"
 "            Дату вашої зустрічі з <t t-out=\"object.event_id.user_id.partner_id.name or ''\">Colleen Diaz</t> оновлено.\n"
-"            Зустріч <strong t-out=\"object.event_id.appointment_type_id.name or ''\"></strong> тепер заплановано на\n"
+"            Зустріч <strong t-out=\"object.event_id.appointment_type_id.name or ''\"></strong> тепер запланована на\n"
 "            <t t-out=\"object.event_id.get_display_time_tz(tz=object.partner_id.tz) or ''\">05/04/2021 о (11:00:00 до 11:30:00) (Europe/Brussels)</t>.\n"
 "        </t>\n"
 "        <t t-else=\"\">\n"
 "            Дату зустрічі оновлено.\n"
-"            Зустріч <strong t-out=\"object.event_id.name or ''\">Follow-up for Project proposal</strong> створену <t t-out=\"object.event_id.user_id.partner_id.name or ''\">Colleen Diaz</t> тепер заплановано на\n"
+"            Зустріч <strong t-out=\"object.event_id.name or ''\">Follow-up for Project proposal</strong> створена <t t-out=\"object.event_id.user_id.partner_id.name or ''\">Colleen Diaz</t> тепер запланована на\n"
 "            <t t-out=\"object.event_id.get_display_time_tz(tz=object.partner_id.tz) or ''\">05/04/2021 о (11:00:00 до 11:30:00) (Europe/Brussels)</t>.\n"
 "        </t>\n"
 "    </p>\n"
@@ -226,7 +226,7 @@ msgstr ""
 "                <t t-out=\"format_datetime(dt=object.event_id.start, tz=object.mail_tz if not object.event_id.allday else None, dt_format='d', lang_code=object.env.lang) or ''\">4</t>\n"
 "            </div>\n"
 "            <div style=\"font-size: 12px; text-align: center; font-weight: bold; color: #ffffff; background-color: #875A7B;\">\n"
-"                <t t-out='format_datetime(dt=object.event_id.start, tz=object.mail_tz if not object.event_id.allday else None, dt_format=\"MMMM y\", lang_code=object.env.lang) or \"\"'>Травень 2021</t>\n"
+"                <t t-out='format_datetime(dt=object.event_id.start, tz=object.mail_tz if not object.event_id.allday else None, dt_format=\"MMMM y\", lang_code=object.env.lang) or \"\"'>травня 2021</t>\n"
 "            </div>\n"
 "            <div style=\"border-collapse: separate; color: #5F5F5F; text-align: center; font-size: 12px; border-bottom-end-radius: 3px; font-weight: bold; border: 1px solid #875A7B; border-bottom-start-radius: 3px;\">\n"
 "                 <t t-if=\"not object.event_id.allday\">\n"
@@ -251,7 +251,7 @@ msgstr ""
 "                    </li>\n"
 "                </t>\n"
 "                <t t-if=\"recurrent\">\n"
-"                    <li>Коли: <t t-out=\"object.recurrence_id.name or ''\">Коден 1 тиждень, по 3 події</t></li>\n"
+"                    <li>Коли: <t t-out=\"object.recurrence_id.get_recurrence_name()\">Кожен 1 тиждень, на 3 події</t></li>\n"
 "                </t>\n"
 "                <t t-if=\"not object.event_id.allday and object.event_id.duration\">\n"
 "                    <li>Тривалість: <t t-out=\"('%dH%02d' % (object.event_id.duration,round(object.event_id.duration*60)%60)) or ''\">0H30</t></li>\n"
@@ -271,8 +271,8 @@ msgstr ""
 "                <t t-if=\"object.event_id.videocall_location\">\n"
 "                    <li>\n"
 "                        Як доєднатися:\n"
-"                        <t t-if=\"object.get_base_url() in object.event_id.videocall_location\"> Підключитися через Обговорення Odoo</t>\n"
-"                        <t t-else=\"\"> Приєднатися за посиланням</t><br>\n"
+"                        <t t-if=\"object.get_base_url() in object.event_id.videocall_location\"> Доєднатися через модуль Обговорення Odoo</t>\n"
+"                        <t t-else=\"\"> Доєднатися за посиланням</t><br>\n"
 "                        <a t-att-href=\"object.event_id.videocall_location\" target=\"_blank\" t-out=\"object.event_id.videocall_location or ''\">www.mycompany.com/calendar/join_videocall/xyz</a>\n"
 "                    </li>\n"
 "                </t>\n"
@@ -354,7 +354,7 @@ msgid ""
 "                    </li>\n"
 "                </t>\n"
 "                <t t-if=\"recurrent\">\n"
-"                    <li>When: <t t-out=\"object.recurrence_id.name or ''\">Every 1 Weeks, for 3 events</t></li>\n"
+"                    <li>When: <t t-out=\"object.recurrence_id.get_recurrence_name()\">Every 1 Weeks, for 3 events</t></li>\n"
 "                </t>\n"
 "                <t t-if=\"not object.event_id.allday and object.event_id.duration\">\n"
 "                    <li>Duration: <t t-out=\"('%dH%02d' % (object.event_id.duration,round(object.event_id.duration*60)%60)) or ''\">0H30</t></li>\n"
@@ -406,10 +406,10 @@ msgstr ""
 "        Вітаємо <t t-out=\"object.common_name or ''\">Wood Corner</t>,<br><br>\n"
 "\n"
 "        <t t-if=\"not target_responsible\">\n"
-"            <t t-out=\"object.event_id.user_id.partner_id.name or ''\">Colleen Diaz</t> запросила вас на зустріч <strong t-out=\"object.event_id.name or ''\">Follow-up for Project proposal</strong>.\n"
+"            <t t-out=\"object.event_id.user_id.partner_id.name or ''\">Colleen Diaz</t> запросив вас на зустріч <strong t-out=\"object.event_id.name or ''\">Follow-up пропозиції проєкту</strong>.\n"
 "        </t>\n"
 "        <t t-else=\"\">\n"
-"            Вашу зустріч <strong t-out=\"object.event_id.name or ''\">Follow-up for Project proposal</strong> заброньовано.\n"
+"            Ваша зустріч <strong t-out=\"object.event_id.name or ''\">Follow-up пропозиції проєкту</strong> заброньовано.\n"
 "        </t>\n"
 "\n"
 "    </p>\n"
@@ -429,7 +429,7 @@ msgstr ""
 "                <t t-out=\"format_datetime(dt=object.event_id.start, tz=object.mail_tz if not object.event_id.allday else None, dt_format='d', lang_code=object.env.lang) or ''\">4</t>\n"
 "            </div>\n"
 "            <div style=\"font-size: 12px; text-align: center; font-weight: bold; color: #ffffff; background-color: #875A7B;\">\n"
-"                <t t-out=\"format_datetime(dt=object.event_id.start, tz=object.mail_tz if not object.event_id.allday else None, dt_format='MMMM y', lang_code=object.env.lang) or ''\">Травня 2021</t>\n"
+"                <t t-out=\"format_datetime(dt=object.event_id.start, tz=object.mail_tz if not object.event_id.allday else None, dt_format='MMMM y', lang_code=object.env.lang) or ''\">Травень 2021</t>\n"
 "            </div>\n"
 "            <div style=\"border-collapse: separate; color: #5F5F5F; text-align: center; font-size: 12px; border-bottom-end-radius: 3px; font-weight: bold ; border: 1px solid #875A7B; border-bottom-start-radius: 3px;\">\n"
 "                <t t-if=\"not object.event_id.allday\">\n"
@@ -454,7 +454,7 @@ msgstr ""
 "                    </li>\n"
 "                </t>\n"
 "                <t t-if=\"recurrent\">\n"
-"                    <li>Коли: <t t-out=\"object.recurrence_id.name or ''\">Кожен 1 тиждень, по 3 події</t></li>\n"
+"                    <li>Коли: <t t-out=\"object.recurrence_id.get_recurrence_name()\">Кожен 1 тиждень, на 3 події</t></li>\n"
 "                </t>\n"
 "                <t t-if=\"not object.event_id.allday and object.event_id.duration\">\n"
 "                    <li>Тривалість: <t t-out=\"('%dH%02d' % (object.event_id.duration,round(object.event_id.duration*60)%60)) or ''\">0H30</t></li>\n"
@@ -473,9 +473,9 @@ msgstr ""
 "                </ul></li>\n"
 "                <t t-if=\"object.event_id.videocall_location\">\n"
 "                    <li>\n"
-"                        Як долучитися:\n"
-"                        <t t-if=\"object.get_base_url() in object.event_id.videocall_location\"> Приєднатися через Обговорення Odoo</t>\n"
-"                        <t t-else=\"\"> Підключитися за посиланням</t><br>\n"
+"                        Як підключитися:\n"
+"                        <t t-if=\"object.get_base_url() in object.event_id.videocall_location\"> Доєднатися через Обговорення Odoo</t>\n"
+"                        <t t-else=\"\"> За посиланням</t><br>\n"
 "                        <a t-att-href=\"object.event_id.videocall_location\" target=\"_blank\" t-out=\"object.event_id.videocall_location or ''\">www.mycompany.com/calendar/join_videocall/xyz</a>\n"
 "                    </li>\n"
 "                </t>\n"
@@ -555,7 +555,7 @@ msgid ""
 "                            </li>\n"
 "                        </t>\n"
 "                        <t t-if=\"recurrent\">\n"
-"                            <li>When: <t t-out=\"object.recurrence_id.name or ''\">Every 1 Weeks, for 3 events</t></li>\n"
+"                            <li>When: <t t-out=\"object.recurrence_id.get_recurrence_name()\">Every 1 Weeks, for 3 events</t></li>\n"
 "                        </t>\n"
 "                        <t t-if=\"not object.allday and object.duration\">\n"
 "                            <li>Duration:\n"
@@ -620,23 +620,23 @@ msgstr ""
 "                    <ul>\n"
 "                        <t t-if=\"not is_html_empty(object.description)\">\n"
 "                            <li>Опис:\n"
-"                            <t t-out=\"object.description\">Внутрішня зустріч для обговорення нових цін на товари і послуги.</t></li>\n"
+"                            <t t-out=\"object.description\">Внутрішня зустріч для обговорення нових цін на товари та послуги.</t></li>\n"
 "                        </t>\n"
 "                        <t t-if=\"object.videocall_location\">\n"
 "                            <li>\n"
-"                                Як приєднатися:\n"
-"                                <t t-if=\"object.get_base_url() in object.videocall_location\"> Приєднатися через Обговорення Odoo</t>\n"
-"                                <t t-else=\"\"> Приєднатися за посиланням</t><br>\n"
+"                                Як доєднатися:\n"
+"                                <t t-if=\"object.get_base_url() in object.videocall_location\"> Доєднатися через Обговоренні Odoo</t>\n"
+"                                <t t-else=\"\"> Доєднатися за посиланням</t><br>\n"
 "                                <a t-att-href=\"object.videocall_location\" target=\"_blank\" t-out=\"object.videocall_location or ''\">www.mycompany.com/calendar/join_videocall/xyz</a>\n"
 "                            </li>\n"
 "                        </t>\n"
 "                        <t t-if=\"object.location\">\n"
 "                            <li>Розташування: <t t-out=\"object.location or ''\">Bruxelles</t>\n"
-"                                (<a target=\"_blank\" t-attf-href=\"http://maps.google.com/maps?oi=map&amp;q={{object.location}}\">Переглянути картку</a>)\n"
+"                                (<a target=\"_blank\" t-attf-href=\"http://maps.google.com/maps?oi=map&amp;q={{object.location}}\">Переглянути карту</a>)\n"
 "                            </li>\n"
 "                        </t>\n"
 "                        <t t-if=\"recurrent\">\n"
-"                            <li>Коли: <t t-out=\"object.recurrence_id.name or ''\">Кожен 1 тиждень на 3 події</t></li>\n"
+"                            <li>Коли: <t t-out=\"object.recurrence_id.get_recurrence_name()\">Кожен 1 тиждень, на 3 події</t></li>\n"
 "                        </t>\n"
 "                        <t t-if=\"not object.allday and object.duration\">\n"
 "                            <li>Тривалість:\n"
@@ -713,7 +713,7 @@ msgid ""
 "                    </li>\n"
 "                </t>\n"
 "                <t t-if=\"recurrent\">\n"
-"                    <li>When: <t t-out=\"object.recurrence_id.name or ''\">Every 1 Weeks, for 3 events</t></li>\n"
+"                    <li>When: <t t-out=\"object.recurrence_id.get_recurrence_name()\">Every 1 Weeks, for 3 events</t></li>\n"
 "                </t>\n"
 "                <t t-if=\"not object.event_id.allday and object.event_id.duration\">\n"
 "                    <li>Duration: <t t-out=\"('%dH%02d' % (object.event_id.duration,round(object.event_id.duration*60)%60)) or ''\">0H30</t></li>\n"
@@ -760,7 +760,7 @@ msgstr ""
 "    <t t-set=\"recurrent\" t-value=\"object.recurrence_id and not ctx.get('calendar_template_ignore_recurrence')\"></t>\n"
 "    <p>\n"
 "        Вітаємо <t t-out=\"object.common_name or ''\">Gemini Furniture</t>,<br><br>\n"
-"        Це нагадування про наведену нижче подію:\n"
+"        Це нагадування про подію нижче:\n"
 "    </p>\n"
 "    <div style=\"text-align: center; padding: 16px 0px 16px 0px;\">\n"
 "        <a t-attf-href=\"/calendar/{{ 'recurrence' if recurrent else 'meeting' }}/accept?token={{ object.access_token }}&amp;id={{ object.event_id.id }}\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">\n"
@@ -779,7 +779,7 @@ msgstr ""
 "                <t t-out=\"format_datetime(dt=object.event_id.start, tz=object.mail_tz if not object.event_id.allday else None, dt_format='d', lang_code=object.env.lang) or ''\">4</t>\n"
 "            </div>\n"
 "            <div style=\"font-size: 12px; text-align: center; font-weight: bold; color: #ffffff; background-color: #875A7B;\">\n"
-"                <t t-out='format_datetime(dt=object.event_id.start, tz=object.mail_tz if not object.event_id.allday else None, dt_format=\"MMMM y\", lang_code=object.env.lang) or \"\"'>травня 2021</t>\n"
+"                <t t-out='format_datetime(dt=object.event_id.start, tz=object.mail_tz if not object.event_id.allday else None, dt_format=\"MMMM y\", lang_code=object.env.lang) or \"\"'>Травня 2021</t>\n"
 "            </div>\n"
 "            <div style=\"border-collapse: separate; color: #5F5F5F; text-align: center; font-size: 12px; border-bottom-end-radius: 3px; font-weight: bold; border: 1px solid #875A7B; border-bottom-start-radius: 3px;\">\n"
 "                <t t-if=\"not object.event_id.allday\">\n"
@@ -804,7 +804,7 @@ msgstr ""
 "                    </li>\n"
 "                </t>\n"
 "                <t t-if=\"recurrent\">\n"
-"                    <li>Коли: <t t-out=\"object.recurrence_id.name or ''\">Кожен 1 тиждень, по 3 події</t></li>\n"
+"                    <li>Коли: <t t-out=\"object.recurrence_id.get_recurrence_name()\">Кожен 1 тиждень, на 3 події</t></li>\n"
 "                </t>\n"
 "                <t t-if=\"not object.event_id.allday and object.event_id.duration\">\n"
 "                    <li>Тривалість: <t t-out=\"('%dH%02d' % (object.event_id.duration,round(object.event_id.duration*60)%60)) or ''\">0H30</t></li>\n"
@@ -823,9 +823,9 @@ msgstr ""
 "                </ul></li>\n"
 "                <t t-if=\"object.event_id.videocall_location\">\n"
 "                    <li>\n"
-"                        Як приєднатися:\n"
-"                        <t t-if=\"object.get_base_url() in object.event_id.videocall_location\"> Приєднатися через Обговорення Odoo</t>\n"
-"                        <t t-else=\"\"> Приєднатися за посиланням</t><br>\n"
+"                        Як долучитися:\n"
+"                        <t t-if=\"object.get_base_url() in object.event_id.videocall_location\"> Долучитися через Обговорення Odoo</t>\n"
+"                        <t t-else=\"\"> Join at</t><br>\n"
 "                        <a t-att-href=\"object.event_id.videocall_location\" target=\"_blank\" t-out=\"object.event_id.videocall_location or ''\">www.mycompany.com/calendar/join_videocall/xyz</a>\n"
 "                    </li>\n"
 "                </t>\n"
@@ -1605,8 +1605,110 @@ msgstr "Час події"
 #. odoo-python
 #: code:addons/calendar/models/calendar_recurrence.py:0
 #, python-format
-msgid "Every %(count)s %(period)s"
-msgstr "Кожні %(count)s %(period)s"
+msgid "Every %(interval)s Days"
+msgstr "Кожні %(interval)s дні"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid "Every %(interval)s Days for %(count)s events"
+msgstr "Кожні %(interval)s дні для подій %(count)s"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid "Every %(interval)s Days until %(until)s"
+msgstr "Кожні %(interval)s днів до %(until)s"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid "Every %(interval)s Months day %(day)s"
+msgstr "Кожен %(interval)s день місяця %(day)s"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid "Every %(interval)s Months day %(day)s for %(count)s events"
+msgstr "Кожен %(interval)s день місяця %(day)s для %(count)s події"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid "Every %(interval)s Months day %(day)s until %(until)s"
+msgstr "Кожен %(interval)s день місяця %(day)s до %(until)s"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid "Every %(interval)s Months on the %(position)s %(weekday)s"
+msgstr "Кожен %(interval)s місяць на %(position)s %(weekday)s"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid ""
+"Every %(interval)s Months on the %(position)s %(weekday)s for %(count)s "
+"events"
+msgstr ""
+"Кожен %(interval)s місяць на %(position)s %(weekday)s на %(count)s подію"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid ""
+"Every %(interval)s Months on the %(position)s %(weekday)s until %(until)s"
+msgstr "Кожен %(interval)s місяць на %(position)s %(weekday)s до %(until)s"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid "Every %(interval)s Weeks on %(days)s"
+msgstr "Кожен %(interval)s тиждень на %(days)s"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid "Every %(interval)s Weeks on %(days)s for %(count)s events"
+msgstr "Кожен %(interval)s тиждень на %(days)s на %(count)s подію"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid "Every %(interval)s Weeks on %(days)s until %(until)s"
+msgstr "Кожен %(interval)s тиждень на %(days)s до %(until)s"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid "Every %(interval)s Years"
+msgstr "Кожен %(interval)s рік"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid "Every %(interval)s Years for %(count)s events"
+msgstr "Кожен %(interval)s рік на %(count)s подію"
+
+#. module: calendar
+#. odoo-python
+#: code:addons/calendar/models/calendar_recurrence.py:0
+#, python-format
+msgid "Every %(interval)s Years until %(until)s"
+msgstr "Кожен %(interval)s рік до %(until)s"
 
 #. module: calendar
 #. odoo-python
@@ -2804,6 +2906,13 @@ msgstr "Ви повинні обрати принаймні один день т
 
 #. module: calendar
 #. odoo-javascript
+#: code:addons/calendar/static/src/views/attendee_calendar/common/attendee_calendar_common_renderer.xml:0
+#, python-format
+msgid "You're alone in this meeting"
+msgstr "Ви одні на цій зустрічі"
+
+#. module: calendar
+#. odoo-javascript
 #: code:addons/calendar/static/src/views/fields/many2many_attendee_expandable.xml:0
 #, python-format
 msgid "accepted"
@@ -2820,13 +2929,6 @@ msgstr "учасники"
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
 msgid "awaiting"
 msgstr "очікують"
-
-#. module: calendar
-#. odoo-python
-#: code:addons/calendar/models/calendar_recurrence.py:0
-#, python-format
-msgid "day %s"
-msgstr "день %s"
 
 #. module: calendar
 #. odoo-javascript
@@ -2846,13 +2948,6 @@ msgid "e.g: 12/31/2023"
 msgstr "напр: 12/31/2023"
 
 #. module: calendar
-#. odoo-python
-#: code:addons/calendar/models/calendar_recurrence.py:0
-#, python-format
-msgid "for %s events"
-msgstr "для подій %s "
-
-#. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
 msgid "maybe,"
 msgstr "можливо,"
@@ -2861,20 +2956,6 @@ msgstr "можливо,"
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
 msgid "no,"
 msgstr "ні,"
-
-#. module: calendar
-#. odoo-python
-#: code:addons/calendar/models/calendar_recurrence.py:0
-#, python-format
-msgid "on %s"
-msgstr "на %s"
-
-#. module: calendar
-#. odoo-python
-#: code:addons/calendar/models/calendar_recurrence.py:0
-#, python-format
-msgid "on the %(position)s %(weekday)s"
-msgstr "на %(position)s %(weekday)s"
 
 #. module: calendar
 #. odoo-javascript
@@ -2889,13 +2970,6 @@ msgstr "props.placeholder"
 #, python-format
 msgid "uncertain"
 msgstr "неточно"
-
-#. module: calendar
-#. odoo-python
-#: code:addons/calendar/models/calendar_recurrence.py:0
-#, python-format
-msgid "until %s"
-msgstr "до %s"
 
 #. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form

@@ -21,6 +21,7 @@ class Lang(models.Model):
     _name = "res.lang"
     _description = "Languages"
     _order = "active desc,name"
+    _allow_sudo_commands = False
 
     _disallowed_datetime_patterns = list(tools.DATETIME_FORMATS_MAP)
     _disallowed_datetime_patterns.remove('%y') # this one is in fact allowed, just not good practice
@@ -321,6 +322,17 @@ class Lang(models.Model):
         self.env.registry.clear_cache()
         return super(Lang, self).unlink()
 
+    def copy_data(self, default=None):
+        default = dict(default or {})
+
+        if "name" not in default:
+            default["name"] = _("%s (copy)", self.name)
+        if "code" not in default:
+            default["code"] = _("%s (copy)", self.code)
+        if "url_code" not in default:
+            default["url_code"] = _("%s (copy)", self.url_code)
+        return super().copy_data(default=default)
+
     def format(self, percent, value, grouping=False, monetary=False):
         """ Format() will return the language-specific output for float values"""
         self.ensure_one()
@@ -361,6 +373,7 @@ class Lang(models.Model):
                 'next': {'type': 'ir.actions.act_window_close'},
             }
         }
+
 
 def split(l, counts):
     """

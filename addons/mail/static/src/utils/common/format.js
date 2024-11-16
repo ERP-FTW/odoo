@@ -65,7 +65,7 @@ export function parseAndTransform(htmlString, transformFunction) {
     let children;
     try {
         const div = document.createElement("div");
-        div.innerHTML = string;
+        div.innerHTML = string; // /!\ quotes are unescaped
         children = Array.from(div.childNodes);
     } catch {
         const div = document.createElement("div");
@@ -213,7 +213,10 @@ async function _generateEmojisOnHtml(htmlString) {
     const { emojis } = await loadEmoji();
     for (const emoji of emojis) {
         for (const source of [...emoji.shortcodes, ...emoji.emoticons]) {
-            const escapedSource = String(source).replace(/([.*+?=^!:${}()|[\]/\\])/g, "\\$1");
+            const escapedSource = escape(String(source)).replace(
+                /([.*+?=^!:${}()|[\]/\\])/g,
+                "\\$1"
+            );
             const regexp = new RegExp("(\\s|^)(" + escapedSource + ")(?=\\s|$)", "g");
             htmlString = htmlString.replace(regexp, "$1" + emoji.codepoints);
         }

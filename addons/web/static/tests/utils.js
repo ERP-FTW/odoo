@@ -327,7 +327,7 @@ class Contains {
                     this.def.reject(e); // prevents infinite loop in case of programming error
                 }
             });
-            this.observer.observe(document.body, {
+            this.observer.observe(this.options.target, {
                 attributes: true,
                 childList: true,
                 subtree: true,
@@ -468,15 +468,14 @@ class Contains {
                 el.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Backspace" }));
                 el.dispatchEvent(new window.KeyboardEvent("keyup", { key: "Backspace" }));
                 el.dispatchEvent(new window.InputEvent("input"));
-                el.dispatchEvent(new window.InputEvent("change"));
             }
             for (const char of this.options.insertText.content) {
                 el.value += char;
                 el.dispatchEvent(new window.KeyboardEvent("keydown", { key: char }));
                 el.dispatchEvent(new window.KeyboardEvent("keyup", { key: char }));
                 el.dispatchEvent(new window.InputEvent("input"));
-                el.dispatchEvent(new window.InputEvent("change"));
             }
+            el.dispatchEvent(new window.InputEvent("change"));
         }
         if (this.options.pasteFiles) {
             message = `${message} and pasted ${this.options.pasteFiles.length} file(s)`;
