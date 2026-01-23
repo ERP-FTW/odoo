@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_currency_form_crypto" model="ir.ui.view">
+        <field name="name">res.currency.form.crypto</field>
+        <field name="model">res.currency</field>
+        <field name="inherit_id" ref="base.view_currency_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group/group[field[@name='symbol']]" position="inside">
+                <field name="is_cryptocurrency" widget="boolean_toggle"/>
+                <field name="crypto_symbol" invisible="not is_cryptocurrency"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
