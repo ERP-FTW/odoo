@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_bank_statement_line_manual_amount_currency" model="ir.actions.act_window">
+        <field name="name">Bank Statement Lines</field>
+        <field name="res_model">account.bank.statement.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'create': False}</field>
+    </record>
+
+    <menuitem
+        id="menu_bank_statement_line_manual_amount_currency"
+        name="Bank Statement Lines"
+        parent="account.menu_finance_entries"
+        action="action_bank_statement_line_manual_amount_currency"
+        sequence="45"
+        groups="account.group_account_readonly"
+    />
+
+    <record id="view_bank_statement_line_tree_manual_amount_currency" model="ir.ui.view">
+        <field name="name">account.bank.statement.line.list.manual.amount.currency</field>
+        <field name="model">account.bank.statement.line</field>
+        <field name="arch" type="xml">
+            <list string="Bank Transactions">
+                <field name="date"/>
+                <field name="payment_ref"/>
+                <field name="partner_id"/>
+                <field name="journal_id"/>
+                <field name="amount"/>
+                <field name="foreign_currency_id"/>
+                <field name="amount_currency"/>
+                <field name="is_reconciled"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_bank_statement_line_form_manual_amount_currency" model="ir.ui.view">
+        <field name="name">account.bank.statement.line.form.manual.amount.currency</field>
+        <field name="model">account.bank.statement.line</field>
+        <field name="arch" type="xml">
+            <form string="Bank Transaction">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                            <field name="payment_ref"/>
+                            <field name="partner_id"/>
+                            <field name="journal_id"/>
+                            <field name="amount"/>
+                        </group>
+                        <group>
+                            <field name="foreign_currency_id" options="{'no_create': True}"/>
+                            <field name="amount_currency"/>
+                            <field name="is_reconciled" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>
