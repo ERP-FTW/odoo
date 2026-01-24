@@ -33,28 +33,23 @@
         </field>
     </record>
 
-    <record id="view_bank_statement_line_form_manual_amount_currency" model="ir.ui.view">
-        <field name="name">account.bank.statement.line.form.manual.amount.currency</field>
+    <record id="view_bsl_quick_create_currency_next_line" model="ir.ui.view">
+        <field name="name">account.bank.statement.line.quick.create.currency.next.line</field>
         <field name="model">account.bank.statement.line</field>
+        <field name="inherit_id" ref="account_accountant.view_bank_statement_line_quick_create_form_bank_rec_widget"/>
         <field name="arch" type="xml">
-            <form string="Bank Transaction">
-                <sheet>
-                    <group>
-                        <group>
-                            <field name="date"/>
-                            <field name="payment_ref"/>
-                            <field name="partner_id"/>
-                            <field name="journal_id"/>
-                            <field name="amount"/>
-                        </group>
-                        <group>
-                            <field name="foreign_currency_id" options="{'no_create': True}"/>
-                            <field name="amount_currency"/>
-                            <field name="is_reconciled" readonly="1"/>
-                        </group>
-                    </group>
-                </sheet>
-            </form>
+
+            <!-- Insert AFTER the closest container (group/div) that contains BOTH date + amount -->
+            <xpath expr="//field[@name='amount']/ancestor::*[(self::group or self::div) and .//field[@name='date']][1]"
+                position="after">
+                <group col="2" name="manual_foreign_currency_row">
+                    <field name="foreign_currency_id" options="{'no_create': True}"/>
+                    <field name="amount_currency"/>
+                </group>
+            </xpath>
+
         </field>
     </record>
+
+
 </odoo>
