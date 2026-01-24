@@ -11,7 +11,7 @@
                     name="button_currency_moves"
                     string="Crypto moves"
                     type="object"
-                    attrs="{'invisible':[('has_currency_move_ids','=',False)]}"
+                    invisible="not has_currency_move_ids"
                     icon="fa-bars"
                 />
                 <field name="has_currency_move_ids" invisible="1" />

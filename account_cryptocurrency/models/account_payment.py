@@ -18,7 +18,8 @@ class AccountPayment(models.Model):
     )
 
     def _compute_has_currency_move_ids(self):
-        self.has_currency_move_ids = bool(self.res_currency_move_ids)
+        for payment in self:
+            payment.has_currency_move_ids = bool(payment.res_currency_move_ids)
 
     def _prepare_currency_inventory_move(self):
         return {

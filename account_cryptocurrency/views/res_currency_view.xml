@@ -24,7 +24,7 @@
                     <group>
                         <field name="inventoried" />
                     </group>
-                    <group attrs="{'invisible': [('inventoried', '=', False)]}">
+                    <group invisible="not inventoried">
                         <field name="valuation_method" />
                         <field name="inventory_account_id" />
                     </group>

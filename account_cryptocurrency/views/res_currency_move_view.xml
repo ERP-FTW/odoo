@@ -23,7 +23,7 @@
         <field name="arch" type="xml">
             <tree
                 decoration-info="state == 'draft'"
-                decoration-muted="state == 'cancelled'"
+                decoration-muted="state == 'cancel'"
             >
                 <field name="name" />
                 <field name="date" />
@@ -47,25 +47,25 @@
                         name="action_post"
                         string="Post"
                         type="object"
-                        states="draft"
+                        invisible="state != 'draft'"
                         class="oe_highlight"
                     />
                     <button
                         name="action_cancel"
                         string="Cancel"
                         type="object"
-                        states="posted"
+                        invisible="state != 'posted'"
                     />
                     <button
                         name="action_draft"
                         string="Draft"
                         type="object"
-                        states="cancelled"
+                        invisible="state != 'cancel'"
                     />
                     <field
                         name="state"
                         widget="statusbar"
-                        statusbar_visible="draft,posted,cancelled"
+                        statusbar_visible="draft,posted,cancel"
                     />
                 </header>
                 <sheet>

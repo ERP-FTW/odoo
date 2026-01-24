@@ -103,15 +103,15 @@ class ResCurrencyMove(models.Model):
     @api.depends("currency_id", "journal_id", "direction")
     def _compute_accounts(self):
         for rec in self:
-            inventory_account = self.currency_id.with_company(
-                self.company_id
+            inventory_account = rec.currency_id.with_company(
+                rec.company_id
             ).inventory_account_id
 
-            if self.direction == "inbound":
+            if rec.direction == "inbound":
                 rec.debit_account_id = inventory_account
-                rec.credit_account_id = self.journal_id.default_account_id
+                rec.credit_account_id = rec.journal_id.default_account_id
             else:
-                rec.debit_account_id = self.journal_id.default_account_id
+                rec.debit_account_id = rec.journal_id.default_account_id
                 rec.credit_account_id = inventory_account
 
     def _get_sequence(self):
