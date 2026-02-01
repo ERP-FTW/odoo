@@ -47,6 +47,7 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 return this._super(...arguments);
             }
 
+            this._requestCardpointeToken(paymentOptionId);
             return this._waitForCardpointeToken(paymentOptionId).then(tokenPayload => {
                 if (!tokenPayload || !tokenPayload.token) {
                     const wrapper = this._getCardpointeWrapperByProviderId(paymentOptionId);
@@ -256,6 +257,44 @@ odoo.define('payment_cardpointe.payment_form', require => {
                     }
                 }, 5000);
             });
+        },
+
+        /**
+         * Ask the CardPointe iframe to tokenize the current card data.
+         *
+         * Docs: https://developer.fiserv.com/product/CardPointe/docs/?path=docs/documentation/HostediFrameTokenizer.md
+         *
+         * @private
+         * @param {number} providerId
+         */
+        _requestCardpointeToken: function (providerId) {
+            const wrapper = this._getCardpointeWrapperByProviderId(providerId);
+            if (!wrapper) {
+                return;
+            }
+            const tokenizerUrl = wrapper.dataset.tokenizerUrl || '';
+            let targetOrigin = '';
+            try {
+                targetOrigin = new URL(tokenizerUrl).origin;
+            } catch (err) {
+                console.warn(
+                    '[CARDPOINTE] Invalid tokenizer URL; cannot request token.',
+                    {providerId: providerId, tokenizerUrl: tokenizerUrl}
+                );
+                return;
+            }
+            const iframe = wrapper.querySelector('iframe');
+            if (!iframe || !iframe.contentWindow) {
+                console.warn(
+                    '[CARDPOINTE] Tokenizer iframe not ready; cannot request token.',
+                    {providerId: providerId, tokenizerUrl: tokenizerUrl}
+                );
+                return;
+            }
+            if (this._cardpointeTokens && this._cardpointeTokens[providerId]) {
+                delete this._cardpointeTokens[providerId];
+            }
+            iframe.contentWindow.postMessage('tokenize', targetOrigin);
         },
 
         /**
