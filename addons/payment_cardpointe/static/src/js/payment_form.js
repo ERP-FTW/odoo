@@ -49,6 +49,12 @@ odoo.define('payment_cardpointe.payment_form', require => {
 
             const tokenPayload = this._getCardpointeTokenPayload(paymentOptionId);
             if (!tokenPayload || !tokenPayload.token) {
+                const wrapper = this._getCardpointeWrapperByProviderId(paymentOptionId);
+                const tokenizerUrl = wrapper ? (wrapper.dataset.tokenizerUrl || '') : '';
+                console.warn(
+                    '[CARDPOINTE] Missing token from Hosted iFrame Tokenizer.',
+                    {providerId: paymentOptionId, tokenizerUrl: tokenizerUrl}
+                );
                 this._enableButton();
                 $('body').unblock();
                 this._displayError(
@@ -139,6 +145,13 @@ odoo.define('payment_cardpointe.payment_form', require => {
         _normalizeCardpointeMessage: function (event) {
             const wrapper = this._getCardpointeWrapperByOrigin(event.origin);
             if (!wrapper) {
+                const payload = this._parseCardpointeMessage(event.data);
+                if (payload && payload.token) {
+                    console.warn(
+                        '[CARDPOINTE] Ignored token message from unexpected origin.',
+                        {origin: event.origin}
+                    );
+                }
                 return null;
             }
             const providerId = parseInt(wrapper.dataset.providerId, 10);
@@ -146,13 +159,9 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 return null;
             }
 
-            let payload = event.data;
-            if (typeof payload === 'string') {
-                try {
-                    payload = JSON.parse(payload);
-                } catch (err) {
-                    return null;
-                }
+            const payload = this._parseCardpointeMessage(event.data);
+            if (!payload) {
+                return null;
             }
             return {
                 providerId: providerId,
@@ -198,6 +207,45 @@ odoo.define('payment_cardpointe.payment_form', require => {
          */
         _getCardpointeTokenPayload: function (providerId) {
             return this._cardpointeTokens && this._cardpointeTokens[providerId];
+        },
+
+        /**
+         * Find the CardPointe iframe wrapper by provider id.
+         *
+         * @private
+         * @param {number} providerId
+         * @return {HTMLElement|null}
+         */
+        _getCardpointeWrapperByProviderId: function (providerId) {
+            const wrappers = document.querySelectorAll('.o_cardpointe_iframe_wrapper');
+            for (const wrapper of wrappers) {
+                const wrapperProviderId = parseInt(wrapper.dataset.providerId, 10);
+                if (wrapperProviderId === providerId) {
+                    return wrapper;
+                }
+            }
+            return null;
+        },
+
+        /**
+         * Parse a CardPointe postMessage payload.
+         *
+         * @private
+         * @param {object|string} payload
+         * @return {object|null}
+         */
+        _parseCardpointeMessage: function (payload) {
+            if (typeof payload === 'string') {
+                try {
+                    return JSON.parse(payload);
+                } catch (err) {
+                    return null;
+                }
+            }
+            if (payload && typeof payload === 'object') {
+                return payload;
+            }
+            return null;
         },
 
         /**
