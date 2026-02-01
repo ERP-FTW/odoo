@@ -47,6 +47,7 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 return this._super(...arguments);
             }
 
+            this._ensureCardpointeListener();
             this._requestCardpointeToken(paymentOptionId);
             return this._waitForCardpointeToken(paymentOptionId).then(tokenPayload => {
                 if (!tokenPayload || !tokenPayload.token) {
@@ -295,6 +296,7 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 delete this._cardpointeTokens[providerId];
             }
             iframe.contentWindow.postMessage('tokenize', targetOrigin);
+            iframe.contentWindow.postMessage({action: 'tokenize'}, targetOrigin);
         },
 
         /**
