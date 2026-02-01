@@ -160,6 +160,16 @@ odoo.define('payment_cardpointe.payment_form', require => {
             if (!wrapper) {
                 const payload = this._parseCardpointeMessage(event.data);
                 if (payload && payload.token) {
+                    if (this._cardpointeLastProviderId) {
+                        console.warn(
+                            '[CARDPOINTE] Token message missing iframe match; using last requested provider.',
+                            {origin: event.origin, providerId: this._cardpointeLastProviderId}
+                        );
+                        return {
+                            providerId: this._cardpointeLastProviderId,
+                            payload: payload,
+                        };
+                    }
                     console.warn(
                         '[CARDPOINTE] Ignored token message from unexpected origin.',
                         {origin: event.origin}
@@ -300,6 +310,7 @@ odoo.define('payment_cardpointe.payment_form', require => {
             if (this._cardpointeTokens && this._cardpointeTokens[providerId]) {
                 delete this._cardpointeTokens[providerId];
             }
+            this._cardpointeLastProviderId = providerId;
             iframe.contentWindow.postMessage('tokenize', targetOrigin);
             iframe.contentWindow.postMessage({action: 'tokenize'}, targetOrigin);
         },
