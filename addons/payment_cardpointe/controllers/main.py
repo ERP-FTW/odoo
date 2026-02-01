@@ -29,7 +29,20 @@ class CardPointeController(http.Controller):
         token = kwargs.get('token')
         partner_id = kwargs.get('partner_id')
         meta = kwargs.get('meta')
-        if not reference or not access_token or not token or partner_id is None:
+        missing_fields = []
+        if not reference:
+            missing_fields.append('reference')
+        if not access_token:
+            missing_fields.append('access_token')
+        if not token:
+            missing_fields.append('token')
+        if partner_id is None:
+            missing_fields.append('partner_id')
+        if missing_fields:
+            _logger.warning(
+                "[CARDPOINTE] Missing required payment data: %s",
+                ", ".join(missing_fields),
+            )
             raise ValidationError("CardPointe: " + _("Missing required payment data."))
         if not payment_utils.check_access_token(access_token, reference, partner_id):
             raise ValidationError("CardPointe: " + _("Received tampered payment request data."))
