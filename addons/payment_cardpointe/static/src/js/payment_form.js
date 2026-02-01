@@ -155,7 +155,8 @@ odoo.define('payment_cardpointe.payment_form', require => {
          * @return {object|null}
          */
         _normalizeCardpointeMessage: function (event) {
-            const wrapper = this._getCardpointeWrapperByOrigin(event.origin);
+            const wrapper = this._getCardpointeWrapperBySource(event.source)
+                || this._getCardpointeWrapperByOrigin(event.origin);
             if (!wrapper) {
                 const payload = this._parseCardpointeMessage(event.data);
                 if (payload && payload.token) {
@@ -254,6 +255,10 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 window.setTimeout(() => {
                     if (this._cardpointeTokenWaiters[providerId]) {
                         delete this._cardpointeTokenWaiters[providerId];
+                        console.warn(
+                            '[CARDPOINTE] Timed out waiting for tokenization message.',
+                            {providerId: providerId}
+                        );
                         resolve(null);
                     }
                 }, 5000);
@@ -383,6 +388,27 @@ odoo.define('payment_cardpointe.payment_form', require => {
                     continue;
                 }
                 if (allowedOrigin === origin) {
+                    return wrapper;
+                }
+            }
+            return null;
+        },
+
+        /**
+         * Find the CardPointe iframe wrapper that matches the postMessage source.
+         *
+         * @private
+         * @param {Window|null} source
+         * @return {HTMLElement|null}
+         */
+        _getCardpointeWrapperBySource: function (source) {
+            if (!source) {
+                return null;
+            }
+            const wrappers = document.querySelectorAll('.o_cardpointe_iframe_wrapper');
+            for (const wrapper of wrappers) {
+                const iframe = wrapper.querySelector('iframe');
+                if (iframe && iframe.contentWindow === source) {
                     return wrapper;
                 }
             }
