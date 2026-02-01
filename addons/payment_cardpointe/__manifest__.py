@@ -6,8 +6,8 @@
     'description': 'CardPointe payment integration for website checkout.',
     'depends': ['payment', 'payment_cardpointe_base', 'website_sale'],
     'data': [
-        'views/payment_provider_data.xml',
         'views/payment_templates.xml',
+        'views/payment_provider_data.xml',
     ],
     'assets': {
         'web.assets_frontend': [
