@@ -12,6 +12,7 @@ Enable the CardPointe provider and fill in:
 - **API Username / Password**
 - **Merchant ID (MID)**
 - **Hosted iFrame Tokenizer URL**
+- **Test Connection Endpoint** (relative path from Gateway API docs)
 - Optional: timeouts and debug logging
 
 ## Debug logging
@@ -23,7 +24,8 @@ never logged.
 ## Test CardPointe Connection
 
 Use **Test CardPointe Connection** on the provider form to validate credentials and connectivity.
-If the endpoint is not configured, the action raises a message referencing `docs/ENDPOINTS.md`.
+Set **Test Connection Endpoint** on the provider (or define `ENDPOINT_TEST_CONNECTION`) as
+described in `docs/ENDPOINTS.md`.
 
 ## Logs
 

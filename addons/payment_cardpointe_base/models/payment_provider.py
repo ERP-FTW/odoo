@@ -35,6 +35,10 @@ class PaymentProvider(models.Model):
         string="Hosted iFrame Tokenizer URL",
         required_if_provider='cardpointe',
     )
+    cardpointe_test_endpoint = fields.Char(
+        string="Test Connection Endpoint",
+        help="Relative endpoint for the test connection action (appended to the API base URL).",
+    )
     cardpointe_debug_logging = fields.Boolean(string="Enable CardPointe Debug Logging")
     cardpointe_timeout_connect = fields.Integer(string="Connect Timeout (s)", default=10)
     cardpointe_timeout_read = fields.Integer(string="Read Timeout (s)", default=30)
@@ -78,13 +82,15 @@ class PaymentProvider(models.Model):
         self.ensure_one()
         if self.code != 'cardpointe':
             return
-        if not ENDPOINT_TEST_CONNECTION:
+        endpoint = self.cardpointe_test_endpoint or ENDPOINT_TEST_CONNECTION
+        if not endpoint:
             raise UserError(_(
                 "CardPointe: no test endpoint configured. "
-                "Please set ENDPOINT_TEST_CONNECTION according to docs/ENDPOINTS.md"
+                "Please set the Test Connection Endpoint or ENDPOINT_TEST_CONNECTION "
+                "according to docs/ENDPOINTS.md"
             ))
 
-        response = self._cardpointe_request('GET', ENDPOINT_TEST_CONNECTION)
+        response = self._cardpointe_request('GET', endpoint)
         if response['ok']:
             message = _(
                 "CardPointe connection OK. Base URL: %(base)s MID: %(mid)s",
