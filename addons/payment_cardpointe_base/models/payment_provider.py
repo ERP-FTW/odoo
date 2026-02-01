@@ -27,7 +27,6 @@ class PaymentProvider(models.Model):
     cardpointe_password = fields.Char(
         string="API Password",
         required_if_provider='cardpointe',
-        password=True,
         groups='base.group_system',
     )
     cardpointe_mid = fields.Char(string="Merchant ID (MID)", required_if_provider='cardpointe')
