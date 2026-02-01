@@ -14,7 +14,7 @@ _logger = logging.getLogger(__name__)
 class CardPointeController(http.Controller):
 
     @http.route('/payment/cardpointe/process', type='json', auth='public')
-    def cardpointe_process(self, reference, access_token, token, partner_id, meta=None):
+    def cardpointe_process(self, **kwargs):
         """Process a CardPointe token payment.
 
         :param str reference: The reference of the transaction
@@ -24,6 +24,13 @@ class CardPointeController(http.Controller):
         :param dict meta: Optional non-sensitive metadata
         :return: A dict with a redirect URL
         """
+        reference = kwargs.get('reference')
+        access_token = kwargs.get('access_token')
+        token = kwargs.get('token')
+        partner_id = kwargs.get('partner_id')
+        meta = kwargs.get('meta')
+        if not (reference and access_token and token and partner_id):
+            raise ValidationError("CardPointe: " + _("Missing required payment data."))
         if not payment_utils.check_access_token(access_token, reference, partner_id):
             raise ValidationError("CardPointe: " + _("Received tampered payment request data."))
 
