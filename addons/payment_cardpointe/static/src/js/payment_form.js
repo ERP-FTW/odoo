@@ -166,7 +166,10 @@ odoo.define('payment_cardpointe.payment_form', require => {
             if (!payload.token) {
                 console.warn(
                     '[CARDPOINTE] Tokenizer message missing token.',
-                    {origin: event.origin, keys: Object.keys(payload)}
+                    {
+                        origin: event.origin,
+                        keys: this._summarizeCardpointePayloadKeys(payload),
+                    }
                 );
             }
             return {
@@ -196,7 +199,7 @@ odoo.define('payment_cardpointe.payment_form', require => {
             if (!token) {
                 console.warn(
                     '[CARDPOINTE] Tokenizer payload missing token.',
-                    {keys: Object.keys(payload)}
+                    {keys: this._summarizeCardpointePayloadKeys(payload)}
                 );
                 return null;
             }
@@ -259,6 +262,30 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 return payload;
             }
             return null;
+        },
+
+        /**
+         * Summarize payload keys recursively (safe for logging).
+         *
+         * @private
+         * @param {object} payload
+         * @param {number} depth
+         * @return {object}
+         */
+        _summarizeCardpointePayloadKeys: function (payload, depth = 2) {
+            if (!payload || typeof payload !== 'object' || depth < 0) {
+                return {};
+            }
+            const summary = {};
+            Object.keys(payload).forEach(key => {
+                const value = payload[key];
+                if (value && typeof value === 'object') {
+                    summary[key] = this._summarizeCardpointePayloadKeys(value, depth - 1);
+                } else {
+                    summary[key] = true;
+                }
+            });
+            return summary;
         },
 
         /**
