@@ -189,7 +189,10 @@ odoo.define('payment_cardpointe.payment_form', require => {
             if (!payload || typeof payload !== 'object') {
                 return null;
             }
-            const token = payload.token;
+            const token = payload.token
+                || (payload.data && payload.data.token)
+                || (payload.response && payload.response.token)
+                || (payload.message && payload.message.token);
             if (!token) {
                 console.warn(
                     '[CARDPOINTE] Tokenizer payload missing token.',
