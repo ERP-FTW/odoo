@@ -47,50 +47,55 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 return this._super(...arguments);
             }
 
-            const tokenPayload = this._getCardpointeTokenPayload(paymentOptionId);
-            if (!tokenPayload || !tokenPayload.token) {
-                const wrapper = this._getCardpointeWrapperByProviderId(paymentOptionId);
-                const tokenizerUrl = wrapper ? (wrapper.dataset.tokenizerUrl || '') : '';
-                console.warn(
-                    '[CARDPOINTE] Missing token from Hosted iFrame Tokenizer.',
-                    {providerId: paymentOptionId, tokenizerUrl: tokenizerUrl}
-                );
-                this._enableButton();
-                $('body').unblock();
-                this._displayError(
-                    _t("CardPointe"),
-                    _t("We could not retrieve a payment token."),
-                    _t("Please complete the secure card form and try again.")
-                );
-                return Promise.resolve();
-            }
-
-            return this._rpc({
-                route: this.txContext.transactionRoute,
-                params: this._prepareTransactionRouteParams('cardpointe', paymentOptionId, 'direct'),
-            }).then(processingValues => {
-                return this._rpc({
-                    route: '/payment/cardpointe/process',
-                    params: {
-                        'reference': processingValues.reference,
-                        'partner_id': processingValues.partner_id,
-                        'token': tokenPayload.token,
-                        'meta': tokenPayload.meta || {},
-                        'access_token': this.txContext.accessToken,
-                    }
-                });
-            }).then(result => {
-                if (!result || !result.success) {
+            return this._waitForCardpointeToken(paymentOptionId).then(tokenPayload => {
+                if (!tokenPayload || !tokenPayload.token) {
+                    const wrapper = this._getCardpointeWrapperByProviderId(paymentOptionId);
+                    const tokenizerUrl = wrapper ? (wrapper.dataset.tokenizerUrl || '') : '';
+                    console.warn(
+                        '[CARDPOINTE] Missing token from Hosted iFrame Tokenizer.',
+                        {providerId: paymentOptionId, tokenizerUrl: tokenizerUrl}
+                    );
                     this._enableButton();
                     $('body').unblock();
                     this._displayError(
                         _t("CardPointe"),
-                        _t("We are not able to process your payment."),
-                        _t("Please try again or use another payment method.")
+                        _t("We could not retrieve a payment token."),
+                        _t("Please complete the secure card form and try again.")
                     );
-                    return;
+                    return null;
                 }
-                window.location = result.redirect_url || '/payment/status';
+
+                return this._rpc({
+                    route: this.txContext.transactionRoute,
+                    params: this._prepareTransactionRouteParams(
+                        'cardpointe',
+                        paymentOptionId,
+                        'direct'
+                    ),
+                }).then(processingValues => {
+                    return this._rpc({
+                        route: '/payment/cardpointe/process',
+                        params: {
+                            'reference': processingValues.reference,
+                            'partner_id': processingValues.partner_id,
+                            'token': tokenPayload.token,
+                            'meta': tokenPayload.meta || {},
+                            'access_token': this.txContext.accessToken,
+                        }
+                    });
+                }).then(result => {
+                    if (!result || !result.success) {
+                        this._enableButton();
+                        $('body').unblock();
+                        this._displayError(
+                            _t("CardPointe"),
+                            _t("We are not able to process your payment."),
+                            _t("Please try again or use another payment method.")
+                        );
+                        return;
+                    }
+                    window.location = result.redirect_url || '/payment/status';
+                });
             }).guardedCatch((error) => {
                 error.event.preventDefault();
                 this._displayError(
@@ -112,6 +117,7 @@ odoo.define('payment_cardpointe.payment_form', require => {
             }
             this._cardpointeListenerAttached = true;
             this._cardpointeTokens = {};
+            this._cardpointeTokenWaiters = {};
 
             window.addEventListener('message', event => {
                 const data = this._normalizeCardpointeMessage(event);
@@ -129,6 +135,10 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 }
 
                 this._cardpointeTokens[providerId] = tokenPayload;
+                if (this._cardpointeTokenWaiters[providerId]) {
+                    this._cardpointeTokenWaiters[providerId](tokenPayload);
+                    delete this._cardpointeTokenWaiters[providerId];
+                }
             });
         },
 
@@ -223,6 +233,29 @@ odoo.define('payment_cardpointe.payment_form', require => {
          */
         _getCardpointeTokenPayload: function (providerId) {
             return this._cardpointeTokens && this._cardpointeTokens[providerId];
+        },
+
+        /**
+         * Wait briefly for a CardPointe token payload.
+         *
+         * @private
+         * @param {number} providerId
+         * @return {Promise<object|null>}
+         */
+        _waitForCardpointeToken: function (providerId) {
+            const existing = this._getCardpointeTokenPayload(providerId);
+            if (existing) {
+                return Promise.resolve(existing);
+            }
+            return new Promise(resolve => {
+                this._cardpointeTokenWaiters[providerId] = resolve;
+                window.setTimeout(() => {
+                    if (this._cardpointeTokenWaiters[providerId]) {
+                        delete this._cardpointeTokenWaiters[providerId];
+                        resolve(null);
+                    }
+                }, 5000);
+            });
         },
 
         /**
