@@ -47,6 +47,8 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 return this._super(...arguments);
             }
 
+            this._ensureCardpointeListener();
+            this._requestCardpointeToken(paymentOptionId);
             return this._waitForCardpointeToken(paymentOptionId).then(tokenPayload => {
                 if (!tokenPayload || !tokenPayload.token) {
                     const wrapper = this._getCardpointeWrapperByProviderId(paymentOptionId);
@@ -153,10 +155,21 @@ odoo.define('payment_cardpointe.payment_form', require => {
          * @return {object|null}
          */
         _normalizeCardpointeMessage: function (event) {
-            const wrapper = this._getCardpointeWrapperByOrigin(event.origin);
+            const wrapper = this._getCardpointeWrapperBySource(event.source)
+                || this._getCardpointeWrapperByOrigin(event.origin);
             if (!wrapper) {
                 const payload = this._parseCardpointeMessage(event.data);
                 if (payload && payload.token) {
+                    if (this._cardpointeLastProviderId) {
+                        console.warn(
+                            '[CARDPOINTE] Token message missing iframe match; using last requested provider.',
+                            {origin: event.origin, providerId: this._cardpointeLastProviderId}
+                        );
+                        return {
+                            providerId: this._cardpointeLastProviderId,
+                            payload: payload,
+                        };
+                    }
                     console.warn(
                         '[CARDPOINTE] Ignored token message from unexpected origin.',
                         {origin: event.origin}
@@ -202,10 +215,14 @@ odoo.define('payment_cardpointe.payment_form', require => {
             if (!payload || typeof payload !== 'object') {
                 return null;
             }
+            const messageToken = (payload.message && typeof payload.message === 'string')
+                ? payload.message
+                : null;
             const token = payload.token
                 || (payload.data && payload.data.token)
                 || (payload.response && payload.response.token)
-                || (payload.message && payload.message.token);
+                || (payload.message && payload.message.token)
+                || messageToken;
             if (!token) {
                 console.warn(
                     '[CARDPOINTE] Tokenizer payload missing token.',
@@ -252,10 +269,54 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 window.setTimeout(() => {
                     if (this._cardpointeTokenWaiters[providerId]) {
                         delete this._cardpointeTokenWaiters[providerId];
+                        console.warn(
+                            '[CARDPOINTE] Timed out waiting for tokenization message.',
+                            {providerId: providerId}
+                        );
                         resolve(null);
                     }
                 }, 5000);
             });
+        },
+
+        /**
+         * Ask the CardPointe iframe to tokenize the current card data.
+         *
+         * Docs: https://developer.fiserv.com/product/CardPointe/docs/?path=docs/documentation/HostediFrameTokenizer.md
+         *
+         * @private
+         * @param {number} providerId
+         */
+        _requestCardpointeToken: function (providerId) {
+            const wrapper = this._getCardpointeWrapperByProviderId(providerId);
+            if (!wrapper) {
+                return;
+            }
+            const tokenizerUrl = wrapper.dataset.tokenizerUrl || '';
+            let targetOrigin = '';
+            try {
+                targetOrigin = new URL(tokenizerUrl).origin;
+            } catch (err) {
+                console.warn(
+                    '[CARDPOINTE] Invalid tokenizer URL; cannot request token.',
+                    {providerId: providerId, tokenizerUrl: tokenizerUrl}
+                );
+                return;
+            }
+            const iframe = wrapper.querySelector('iframe');
+            if (!iframe || !iframe.contentWindow) {
+                console.warn(
+                    '[CARDPOINTE] Tokenizer iframe not ready; cannot request token.',
+                    {providerId: providerId, tokenizerUrl: tokenizerUrl}
+                );
+                return;
+            }
+            if (this._cardpointeTokens && this._cardpointeTokens[providerId]) {
+                delete this._cardpointeTokens[providerId];
+            }
+            this._cardpointeLastProviderId = providerId;
+            iframe.contentWindow.postMessage('tokenize', targetOrigin);
+            iframe.contentWindow.postMessage({action: 'tokenize'}, targetOrigin);
         },
 
         /**
@@ -342,6 +403,27 @@ odoo.define('payment_cardpointe.payment_form', require => {
                     continue;
                 }
                 if (allowedOrigin === origin) {
+                    return wrapper;
+                }
+            }
+            return null;
+        },
+
+        /**
+         * Find the CardPointe iframe wrapper that matches the postMessage source.
+         *
+         * @private
+         * @param {Window|null} source
+         * @return {HTMLElement|null}
+         */
+        _getCardpointeWrapperBySource: function (source) {
+            if (!source) {
+                return null;
+            }
+            const wrappers = document.querySelectorAll('.o_cardpointe_iframe_wrapper');
+            for (const wrapper of wrappers) {
+                const iframe = wrapper.querySelector('iframe');
+                if (iframe && iframe.contentWindow === source) {
                     return wrapper;
                 }
             }
