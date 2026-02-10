@@ -10,10 +10,14 @@
                     <field name="date_from"/>
                     <field name="date_to"/>
                     <field name="is_correction"/>
+                    <field name="debug_logging"/>
                 </group>
                 <group string="Contact details (optional)">
                     <field name="phone"/>
                     <field name="email"/>
+                </group>
+                <group string="Diagnostics" invisible="not debug_logging">
+                    <field name="debug_summary" nolabel="1" readonly="1" widget="text"/>
                 </group>
                 <footer>
                     <button name="action_export_xml"
@@ -38,4 +42,22 @@
               parent="account.menu_finance_reports"
               action="action_l10n_lv_vat_eds_export_wizard"
               sequence="250"/>
+
+    <record id="view_account_tax_form_l10n_lv_eds" model="ir.ui.view">
+        <field name="name">account.tax.form.l10n.lv.eds</field>
+        <field name="model">account.tax</field>
+        <field name="inherit_id" ref="account.view_tax_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='advanced_options']/group" position="inside">
+                <group string="Latvia EDS Mapping" groups="account.group_account_manager">
+                    <field name="l10n_lv_eds_section"/>
+                    <field name="l10n_lv_eds_dar_veids" invisible="l10n_lv_eds_section == 'none'"/>
+                    <field name="l10n_lv_eds_dok_veids" invisible="l10n_lv_eds_section == 'none'"/>
+                    <field name="l10n_lv_eds_pazime" invisible="l10n_lv_eds_section != 'pvn2'"/>
+                    <field name="l10n_lv_eds_requires_partner_vat" invisible="l10n_lv_eds_section == 'none'"/>
+                    <field name="l10n_lv_eds_include_vat_amount" invisible="l10n_lv_eds_section == 'none'"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
 </odoo>
