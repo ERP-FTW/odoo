@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Latvia VAT Return – VID EDS XML (DokPVNv7)
+
+        IMPORTANT:
+        - This template intentionally does NOT call report_xml.xml_container
+          because that external ID is not guaranteed to exist.
+        - report_xml will render this template directly as raw XML.
+    -->
+
+    <template id="report_lv_vat_eds_xml">
+        <t t-foreach="docs" t-as="o">
+
+            <!-- Reporting period -->
+            <t t-set="year" t-value="o._get_period_year_month()[0]"/>
+            <t t-set="month" t-value="o._get_period_year_month()[1]"/>
+
+            <DokPVNv7>
+
+                <!-- Taxpayer -->
+                <NmrKods>
+                    <t t-esc="o._get_vid_taxpayer_code()"/>
+                </NmrKods>
+
+                <!-- Period -->
+                <ParskGads>
+                    <t t-esc="year"/>
+                </ParskGads>
+                <ParskMen>
+                    <t t-esc="month"/>
+                </ParskMen>
+
+                <!-- Correction flag -->
+                <Precizejums>
+                    <t t-esc="'1' if o.is_correction else '0'"/>
+                </Precizejums>
+
+                <!-- Optional contact info -->
+                <Talrunis t-if="o.phone">
+                    <t t-esc="o.phone"/>
+                </Talrunis>
+                <Epasts t-if="o.email">
+                    <t t-esc="o.email"/>
+                </Epasts>
+
+                <!-- ========================= -->
+                <!-- VAT DECLARATION ROWS -->
+                <!-- ========================= -->
+
+                <R40><t t-esc="o._xml_amount(o._get_amount(40))"/></R40>
+
+                <R41><t t-esc="o._xml_amount(o._get_amount(41))"/></R41>
+                <R411><t t-esc="o._xml_amount(o._get_amount(411))"/></R411>
+
+                <R42><t t-esc="o._xml_amount(o._get_amount(42))"/></R42>
+                <R421><t t-esc="o._xml_amount(o._get_amount(421))"/></R421>
+
+                <R43><t t-esc="o._xml_amount(o._get_amount(43))"/></R43>
+                <R44><t t-esc="o._xml_amount(o._get_amount(44))"/></R44>
+
+                <R45><t t-esc="o._xml_amount(o._get_amount(45))"/></R45>
+                <R451><t t-esc="o._xml_amount(o._get_amount(451))"/></R451>
+
+                <R46><t t-esc="o._xml_amount(o._get_amount(46))"/></R46>
+                <R47><t t-esc="o._xml_amount(o._get_amount(47))"/></R47>
+
+                <R48><t t-esc="o._xml_amount(o._get_amount(48))"/></R48>
+                <R481><t t-esc="o._xml_amount(o._get_amount(481))"/></R481>
+                <R482><t t-esc="o._xml_amount(o._get_amount(482))"/></R482>
+
+                <R49><t t-esc="o._xml_amount(o._get_amount(49))"/></R49>
+                <R50><t t-esc="o._xml_amount(o._get_amount(50))"/></R50>
+
+                <R51><t t-esc="o._xml_amount(o._get_amount(51))"/></R51>
+                <R511><t t-esc="o._xml_amount(o._get_amount(511))"/></R511>
+
+                <R52><t t-esc="o._xml_amount(o._get_amount(52))"/></R52>
+                <R521><t t-esc="o._xml_amount(o._get_amount(521))"/></R521>
+
+                <R53><t t-esc="o._xml_amount(o._get_amount(53))"/></R53>
+                <R54><t t-esc="o._xml_amount(o._get_amount(54))"/></R54>
+                <R55><t t-esc="o._xml_amount(o._get_amount(55))"/></R55>
+                <R56><t t-esc="o._xml_amount(o._get_amount(56))"/></R56>
+                <R57><t t-esc="o._xml_amount(o._get_amount(57))"/></R57>
+                <R58><t t-esc="o._xml_amount(o._get_amount(58))"/></R58>
+                <R59><t t-esc="o._xml_amount(o._get_amount(59))"/></R59>
+                <R60><t t-esc="o._xml_amount(o._get_amount(60))"/></R60>
+
+                <R61><t t-esc="o._xml_amount(o._get_amount(61))"/></R61>
+                <R62><t t-esc="o._xml_amount(o._get_amount(62))"/></R62>
+                <R63><t t-esc="o._xml_amount(o._get_amount(63))"/></R63>
+
+            </DokPVNv7>
+        </t>
+    </template>
+</odoo>

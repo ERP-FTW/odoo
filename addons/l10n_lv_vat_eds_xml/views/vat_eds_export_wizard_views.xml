@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_l10n_lv_vat_eds_export_wizard_form" model="ir.ui.view">
+        <field name="name">l10n_lv.vat.eds.export.wizard.form</field>
+        <field name="model">l10n_lv.vat.eds.export.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Latvia VAT Return (VID EDS) XML Export">
+                <group>
+                    <field name="company_id"/>
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                    <field name="is_correction"/>
+                </group>
+                <group string="Contact details (optional)">
+                    <field name="phone"/>
+                    <field name="email"/>
+                </group>
+                <footer>
+                    <button name="action_export_xml"
+                            type="object"
+                            string="Generate XML"
+                            class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_l10n_lv_vat_eds_export_wizard" model="ir.actions.act_window">
+        <field name="name">Latvia VAT Return (XML)</field>
+        <field name="res_model">l10n_lv.vat.eds.export.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_l10n_lv_vat_eds_export_root"
+              name="Latvia VAT (EDS XML)"
+              parent="account.menu_finance_reports"
+              action="action_l10n_lv_vat_eds_export_wizard"
+              sequence="250"/>
+</odoo>
