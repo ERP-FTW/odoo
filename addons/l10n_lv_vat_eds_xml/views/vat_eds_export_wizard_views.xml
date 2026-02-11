@@ -12,6 +12,14 @@
                     <field name="is_correction"/>
                     <field name="debug_logging"/>
                 </group>
+                <group string="Include sections" col="2">
+                    <field name="export_pvn"/>
+                    <field name="export_pvn1i"/>
+                    <field name="export_pvn1ii"/>
+                    <field name="export_pvn1iii"/>
+                    <field name="export_pvn2"/>
+                    <field name="export_pvn7i"/>
+                </group>
                 <group string="Contact details (optional)">
                     <field name="phone"/>
                     <field name="email"/>
@@ -19,11 +27,25 @@
                 <group string="Diagnostics" invisible="not debug_logging">
                     <field name="debug_summary" nolabel="1" readonly="1" widget="text"/>
                 </group>
+                <group string="Debug diff generator" groups="base.group_no_one">
+                    <field name="show_diff_tools" invisible="1"/>
+                    <field name="reference_xml_file" filename="reference_xml_filename" string="Upload reference XML"/>
+                    <field name="reference_xml_filename" invisible="1"/>
+                    <field name="diff_report" readonly="1" widget="text" nolabel="1"/>
+                    <field name="diff_generated_xml" readonly="1" filename="diff_generated_xml_filename"/>
+                    <field name="diff_generated_xml_filename" invisible="1"/>
+                </group>
                 <footer>
                     <button name="action_export_xml"
                             type="object"
                             string="Generate XML"
                             class="btn-primary"/>
+                    <button name="action_debug_generate_and_diff"
+                            type="object"
+                            string="Debug: Generate &amp; Diff"
+                            class="btn-secondary"
+                            groups="base.group_no_one"
+                            invisible="not show_diff_tools"/>
                     <button string="Cancel" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>

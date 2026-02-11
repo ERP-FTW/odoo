@@ -21,7 +21,7 @@
                 <t t-if="o._should_nil(o._get_iban())"><IbanNumurs t-att="o._xml_nil_attr()"/></t>
                 <t t-else=""><IbanNumurs><t t-esc="o._get_iban()"/></IbanNumurs></t>
 
-                <PVN>
+                <PVN t-if="o.export_pvn">
                     <R40><t t-esc="o._xml_amount(o._get_amount(40))"/></R40>
                     <R41><t t-esc="o._xml_amount(o._get_amount(41))"/></R41>
                     <R411><t t-esc="o._xml_amount(o._get_amount(411))"/></R411>
@@ -59,7 +59,7 @@
                     <R67><t t-esc="o._xml_amount(o._get_amount(67))"/></R67>
                 </PVN>
 
-                <PVN1I>
+                <PVN1I t-if="o.export_pvn1i">
                     <t t-foreach="o._get_annex_rows('pvn1i')" t-as="row">
                         <R>
                             <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
@@ -76,7 +76,7 @@
                     </t>
                 </PVN1I>
 
-                <PVN1II>
+                <PVN1II t-if="o.export_pvn1ii">
                     <t t-foreach="o._get_annex_rows('pvn1ii')" t-as="row">
                         <R>
                             <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
@@ -95,7 +95,7 @@
                     </t>
                 </PVN1II>
 
-                <PVN1III>
+                <PVN1III t-if="o.export_pvn1iii">
                     <t t-foreach="o._get_annex_rows('pvn1iii')" t-as="row">
                         <R>
                             <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
@@ -112,7 +112,7 @@
                     </t>
                 </PVN1III>
 
-                <PVN2>
+                <PVN2 t-if="o.export_pvn2">
                     <t t-foreach="o._get_annex_rows('pvn2')" t-as="row">
                         <R>
                             <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
@@ -130,7 +130,7 @@
                     </t>
                 </PVN2>
 
-                <PVN7I/>
+                <PVN7I t-if="o.export_pvn7i"/>
             </DokPVNv7>
         </t>
     </template>
