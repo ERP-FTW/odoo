@@ -1,8 +1,11 @@
 import logging
 import re
+from base64 import b64decode, b64encode
 from collections import Counter, defaultdict
+from xml.etree import ElementTree as ET
 
-from odoo import fields, models
+from odoo import _, fields, models
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -24,6 +27,17 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
     email = fields.Char(string="Email", related="company_id.email", readonly=False)
     debug_logging = fields.Boolean(string="Debug Logging")
     debug_summary = fields.Text(string="Debug Summary", readonly=True)
+    reference_xml_file = fields.Binary(groups="base.group_no_one")
+    reference_xml_filename = fields.Char(groups="base.group_no_one")
+    diff_report = fields.Text(readonly=True, groups="base.group_no_one")
+    diff_generated_xml = fields.Binary(readonly=True, groups="base.group_no_one")
+    diff_generated_xml_filename = fields.Char(readonly=True, groups="base.group_no_one")
+    show_diff_tools = fields.Boolean(compute="_compute_show_diff_tools")
+
+    def _compute_show_diff_tools(self):
+        is_technical = self.env.user.has_group("base.group_no_one")
+        for wizard in self:
+            wizard.show_diff_tools = bool(is_technical and wizard.reference_xml_file)
 
     def action_export_xml(self):
         self.ensure_one()
@@ -42,6 +56,161 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         self.debug_summary = self._build_debug_summary(amounts, annex_data)
 
         return self.env.ref("l10n_lv_vat_eds_xml.action_report_lv_vat_eds_xml").report_action(self)
+
+    def action_debug_generate_and_diff(self):
+        self.ensure_one()
+        if not self.env.user.has_group("base.group_no_one"):
+            raise UserError(_("This debug tool is only available for technical users."))
+        if not self.reference_xml_file:
+            raise UserError(_("Please upload a reference XML file first."))
+
+        generated_xml_bytes = self._generate_export_xml_bytes()
+        reference_xml_bytes = b64decode(self.reference_xml_file)
+        diff_report = self._build_reference_vs_ours_diff_report(reference_xml_bytes, generated_xml_bytes)
+
+        self.diff_report = diff_report
+        self.diff_generated_xml = b64encode(generated_xml_bytes)
+        self.diff_generated_xml_filename = self._build_export_filename()
+
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": self._name,
+            "res_id": self.id,
+            "view_mode": "form",
+            "target": "new",
+        }
+
+    def _generate_export_xml_bytes(self):
+        self.ensure_one()
+        amounts = self._get_vat_amounts_by_row_number()
+        annex_data = self._get_annex_data()
+        self.debug_summary = self._build_debug_summary(amounts, annex_data)
+        xml_content, _content_type = self.env["ir.actions.report"]._render_qweb_xml(
+            "l10n_lv_vat_eds_xml.report_lv_vat_eds_xml",
+            self.ids,
+        )
+        return xml_content or b""
+
+    def _build_export_filename(self):
+        self.ensure_one()
+        year, month = self._get_period_year_month()
+        return f"{self._get_vid_taxpayer_code() or 'LV'}_{year}{str(month).zfill(2)}_PVN.xml"
+
+    def _build_reference_vs_ours_diff_report(self, reference_xml_bytes, our_xml_bytes):
+        lines = ["REFERENCE vs OURS differences (debug helper only; not a validator or authority)"]
+
+        reference_text = reference_xml_bytes.decode("utf-8", errors="replace")
+        our_text = our_xml_bytes.decode("utf-8", errors="replace")
+        ref_decl = self._extract_xml_declaration(reference_text)
+        our_decl = self._extract_xml_declaration(our_text)
+        lines.append(f"- XML declaration first line: REFERENCE={ref_decl or '<none>'} | OURS={our_decl or '<none>'}")
+
+        try:
+            ref_root = ET.fromstring(reference_xml_bytes)
+            our_root = ET.fromstring(our_xml_bytes)
+        except ET.ParseError as err:
+            lines.append(f"- XML parse error: {err}")
+            return "\n".join(lines)
+
+        lines.append(f"- Root tag: REFERENCE={self._strip_namespace(ref_root.tag)} | OURS={self._strip_namespace(our_root.tag)}")
+
+        lines.extend(self._diff_child_tag_order("Top-level child tags", list(ref_root), list(our_root)))
+
+        ref_pvn = self._find_direct_child(ref_root, "PVN")
+        our_pvn = self._find_direct_child(our_root, "PVN")
+        if ref_pvn is None or our_pvn is None:
+            lines.append("- PVN block: missing in one side, cannot compare children order")
+        else:
+            lines.extend(self._diff_child_tag_order("PVN immediate children", list(ref_pvn), list(our_pvn)))
+
+        for section in ("PVN1I", "PVN1II", "PVN1III", "PVN2", "PVN7I"):
+            lines.extend(self._diff_annex_section(section, ref_root, our_root))
+
+        return "\n".join(lines)
+
+    def _extract_xml_declaration(self, xml_text):
+        first_line = (xml_text or "").splitlines()[:1]
+        first_line = first_line[0].strip() if first_line else ""
+        if first_line.startswith("<?xml"):
+            return first_line
+        return None
+
+    def _strip_namespace(self, tag):
+        return tag.split("}", 1)[-1] if "}" in tag else tag
+
+    def _find_direct_child(self, root, name):
+        for child in list(root):
+            if self._strip_namespace(child.tag) == name:
+                return child
+        return None
+
+    def _diff_child_tag_order(self, title, reference_children, our_children):
+        ref_tags = [self._strip_namespace(child.tag) for child in reference_children]
+        our_tags = [self._strip_namespace(child.tag) for child in our_children]
+        ref_counter = Counter(ref_tags)
+        our_counter = Counter(our_tags)
+
+        missing = []
+        extra = []
+        for tag in sorted(ref_counter):
+            if ref_counter[tag] > our_counter.get(tag, 0):
+                missing.extend([tag] * (ref_counter[tag] - our_counter.get(tag, 0)))
+        for tag in sorted(our_counter):
+            if our_counter[tag] > ref_counter.get(tag, 0):
+                extra.extend([tag] * (our_counter[tag] - ref_counter.get(tag, 0)))
+
+        first_order_diff = self._first_order_diff_position(ref_tags, our_tags)
+        return [
+            f"- {title}: missing_in_OURS={missing or '<none>'}; extra_in_OURS={extra or '<none>'}; first_out_of_order_position={first_order_diff}",
+            f"  REFERENCE tags={ref_tags}",
+            f"  OURS tags={our_tags}",
+        ]
+
+    def _first_order_diff_position(self, reference_tags, our_tags):
+        max_length = max(len(reference_tags), len(our_tags))
+        for index in range(max_length):
+            ref_tag = reference_tags[index] if index < len(reference_tags) else "<missing>"
+            our_tag = our_tags[index] if index < len(our_tags) else "<missing>"
+            if ref_tag != our_tag:
+                return index + 1
+        return "<none>"
+
+    def _diff_annex_section(self, section_name, reference_root, our_root):
+        lines = []
+        reference_section = self._find_direct_child(reference_root, section_name)
+        our_section = self._find_direct_child(our_root, section_name)
+        reference_rows = [child for child in list(reference_section or []) if self._strip_namespace(child.tag) == "R"]
+        our_rows = [child for child in list(our_section or []) if self._strip_namespace(child.tag) == "R"]
+
+        lines.append(f"- {section_name}: row_count REFERENCE={len(reference_rows)} | OURS={len(our_rows)}")
+
+        sample_size = min(5, len(reference_rows), len(our_rows))
+        if sample_size == 0:
+            lines.append(f"  {section_name} row-structure sample skipped (no comparable rows)")
+            return lines
+
+        for row_index in range(sample_size):
+            ref_child_tags = [self._strip_namespace(child.tag) for child in list(reference_rows[row_index])]
+            our_child_tags = [self._strip_namespace(child.tag) for child in list(our_rows[row_index])]
+            ref_counter = Counter(ref_child_tags)
+            our_counter = Counter(our_child_tags)
+
+            missing = []
+            extra = []
+            for tag in sorted(ref_counter):
+                if ref_counter[tag] > our_counter.get(tag, 0):
+                    missing.extend([tag] * (ref_counter[tag] - our_counter.get(tag, 0)))
+            for tag in sorted(our_counter):
+                if our_counter[tag] > ref_counter.get(tag, 0):
+                    extra.extend([tag] * (our_counter[tag] - ref_counter.get(tag, 0)))
+
+            first_order_diff = self._first_order_diff_position(ref_child_tags, our_child_tags)
+            lines.append(
+                f"  row {row_index + 1}: missing_in_OURS={missing or '<none>'}; extra_in_OURS={extra or '<none>'}; first_out_of_order_position={first_order_diff}"
+            )
+            lines.append(f"    REFERENCE row tags={ref_child_tags}")
+            lines.append(f"    OURS row tags={our_child_tags}")
+        return lines
 
     def _build_debug_summary(self, amounts, annex_data):
         self.ensure_one()
