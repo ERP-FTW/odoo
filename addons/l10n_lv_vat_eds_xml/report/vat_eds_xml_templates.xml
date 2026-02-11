@@ -110,17 +110,10 @@
                 <PVN2 t-if="o.export_pvn2">
                     <t t-foreach="o._get_annex_rows('pvn2')" t-as="row">
                         <R>
-                            <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
-                            <DokVeids><t t-esc="o._xml_text(row['dok_veids'])"/></DokVeids>
+                            <Valsts><t t-esc="o._xml_text(row['valsts'])"/></Valsts>
+                            <PVNNumurs><t t-esc="o._xml_text(row['pvn_numurs'])"/></PVNNumurs>
+                            <Summa><t t-esc="o._xml_text(row['summa'])"/></Summa>
                             <Pazime><t t-esc="o._xml_text(row['pazime'])"/></Pazime>
-                            <PartneraValstsKods><t t-esc="o._xml_text(row['partner_country'])"/></PartneraValstsKods>
-                            <PartneraPVN><t t-esc="o._xml_text(row['partner_vat'])"/></PartneraPVN>
-                            <PartneraNosaukums><t t-esc="o._xml_text(row['partner_name'])"/></PartneraNosaukums>
-                            <DokNumurs><t t-esc="o._xml_text(row['doc_number'])"/></DokNumurs>
-                            <DokDatums><t t-esc="o._xml_text(row['doc_date'])"/></DokDatums>
-                            <VertibaBezPvn><t t-esc="o._xml_text(row['base_amount'])"/></VertibaBezPvn>
-                            <t t-if="o._should_nil(row['vat_amount'])"><PvnVertiba t-att="o._xml_nil_attr()"/></t>
-                            <t t-else=""><PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba></t>
                         </R>
                     </t>
                 </PVN2>

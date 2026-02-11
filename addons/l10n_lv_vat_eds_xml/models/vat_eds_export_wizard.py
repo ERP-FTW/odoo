@@ -225,6 +225,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         missing_rows = [row for row in target_rows if row not in amounts]
         sections = annex_data.get("sections", {})
         counters = annex_data.get("counters", Counter())
+        pvn2_top_group_keys = annex_data.get("pvn2_top_group_keys", [])
 
         return "\n".join([
             f"company={self.company_id.display_name} ({self.company_id.id})",
@@ -233,6 +234,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             f"vat_rows_missing={','.join(missing_rows)}",
             "annex_rows=" + ",".join(f"{section}:{len(rows)}" for section, rows in sections.items()),
             "annex_counters=" + ",".join(f"{key}:{value}" for key, value in sorted(counters.items())),
+            "pvn2_top_group_keys=" + (";".join(pvn2_top_group_keys) if pvn2_top_group_keys else "<none>"),
         ])
 
     # -----------------------
@@ -525,18 +527,26 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
                 row_currency = move.currency_id or company.currency_id
                 row_currency_code = row_currency.name or company.currency_id.name or "EUR"
                 is_foreign_currency = row_currency != company.currency_id
-                key = (
-                    section,
-                    cfg_tax.l10n_lv_eds_dar_veids,
-                    cfg_tax.l10n_lv_eds_dok_veids or self._default_doc_type(move),
-                    cfg_tax.l10n_lv_eds_pazime or "",
-                    partner_country,
-                    partner_vat,
-                    self._xml_text(partner.name),
-                    self._xml_text(move.name or move.ref),
-                    move.invoice_date or move.date,
-                    row_currency_code,
-                )
+                if section == "pvn2":
+                    key = (
+                        section,
+                        cfg_tax.l10n_lv_eds_pazime or "",
+                        partner_country,
+                        partner_vat,
+                    )
+                else:
+                    key = (
+                        section,
+                        cfg_tax.l10n_lv_eds_dar_veids,
+                        cfg_tax.l10n_lv_eds_dok_veids or self._default_doc_type(move),
+                        cfg_tax.l10n_lv_eds_pazime or "",
+                        partner_country,
+                        partner_vat,
+                        self._xml_text(partner.name),
+                        self._xml_text(move.name or move.ref),
+                        move.invoice_date or move.date,
+                        row_currency_code,
+                    )
                 bucket = grouped[key]
                 bucket["include_vat"] = bool(cfg_tax.l10n_lv_eds_include_vat_amount)
                 sign = -1 if move.move_type in ("out_refund", "in_refund") else 1
@@ -554,9 +564,23 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         counters.update(reasons)
 
         section_rows = {"pvn1i": [], "pvn1ii": [], "pvn1iii": [], "pvn2": []}
+        pvn2_group_keys = []
         for key, values in grouped.items():
+            section = key[0]
+            if section == "pvn2":
+                _section, pazime, partner_country, partner_vat = key
+                row = {
+                    "valsts": partner_country,
+                    "pvn_numurs": partner_vat,
+                    "summa": self._xml_amount(values["base"]),
+                    "pazime": pazime,
+                }
+                section_rows.setdefault(section, []).append(row)
+                pvn2_group_keys.append(f"{partner_country}|{partner_vat}|{pazime}")
+                continue
+
             (
-                section,
+                _section,
                 dar_veids,
                 dok_veids,
                 pazime,
@@ -588,8 +612,13 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             section_rows.setdefault(section, []).append(row)
 
         for section_name, rows in section_rows.items():
-            rows.sort(key=lambda row: (row["doc_date"] or "", row["doc_number"] or "", row["partner_name"] or ""))
+            if section_name == "pvn2":
+                rows.sort(key=lambda row: (row["valsts"] or "", row["pvn_numurs"] or "", row["pazime"] or ""))
+            else:
+                rows.sort(key=lambda row: (row["doc_date"] or "", row["doc_number"] or "", row["partner_name"] or ""))
             counters[f"rows_{section_name}"] = len(rows)
+        counters["pvn2_rows"] = len(section_rows.get("pvn2", []))
+        pvn2_top_group_keys = sorted(set(pvn2_group_keys))[:5]
 
         counters["excluded_total"] = sum(reasons.values())
         if self.debug_logging:
@@ -604,6 +633,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         return {
             "sections": section_rows,
             "counters": counters,
+            "pvn2_top_group_keys": pvn2_top_group_keys,
         }
 
     def _get_annex_rows(self, section):
