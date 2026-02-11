@@ -522,6 +522,9 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
                     continue
 
                 section = cfg_tax.l10n_lv_eds_section
+                row_currency = move.currency_id or company.currency_id
+                row_currency_code = row_currency.name or company.currency_id.name or "EUR"
+                is_foreign_currency = row_currency != company.currency_id
                 key = (
                     section,
                     cfg_tax.l10n_lv_eds_dar_veids,
@@ -532,7 +535,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
                     self._xml_text(partner.name),
                     self._xml_text(move.name or move.ref),
                     move.invoice_date or move.date,
-                    move.currency_id.name if move.currency_id and move.currency_id != company.currency_id else None,
+                    row_currency_code,
                 )
                 bucket = grouped[key]
                 bucket["include_vat"] = bool(cfg_tax.l10n_lv_eds_include_vat_amount)
@@ -540,6 +543,12 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
                     bucket["vat"] += abs(line.balance)
                 else:
                     bucket["base"] += abs(line.balance)
+                    if is_foreign_currency:
+                        bucket["base_currency"] += abs(line.amount_currency)
+                        counters["currency_rows_foreign"] += 1
+                    else:
+                        bucket["base_currency"] += abs(line.balance)
+                        counters["currency_rows_company"] += 1
 
         counters.update(reasons)
 
@@ -570,7 +579,9 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
                 "doc_number": doc_number,
                 "doc_date": self._xml_date(doc_date),
                 "currency": currency,
+                "val_kods": currency,
                 "base_amount": self._xml_amount(values["base"]),
+                "val_vertiba": self._xml_amount(values.get("base_currency", values["base"])),
                 "vat_amount": self._xml_amount(values["vat"]) if values["include_vat"] else None,
             }
             section_rows.setdefault(section, []).append(row)
@@ -582,6 +593,11 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         counters["excluded_total"] = sum(reasons.values())
         if self.debug_logging:
             _logger.info("LV VAT XML annex counters: %s", dict(counters))
+            _logger.info(
+                "LV VAT XML currency scenarios: foreign_base_rows=%s company_currency_base_rows=%s",
+                counters.get("currency_rows_foreign", 0),
+                counters.get("currency_rows_company", 0),
+            )
             _logger.info("LV VAT XML annex top excluded reasons: %s", reasons.most_common(10))
 
         return {

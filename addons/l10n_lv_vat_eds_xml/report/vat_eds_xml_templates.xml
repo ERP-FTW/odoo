@@ -75,18 +75,17 @@
                 <PVN1II t-if="o.export_pvn1ii">
                     <t t-foreach="o._get_annex_rows('pvn1ii')" t-as="row">
                         <R>
+                            <DpValsts><t t-esc="o._xml_text(row['dp_country'])"/></DpValsts>
+                            <DpNumurs><t t-esc="o._xml_text(row['dp_number'])"/></DpNumurs>
+                            <DpNosaukums><t t-esc="o._xml_text(row['dp_name'])"/></DpNosaukums>
                             <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
-                            <DokVeids><t t-esc="o._xml_text(row['dok_veids'])"/></DokVeids>
-                            <PartneraValstsKods><t t-esc="o._xml_text(row['partner_country'])"/></PartneraValstsKods>
-                            <PartneraPVN><t t-esc="o._xml_text(row['partner_vat'])"/></PartneraPVN>
-                            <PartneraNosaukums><t t-esc="o._xml_text(row['partner_name'])"/></PartneraNosaukums>
-                            <DokNumurs><t t-esc="o._xml_text(row['doc_number'])"/></DokNumurs>
-                            <DokDatums><t t-esc="o._xml_text(row['doc_date'])"/></DokDatums>
-                            <t t-if="o._should_nil(row['currency'])"><ValutasKods t-att="o._xml_nil_attr()"/></t>
-                            <t t-else=""><ValutasKods><t t-esc="o._xml_text(row['currency'])"/></ValutasKods></t>
                             <VertibaBezPvn><t t-esc="o._xml_text(row['base_amount'])"/></VertibaBezPvn>
                             <t t-if="o._should_nil(row['vat_amount'])"><PvnVertiba t-att="o._xml_nil_attr()"/></t>
                             <t t-else=""><PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba></t>
+                            <ValVertiba><t t-esc="o._xml_text(row['val_vertiba'])"/></ValVertiba>
+                            <ValKods><t t-esc="o._xml_text(row['val_kods'])"/></ValKods>
+                            <DokNumurs><t t-esc="o._xml_text(row['doc_number'])"/></DokNumurs>
+                            <DokDatums><t t-esc="o._xml_text(row['doc_date'])"/></DokDatums>
                         </R>
                     </t>
                 </PVN1II>
