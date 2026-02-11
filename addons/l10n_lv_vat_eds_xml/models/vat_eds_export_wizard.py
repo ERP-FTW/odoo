@@ -539,15 +539,16 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
                 )
                 bucket = grouped[key]
                 bucket["include_vat"] = bool(cfg_tax.l10n_lv_eds_include_vat_amount)
+                sign = -1 if move.move_type in ("out_refund", "in_refund") else 1
                 if line.tax_line_id:
-                    bucket["vat"] += abs(line.balance)
+                    bucket["vat"] += sign * abs(line.balance)
                 else:
-                    bucket["base"] += abs(line.balance)
+                    bucket["base"] += sign * abs(line.balance)
                     if is_foreign_currency:
-                        bucket["base_currency"] += abs(line.amount_currency)
+                        bucket["base_currency"] += sign * abs(line.amount_currency)
                         counters["currency_rows_foreign"] += 1
                     else:
-                        bucket["base_currency"] += abs(line.balance)
+                        bucket["base_currency"] += sign * abs(line.balance)
                         counters["currency_rows_company"] += 1
 
         counters.update(reasons)
