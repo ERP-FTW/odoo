@@ -183,9 +183,6 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
 
     def _get_vat_amounts_by_row_number(self):
         self.ensure_one()
-        if hasattr(self, "_lv_vat_amounts_cache"):
-            return self._lv_vat_amounts_cache
-
         report = self._get_vat_report()
         if not report:
             return {}
@@ -225,7 +222,6 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
                 "LV VAT XML row map: %s",
                 ", ".join(f"R{row}={self._xml_amount(amounts.get(row, 0.0))}" for row in target_rows),
             )
-        self._lv_vat_amounts_cache = amounts
         return amounts
 
     def _get_amount(self, row_number):
@@ -237,9 +233,6 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
     # -----------------------
     def _get_annex_data(self):
         self.ensure_one()
-        if hasattr(self, "_lv_vat_annex_cache"):
-            return self._lv_vat_annex_cache
-
         company = self.company_id
         move_domain = [
             ("company_id", "=", company.id),
@@ -357,12 +350,10 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             _logger.info("LV VAT XML annex counters: %s", dict(counters))
             _logger.info("LV VAT XML annex top excluded reasons: %s", reasons.most_common(10))
 
-        data = {
+        return {
             "sections": section_rows,
             "counters": counters,
         }
-        self._lv_vat_annex_cache = data
-        return data
 
     def _get_annex_rows(self, section):
         self.ensure_one()
