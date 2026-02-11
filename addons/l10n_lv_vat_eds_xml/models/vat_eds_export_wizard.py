@@ -134,12 +134,15 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         options = {}
         report_company = report.with_company(self.company_id)
         try:
-            options = report_company._get_options()
-        except TypeError:
-            options = report_company._get_options({})
+            get_options = getattr(report_company, "get_options", None)
+            if get_options:
+                options = get_options(previous_options={})
+            else:
+                # Compatibility with older account.report APIs.
+                options = report_company._get_options({})
         except Exception:
             _logger.exception("Failed to build base options for account.report %s", report)
-            options = {}
+            options = {"report_id": report_company.id}
 
         options.setdefault("date", {})
         options["date"].update({
@@ -150,6 +153,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         options["company_ids"] = [self.company_id.id]
         options.setdefault("multi_company", {})
         options["multi_company"]["company_ids"] = [self.company_id.id]
+        options["report_id"] = report_company.id
         return options
 
     def _get_balance_column_index(self, options, lines):
@@ -179,6 +183,9 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
 
     def _get_vat_amounts_by_row_number(self):
         self.ensure_one()
+        if hasattr(self, "_lv_vat_amounts_cache"):
+            return self._lv_vat_amounts_cache
+
         report = self._get_vat_report()
         if not report:
             return {}
@@ -218,6 +225,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
                 "LV VAT XML row map: %s",
                 ", ".join(f"R{row}={self._xml_amount(amounts.get(row, 0.0))}" for row in target_rows),
             )
+        self._lv_vat_amounts_cache = amounts
         return amounts
 
     def _get_amount(self, row_number):
@@ -229,6 +237,9 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
     # -----------------------
     def _get_annex_data(self):
         self.ensure_one()
+        if hasattr(self, "_lv_vat_annex_cache"):
+            return self._lv_vat_annex_cache
+
         company = self.company_id
         move_domain = [
             ("company_id", "=", company.id),
@@ -238,7 +249,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             ("move_type", "in", ["out_invoice", "out_refund", "in_invoice", "in_refund"]),
         ]
         moves = self.env["account.move"].with_company(company).search(move_domain)
-        line_domain = [("move_id", "in", moves.ids), ("display_type", "=", False)]
+        line_domain = [("move_id", "in", moves.ids)]
         lines = self.env["account.move.line"].with_company(company).search(line_domain)
 
         taxes = self.env["account.tax"].with_company(company).search([
@@ -252,8 +263,13 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         reasons = Counter()
 
         counters["moves_scanned"] = len(moves)
+        counters["move_lines_scanned"] = len(lines)
+        counters["mapped_taxes"] = len(mapped_taxes)
 
         for line in lines:
+            if line.display_type in ("line_note", "line_section"):
+                reasons["non_transaction_line"] += 1
+                continue
             applied_taxes = line.tax_line_id or line.tax_ids
             if not applied_taxes:
                 reasons["line_without_taxes"] += 1
@@ -341,10 +357,12 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             _logger.info("LV VAT XML annex counters: %s", dict(counters))
             _logger.info("LV VAT XML annex top excluded reasons: %s", reasons.most_common(10))
 
-        return {
+        data = {
             "sections": section_rows,
             "counters": counters,
         }
+        self._lv_vat_annex_cache = data
+        return data
 
     def _get_annex_rows(self, section):
         self.ensure_one()
