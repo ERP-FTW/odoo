@@ -177,7 +177,11 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         return -1
 
     def _normalize_report_row_code(self, code):
-        code = (code or "").strip()
+        if code in (None, False):
+            code = ""
+        else:
+            code = str(code)
+        code = code.strip()
         if code.startswith("LV_"):
             code = code[3:]
         if code.isdigit():
