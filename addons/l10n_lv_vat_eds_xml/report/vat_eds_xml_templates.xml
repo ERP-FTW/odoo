@@ -7,10 +7,19 @@
                 <Precizejums><t t-esc="o._xml_bool(o.is_correction)"/></Precizejums>
                 <ParskGads><t t-esc="o._get_period_year_month()[0]"/></ParskGads>
                 <ParskMen><t t-esc="o._get_period_year_month()[1]"/></ParskMen>
+                <ParskCeturksnis t-if="not o.omit_optional_headers" t-att="o._xml_nil_attr()"/>
                 <NmrKods><t t-esc="o._xml_text(o._get_vid_taxpayer_code())"/></NmrKods>
 
                 <t t-if="o._should_nil(o.phone)"><Talrunis t-att="o._xml_nil_attr()"/></t>
                 <t t-else=""><Talrunis><t t-esc="o._xml_text(o.phone)"/></Talrunis></t>
+
+                <t t-if="not o.omit_optional_headers and o._should_nil(o.email)"><Epasts t-att="o._xml_nil_attr()"/></t>
+                <t t-if="not o.omit_optional_headers and not o._should_nil(o.email)"><Epasts><t t-esc="o._xml_text(o.email)"/></Epasts></t>
+
+                <Sagatavotajs t-if="not o.omit_optional_headers"><t t-esc="o._get_preparer_name()"/></Sagatavotajs>
+
+                <t t-if="not o.omit_optional_headers and o._should_nil(o._get_iban())"><IbanNumurs t-att="o._xml_nil_attr()"/></t>
+                <t t-if="not o.omit_optional_headers and not o._should_nil(o._get_iban())"><IbanNumurs><t t-esc="o._get_iban()"/></IbanNumurs></t>
 
                 <PVN t-if="o.export_pvn">
                     <R41><t t-esc="o._xml_amount(o._get_amount(41))"/></R41>

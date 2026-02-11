@@ -25,6 +25,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
     is_correction = fields.Boolean(string="Correction (Precizejums)", default=False)
     phone = fields.Char(string="Phone", related="company_id.phone", readonly=False)
     email = fields.Char(string="Email", related="company_id.email", readonly=False)
+    omit_optional_headers = fields.Boolean(string="Omit Optional Header Tags", default=True)
     debug_logging = fields.Boolean(string="Debug Logging")
     debug_summary = fields.Text(string="Debug Summary", readonly=True)
     export_pvn = fields.Boolean(string="PVN", default=True)
@@ -57,11 +58,21 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             self.debug_logging,
         )
 
-        amounts = self._get_vat_amounts_by_row_number()
-        annex_data = self._get_annex_data()
-        self.debug_summary = self._build_debug_summary(amounts, annex_data)
-
-        return self.env.ref("l10n_lv_vat_eds_xml.action_report_lv_vat_eds_xml").report_action(self)
+        xml_bytes = self._generate_export_xml_bytes()
+        filename = self._build_export_filename()
+        attachment = self.env["ir.attachment"].create({
+            "name": filename,
+            "type": "binary",
+            "datas": b64encode(xml_bytes),
+            "mimetype": "application/xml",
+            "res_model": self._name,
+            "res_id": self.id,
+        })
+        return {
+            "type": "ir.actions.act_url",
+            "url": f"/web/content/{attachment.id}?download=1",
+            "target": "self",
+        }
 
     def action_debug_generate_and_diff(self):
         self.ensure_one()
@@ -95,7 +106,13 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             "l10n_lv_vat_eds_xml.report_lv_vat_eds_xml",
             self.ids,
         )
-        return xml_content or b""
+        return self._postprocess_export_xml_bytes(xml_content or b"")
+
+    def _postprocess_export_xml_bytes(self, xml_content):
+        xml_text = (xml_content or b"").decode("utf-8", errors="replace")
+        xml_text = re.sub(r"^\s*<\?xml[^>]*\?>\s*", "", xml_text, count=1)
+        xml_text = "<?xml version=\"1.0\" encoding=\"windows-1257\"?>\n" + xml_text.lstrip()
+        return xml_text.encode("windows-1257", errors="xmlcharrefreplace")
 
     def _build_export_filename(self):
         self.ensure_one()
@@ -226,6 +243,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         sections = annex_data.get("sections", {})
         counters = annex_data.get("counters", Counter())
         pvn2_top_group_keys = annex_data.get("pvn2_top_group_keys", [])
+        header_mode = "omit_optional_headers" if self.omit_optional_headers else "include_optional_headers"
 
         return "\n".join([
             f"company={self.company_id.display_name} ({self.company_id.id})",
@@ -235,6 +253,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             "annex_rows=" + ",".join(f"{section}:{len(rows)}" for section, rows in sections.items()),
             "annex_counters=" + ",".join(f"{key}:{value}" for key, value in sorted(counters.items())),
             "pvn2_top_group_keys=" + (";".join(pvn2_top_group_keys) if pvn2_top_group_keys else "<none>"),
+            f"xml_encoding=windows-1257,header_mode={header_mode}",
         ])
 
     # -----------------------
