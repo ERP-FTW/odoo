@@ -12,7 +12,7 @@
                     <field name="is_correction"/>
                     <field name="debug_logging"/>
                 </group>
-                <group string="Include sections" col="6">
+                <group string="Include sections" col="2">
                     <field name="export_pvn"/>
                     <field name="export_pvn1i"/>
                     <field name="export_pvn1ii"/>
