@@ -166,6 +166,59 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
                     return idx
         return -1
 
+    def _get_code_column_index(self, options, lines):
+        for idx, column in enumerate((options or {}).get("columns") or []):
+            if column.get("expression_label") == "code":
+                return idx
+        for line in lines or []:
+            for idx, col in enumerate(line.get("columns") or []):
+                if col.get("expression_label") == "code":
+                    return idx
+        return -1
+
+    def _normalize_report_row_code(self, code):
+        if code in (None, False):
+            code = ""
+        else:
+            code = str(code)
+        code = code.strip()
+        if code.startswith("LV_"):
+            code = code[3:]
+        if code.isdigit():
+            return code
+        match = re.search(r"(\d+)", code)
+        return match.group(1) if match else None
+
+    def _extract_row_code_from_line(self, report, line):
+        raw_code = line.get("code")
+        row_code = self._normalize_report_row_code(raw_code)
+        if row_code:
+            return row_code
+
+        # Some account.report outputs do not expose `code` in line payload.
+        line_id = line.get("id")
+        if isinstance(line_id, str) and line_id.startswith("account.report.line_"):
+            try:
+                report_line_id = int(line_id.split("_")[-1])
+            except Exception:
+                return None
+            report_line = self.env["account.report.line"].browse(report_line_id)
+            if report_line.exists() and report_line.report_id == report:
+                return self._normalize_report_row_code(report_line.code)
+        return None
+
+    def _extract_row_code_from_code_column(self, line, code_index):
+        columns = line.get("columns") or []
+        if code_index < 0 or code_index >= len(columns):
+            return None
+        code_col = columns[code_index]
+        raw_code = code_col.get("no_format")
+        if raw_code is None:
+            raw_code = code_col.get("value")
+        if raw_code is None:
+            raw_code = code_col.get("name")
+        return self._normalize_report_row_code(raw_code)
+
     def _extract_amount_from_line(self, line, balance_index):
         columns = line.get("columns") or []
         column = columns[balance_index] if (balance_index >= 0 and balance_index < len(columns)) else (columns[-1] if columns else {})
@@ -199,20 +252,23 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             return {}
 
         balance_idx = self._get_balance_column_index(options, lines)
+        code_idx = self._get_code_column_index(options, lines)
         amounts = {}
         for line in lines or []:
-            code = line.get("code") or ""
-            if not code.startswith("LV_"):
+            row_number = self._extract_row_code_from_line(report, line)
+            if not row_number:
+                row_number = self._extract_row_code_from_code_column(line, code_idx)
+            if not row_number:
                 continue
-            row_number = code.replace("LV_", "")
             amounts[row_number] = self._extract_amount_from_line(line, balance_idx)
 
         target_rows = self._get_target_vat_row_numbers()
         missing_rows = [row for row in target_rows if row not in amounts]
         extra_rows = [row for row in amounts if row not in target_rows]
         _logger.info(
-            "LV VAT XML mapping complete. balance_col=%s rows=%s missing=%s extra=%s",
+            "LV VAT XML mapping complete. balance_col=%s code_col=%s rows=%s missing=%s extra=%s",
             balance_idx,
+            code_idx,
             len(amounts),
             missing_rows,
             sorted(extra_rows, key=lambda row: (len(row), row)),
