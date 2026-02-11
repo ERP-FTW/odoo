@@ -482,7 +482,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         ])
         mapped_taxes = {tax.id: tax.with_company(company) for tax in taxes}
 
-        grouped = defaultdict(lambda: {"base": 0.0, "vat": 0.0, "include_vat": True})
+        grouped = defaultdict(lambda: {"base": 0.0, "vat": 0.0, "base_currency": 0.0, "include_vat": True})
         counters = Counter()
         reasons = Counter()
 
