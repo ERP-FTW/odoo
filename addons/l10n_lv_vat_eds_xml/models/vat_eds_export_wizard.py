@@ -25,6 +25,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
     is_correction = fields.Boolean(string="Correction (Precizejums)", default=False)
     phone = fields.Char(string="Phone", related="company_id.phone", readonly=False)
     email = fields.Char(string="Email", related="company_id.email", readonly=False)
+    omit_optional_headers = fields.Boolean(string="Omit Optional Header Tags", default=True)
     debug_logging = fields.Boolean(string="Debug Logging")
     debug_summary = fields.Text(string="Debug Summary", readonly=True)
     export_pvn = fields.Boolean(string="PVN", default=True)
@@ -57,11 +58,21 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             self.debug_logging,
         )
 
-        amounts = self._get_vat_amounts_by_row_number()
-        annex_data = self._get_annex_data()
-        self.debug_summary = self._build_debug_summary(amounts, annex_data)
-
-        return self.env.ref("l10n_lv_vat_eds_xml.action_report_lv_vat_eds_xml").report_action(self)
+        xml_bytes = self._generate_export_xml_bytes()
+        filename = self._build_export_filename()
+        attachment = self.env["ir.attachment"].create({
+            "name": filename,
+            "type": "binary",
+            "datas": b64encode(xml_bytes),
+            "mimetype": "application/xml",
+            "res_model": self._name,
+            "res_id": self.id,
+        })
+        return {
+            "type": "ir.actions.act_url",
+            "url": f"/web/content/{attachment.id}?download=1",
+            "target": "self",
+        }
 
     def action_debug_generate_and_diff(self):
         self.ensure_one()
@@ -95,7 +106,13 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             "l10n_lv_vat_eds_xml.report_lv_vat_eds_xml",
             self.ids,
         )
-        return xml_content or b""
+        return self._postprocess_export_xml_bytes(xml_content or b"")
+
+    def _postprocess_export_xml_bytes(self, xml_content):
+        xml_text = (xml_content or b"").decode("utf-8", errors="replace")
+        xml_text = re.sub(r"^\s*<\?xml[^>]*\?>\s*", "", xml_text, count=1)
+        xml_text = "<?xml version=\"1.0\" encoding=\"windows-1257\"?>\n" + xml_text.lstrip()
+        return xml_text.encode("windows-1257", errors="xmlcharrefreplace")
 
     def _build_export_filename(self):
         self.ensure_one()
@@ -225,6 +242,8 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         missing_rows = [row for row in target_rows if row not in amounts]
         sections = annex_data.get("sections", {})
         counters = annex_data.get("counters", Counter())
+        pvn2_top_group_keys = annex_data.get("pvn2_top_group_keys", [])
+        header_mode = "omit_optional_headers" if self.omit_optional_headers else "include_optional_headers"
 
         return "\n".join([
             f"company={self.company_id.display_name} ({self.company_id.id})",
@@ -233,6 +252,8 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             f"vat_rows_missing={','.join(missing_rows)}",
             "annex_rows=" + ",".join(f"{section}:{len(rows)}" for section, rows in sections.items()),
             "annex_counters=" + ",".join(f"{key}:{value}" for key, value in sorted(counters.items())),
+            "pvn2_top_group_keys=" + (";".join(pvn2_top_group_keys) if pvn2_top_group_keys else "<none>"),
+            f"xml_encoding=windows-1257,header_mode={header_mode}",
         ])
 
     # -----------------------
@@ -291,9 +312,9 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
     # -----------------------
     def _get_target_vat_row_numbers(self):
         return [
-            "40", "41", "411", "42", "421", "43", "44", "45", "451", "46", "47", "48", "481", "482",
-            "49", "50", "51", "511", "52", "521", "53", "54", "55", "56", "57", "58", "59", "60",
-            "61", "62", "63", "64", "65", "66", "67",
+            "41", "411", "42", "421", "43", "44", "45", "451", "46", "47", "48", "481", "482", "49",
+            "50", "51", "511", "52", "53", "531", "54", "55", "56", "561", "57", "61", "62", "63",
+            "64", "65", "66", "67",
         ]
 
     def _get_vat_report(self):
@@ -482,7 +503,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         ])
         mapped_taxes = {tax.id: tax.with_company(company) for tax in taxes}
 
-        grouped = defaultdict(lambda: {"base": 0.0, "vat": 0.0, "include_vat": True})
+        grouped = defaultdict(lambda: {"base": 0.0, "vat": 0.0, "base_currency": 0.0, "include_vat": True})
         counters = Counter()
         reasons = Counter()
 
@@ -522,31 +543,63 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
                     continue
 
                 section = cfg_tax.l10n_lv_eds_section
-                key = (
-                    section,
-                    cfg_tax.l10n_lv_eds_dar_veids,
-                    cfg_tax.l10n_lv_eds_dok_veids or self._default_doc_type(move),
-                    cfg_tax.l10n_lv_eds_pazime or "",
-                    partner_country,
-                    partner_vat,
-                    self._xml_text(partner.name),
-                    self._xml_text(move.name or move.ref),
-                    move.invoice_date or move.date,
-                    move.currency_id.name if move.currency_id and move.currency_id != company.currency_id else None,
-                )
+                row_currency = move.currency_id or company.currency_id
+                row_currency_code = row_currency.name or company.currency_id.name or "EUR"
+                is_foreign_currency = row_currency != company.currency_id
+                if section == "pvn2":
+                    key = (
+                        section,
+                        cfg_tax.l10n_lv_eds_pazime or "",
+                        partner_country,
+                        partner_vat,
+                    )
+                else:
+                    key = (
+                        section,
+                        cfg_tax.l10n_lv_eds_dar_veids,
+                        cfg_tax.l10n_lv_eds_dok_veids or self._default_doc_type(move),
+                        cfg_tax.l10n_lv_eds_pazime or "",
+                        partner_country,
+                        partner_vat,
+                        self._xml_text(partner.name),
+                        self._xml_text(move.name or move.ref),
+                        move.invoice_date or move.date,
+                        row_currency_code,
+                    )
                 bucket = grouped[key]
                 bucket["include_vat"] = bool(cfg_tax.l10n_lv_eds_include_vat_amount)
+                sign = -1 if move.move_type in ("out_refund", "in_refund") else 1
                 if line.tax_line_id:
-                    bucket["vat"] += abs(line.balance)
+                    bucket["vat"] += sign * abs(line.balance)
                 else:
-                    bucket["base"] += abs(line.balance)
+                    bucket["base"] += sign * abs(line.balance)
+                    if is_foreign_currency:
+                        bucket["base_currency"] += sign * abs(line.amount_currency)
+                        counters["currency_rows_foreign"] += 1
+                    else:
+                        bucket["base_currency"] += sign * abs(line.balance)
+                        counters["currency_rows_company"] += 1
 
         counters.update(reasons)
 
         section_rows = {"pvn1i": [], "pvn1ii": [], "pvn1iii": [], "pvn2": []}
+        pvn2_group_keys = []
         for key, values in grouped.items():
+            section = key[0]
+            if section == "pvn2":
+                _section, pazime, partner_country, partner_vat = key
+                row = {
+                    "valsts": partner_country,
+                    "pvn_numurs": partner_vat,
+                    "summa": self._xml_amount(values["base"]),
+                    "pazime": pazime,
+                }
+                section_rows.setdefault(section, []).append(row)
+                pvn2_group_keys.append(f"{partner_country}|{partner_vat}|{pazime}")
+                continue
+
             (
-                section,
+                _section,
                 dar_veids,
                 dok_veids,
                 pazime,
@@ -564,26 +617,42 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
                 "partner_country": partner_country,
                 "partner_vat": partner_vat,
                 "partner_name": partner_name,
+                "dp_country": partner_country,
+                "dp_number": partner_vat,
+                "dp_name": partner_name,
                 "doc_number": doc_number,
                 "doc_date": self._xml_date(doc_date),
                 "currency": currency,
+                "val_kods": currency,
                 "base_amount": self._xml_amount(values["base"]),
+                "val_vertiba": self._xml_amount(values.get("base_currency", values["base"])),
                 "vat_amount": self._xml_amount(values["vat"]) if values["include_vat"] else None,
             }
             section_rows.setdefault(section, []).append(row)
 
         for section_name, rows in section_rows.items():
-            rows.sort(key=lambda row: (row["doc_date"] or "", row["doc_number"] or "", row["partner_name"] or ""))
+            if section_name == "pvn2":
+                rows.sort(key=lambda row: (row["valsts"] or "", row["pvn_numurs"] or "", row["pazime"] or ""))
+            else:
+                rows.sort(key=lambda row: (row["doc_date"] or "", row["doc_number"] or "", row["partner_name"] or ""))
             counters[f"rows_{section_name}"] = len(rows)
+        counters["pvn2_rows"] = len(section_rows.get("pvn2", []))
+        pvn2_top_group_keys = sorted(set(pvn2_group_keys))[:5]
 
         counters["excluded_total"] = sum(reasons.values())
         if self.debug_logging:
             _logger.info("LV VAT XML annex counters: %s", dict(counters))
+            _logger.info(
+                "LV VAT XML currency scenarios: foreign_base_rows=%s company_currency_base_rows=%s",
+                counters.get("currency_rows_foreign", 0),
+                counters.get("currency_rows_company", 0),
+            )
             _logger.info("LV VAT XML annex top excluded reasons: %s", reasons.most_common(10))
 
         return {
             "sections": section_rows,
             "counters": counters,
+            "pvn2_top_group_keys": pvn2_top_group_keys,
         }
 
     def _get_annex_rows(self, section):
