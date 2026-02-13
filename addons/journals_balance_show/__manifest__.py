@@ -1,7 +1,7 @@
 {
     'name': 'Show journal balance',
     'summary': """Show journal balance on account dashboard for selecetd users""",
-    'version': '16.0.1.0.1',
+    'version': '18.0.1.0.0',
     'description': """Show journal balance on account dashboard for selecetd users""",
     'author': 'POD IT Services',
     'company': 'POD IT Services',
