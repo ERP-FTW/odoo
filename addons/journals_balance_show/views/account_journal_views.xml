@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_journal_tree_balance_show" model="ir.ui.view">
+        <field name="name">account.journal.list.balance.show</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.view_account_journal_tree"/>
+        <field name="arch" type="xml">
+            <field name="code" position="after">
+                <field name="current_balance" optional="show" invisible="type not in ('bank', 'cash', 'credit')"/>
+            </field>
+        </field>
+    </record>
+</odoo>
