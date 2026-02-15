@@ -29,6 +29,13 @@ class CardPointeController(http.Controller):
         token = kwargs.get('token')
         partner_id = kwargs.get('partner_id')
         meta = kwargs.get('meta')
+        _logger.info(
+            "[CARDPOINTE] process request received tx_ref=%s partner_id=%s token_present=%s",
+            reference,
+            partner_id,
+            bool(token),
+        )
+
         missing_fields = []
         if not reference:
             missing_fields.append('reference')
@@ -54,6 +61,12 @@ class CardPointeController(http.Controller):
             raise ValidationError("CardPointe: " + _("Transaction not found."))
 
         result = tx_sudo._cardpointe_charge_from_token(token, meta=meta)
+        if not result.get('ok'):
+            _logger.warning(
+                "[CARDPOINTE] process failure tx_ref=%s message=%s",
+                reference,
+                result.get('message'),
+            )
         _logger.info(
             "[CARDPOINTE] process result tx_ref=%s success=%s",
             reference, result.get('ok'),

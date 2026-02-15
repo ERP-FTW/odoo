@@ -47,6 +47,7 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 return this._super(...arguments);
             }
 
+            this._requestCardpointeTokenization(paymentOptionId);
             return this._waitForCardpointeToken(paymentOptionId).then(tokenPayload => {
                 if (!tokenPayload || !tokenPayload.token) {
                     const wrapper = this._getCardpointeWrapperByProviderId(paymentOptionId);
@@ -127,21 +128,40 @@ odoo.define('payment_cardpointe.payment_form', require => {
 
                 this._applyCardpointeIframeUpdate(data.providerId, data.payload);
 
-                const providerId = data.providerId;
-                if (!providerId) {
-                    return;
-                }
-
                 const tokenPayload = this._extractCardpointeToken(data.payload);
                 if (!tokenPayload) {
                     return;
                 }
 
-                this._cardpointeTokens[providerId] = tokenPayload;
-                if (this._cardpointeTokenWaiters[providerId]) {
-                    this._cardpointeTokenWaiters[providerId](tokenPayload);
-                    delete this._cardpointeTokenWaiters[providerId];
+                this._cardpointeTokens[data.providerId] = tokenPayload;
+                if (this._cardpointeTokenWaiters[data.providerId]) {
+                    this._cardpointeTokenWaiters[data.providerId](tokenPayload);
+                    delete this._cardpointeTokenWaiters[data.providerId];
                 }
+            });
+        },
+
+        /**
+         * Ask the hosted iframe tokenizer to create a token.
+         *
+         * @private
+         * @param {number} providerId
+         */
+        _requestCardpointeTokenization: function (providerId) {
+            const wrapper = this._getCardpointeWrapperByProviderId(providerId);
+            const iframe = wrapper ? wrapper.querySelector('iframe.o_cardpointe_iframe') : null;
+            if (!iframe || !iframe.contentWindow) {
+                return;
+            }
+
+            const targetOrigin = this._getCardpointeOrigin(wrapper.dataset.tokenizerUrl || '') || '*';
+            const tokenizeMessages = [
+                'tokenize',
+                JSON.stringify({action: 'tokenize'}),
+                JSON.stringify({message: 'tokenize'}),
+            ];
+            tokenizeMessages.forEach(message => {
+                iframe.contentWindow.postMessage(message, targetOrigin);
             });
         },
 
@@ -158,13 +178,6 @@ odoo.define('payment_cardpointe.payment_form', require => {
         _normalizeCardpointeMessage: function (event) {
             const wrapper = this._getCardpointeWrapperByOrigin(event.origin);
             if (!wrapper) {
-                const payload = this._parseCardpointeMessage(event.data);
-                if (payload && payload.token) {
-                    console.warn(
-                        '[CARDPOINTE] Ignored token message from unexpected origin.',
-                        {origin: event.origin}
-                    );
-                }
                 return null;
             }
             const providerId = parseInt(wrapper.dataset.providerId, 10);
@@ -176,44 +189,10 @@ odoo.define('payment_cardpointe.payment_form', require => {
             if (!payload) {
                 return null;
             }
-            if (!this._isCardpointeTokenMessage(payload)) {
-                return {
-                    providerId: providerId,
-                    payload: payload,
-                };
-            }
-            if (!payload.token) {
-                console.warn(
-                    '[CARDPOINTE] Tokenizer message missing token.',
-                    {
-                        origin: event.origin,
-                        keys: this._summarizeCardpointePayloadKeys(payload),
-                    }
-                );
-            }
             return {
                 providerId: providerId,
                 payload: payload,
             };
-        },
-
-        /**
-         * Detect tokenization payloads, while allowing non-token iframe events.
-         *
-         * @private
-         * @param {object} payload
-         * @return {boolean}
-         */
-        _isCardpointeTokenMessage: function (payload) {
-            return !!(
-                payload && (
-                    Object.prototype.hasOwnProperty.call(payload, 'token')
-                    || (payload.data && Object.prototype.hasOwnProperty.call(payload.data, 'token'))
-                    || (payload.response && Object.prototype.hasOwnProperty.call(payload.response, 'token'))
-                    || (payload.message && typeof payload.message === 'object'
-                        && Object.prototype.hasOwnProperty.call(payload.message, 'token'))
-                )
-            );
         },
 
         /**
@@ -250,15 +229,19 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 return null;
             }
 
+            const nestedData = this._parseCardpointeMessage(payload.data);
+            const nestedResponse = this._parseCardpointeMessage(payload.response);
+            const nestedMessage = this._parseCardpointeMessage(payload.message);
             const candidates = [
                 payload.height,
                 payload.iframeHeight,
                 payload.frameHeight,
-                payload.data && payload.data.height,
-                payload.data && payload.data.iframeHeight,
-                payload.response && payload.response.height,
-                payload.response && payload.response.iframeHeight,
-                payload.message && typeof payload.message === 'object' && payload.message.height,
+                nestedData && nestedData.height,
+                nestedData && nestedData.iframeHeight,
+                nestedResponse && nestedResponse.height,
+                nestedResponse && nestedResponse.iframeHeight,
+                nestedMessage && nestedMessage.height,
+                nestedMessage && nestedMessage.iframeHeight,
             ];
 
             for (const candidate of candidates) {
@@ -303,26 +286,42 @@ odoo.define('payment_cardpointe.payment_form', require => {
             if (!payload || typeof payload !== 'object') {
                 return null;
             }
-            const token = payload.token
-                || (payload.data && payload.data.token)
-                || (payload.response && payload.response.token)
-                || (payload.message && payload.message.token);
+
+            const nestedData = this._parseCardpointeMessage(payload.data);
+            const nestedResponse = this._parseCardpointeMessage(payload.response);
+            const nestedMessage = this._parseCardpointeMessage(payload.message);
+            const tokenCandidates = [
+                payload.token,
+                nestedData && nestedData.token,
+                nestedResponse && nestedResponse.token,
+                nestedMessage && nestedMessage.token,
+                this._looksLikeCardpointeToken(payload.message) ? payload.message : null,
+                this._looksLikeCardpointeToken(payload.data) ? payload.data : null,
+            ];
+            const token = tokenCandidates.find(candidate => this._looksLikeCardpointeToken(candidate));
             if (!token) {
-                console.warn(
-                    '[CARDPOINTE] Tokenizer payload missing token.',
-                    {keys: this._summarizeCardpointePayloadKeys(payload)}
-                );
                 return null;
             }
             return {
                 token: token,
                 meta: {
-                    expiry_month: payload.expiry_month,
-                    expiry_year: payload.expiry_year,
-                    brand: payload.brand,
-                    last4: payload.last4,
+                    expiry_month: payload.expiry_month || (nestedData && nestedData.expiry_month),
+                    expiry_year: payload.expiry_year || (nestedData && nestedData.expiry_year),
+                    brand: payload.brand || (nestedData && nestedData.brand),
+                    last4: payload.last4 || (nestedData && nestedData.last4),
                 },
             };
+        },
+
+        /**
+         * Decide whether a value looks like a CardPointe token.
+         *
+         * @private
+         * @param {any} value
+         * @return {boolean}
+         */
+        _looksLikeCardpointeToken: function (value) {
+            return typeof value === 'string' && /^[A-Za-z0-9]{10,}$/.test(value.trim());
         },
 
         /**
@@ -355,7 +354,7 @@ odoo.define('payment_cardpointe.payment_form', require => {
                         delete this._cardpointeTokenWaiters[providerId];
                         resolve(null);
                     }
-                }, 5000);
+                }, 12000);
             });
         },
 
@@ -386,8 +385,12 @@ odoo.define('payment_cardpointe.payment_form', require => {
          */
         _parseCardpointeMessage: function (payload) {
             if (typeof payload === 'string') {
+                const trimmed = payload.trim();
+                if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+                    return null;
+                }
                 try {
-                    return JSON.parse(payload);
+                    return JSON.parse(trimmed);
                 } catch (err) {
                     return null;
                 }
@@ -396,30 +399,6 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 return payload;
             }
             return null;
-        },
-
-        /**
-         * Summarize payload keys recursively (safe for logging).
-         *
-         * @private
-         * @param {object} payload
-         * @param {number} depth
-         * @return {object}
-         */
-        _summarizeCardpointePayloadKeys: function (payload, depth = 2) {
-            if (!payload || typeof payload !== 'object' || depth < 0) {
-                return {};
-            }
-            const summary = {};
-            Object.keys(payload).forEach(key => {
-                const value = payload[key];
-                if (value && typeof value === 'object') {
-                    summary[key] = this._summarizeCardpointePayloadKeys(value, depth - 1);
-                } else {
-                    summary[key] = true;
-                }
-            });
-            return summary;
         },
 
         /**
@@ -432,21 +411,30 @@ odoo.define('payment_cardpointe.payment_form', require => {
         _getCardpointeWrapperByOrigin: function (origin) {
             const wrappers = document.querySelectorAll('.o_cardpointe_iframe_wrapper');
             for (const wrapper of wrappers) {
-                const tokenizerUrl = wrapper.dataset.tokenizerUrl || '';
-                if (!tokenizerUrl) {
-                    continue;
-                }
-                let allowedOrigin = '';
-                try {
-                    allowedOrigin = new URL(tokenizerUrl).origin;
-                } catch (err) {
-                    continue;
-                }
-                if (allowedOrigin === origin) {
+                const allowedOrigin = this._getCardpointeOrigin(wrapper.dataset.tokenizerUrl || '');
+                if (allowedOrigin && allowedOrigin === origin) {
                     return wrapper;
                 }
             }
             return null;
+        },
+
+        /**
+         * Parse the origin of a CardPointe tokenizer URL.
+         *
+         * @private
+         * @param {string} tokenizerUrl
+         * @return {string}
+         */
+        _getCardpointeOrigin: function (tokenizerUrl) {
+            if (!tokenizerUrl) {
+                return '';
+            }
+            try {
+                return new URL(tokenizerUrl).origin;
+            } catch (err) {
+                return '';
+            }
         },
     };
 

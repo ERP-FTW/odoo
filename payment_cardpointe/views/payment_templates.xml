@@ -15,7 +15,7 @@
                     class="o_cardpointe_iframe w-100"
                     t-att-src="provider.cardpointe_tokenizer_url or ''"
                     title="CardPointe Tokenizer"
-                    style="min-height: 240px; border: 0;"
+                    style="min-height: 420px; border: 0;"
                 />
             </div>
             <small class="text-muted">Complete card details in the secure form above.</small>
