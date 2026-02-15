@@ -81,7 +81,7 @@ odoo.define('payment_cardpointe.payment_form', require => {
                             'partner_id': processingValues.partner_id,
                             'token': tokenPayload.token,
                             'meta': tokenPayload.meta || {},
-                            'access_token': this.txContext.accessToken,
+                            'access_token': processingValues.access_token || this.txContext.accessToken,
                         }
                     });
                 }).then(result => {
