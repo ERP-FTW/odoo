@@ -42,6 +42,15 @@ class PaymentProvider(models.Model):
     cardpointe_timeout_connect = fields.Integer(string="Connect Timeout (s)", default=10)
     cardpointe_timeout_read = fields.Integer(string="Read Timeout (s)", default=30)
 
+    def _register_hook(self):
+        """Ensure provider payment method setup exists on upgrades too."""
+        res = super()._register_hook()
+        try:
+            self.env['payment.provider']._setup_provider('cardpointe')
+        except Exception:
+            _logger.exception("[CARDPOINTE] Failed to setup provider during registry hook.")
+        return res
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
