@@ -124,6 +124,9 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 if (!data) {
                     return;
                 }
+
+                this._applyCardpointeIframeUpdate(data.providerId, data.payload);
+
                 const providerId = data.providerId;
                 if (!providerId) {
                     return;
@@ -173,6 +176,12 @@ odoo.define('payment_cardpointe.payment_form', require => {
             if (!payload) {
                 return null;
             }
+            if (!this._isCardpointeTokenMessage(payload)) {
+                return {
+                    providerId: providerId,
+                    payload: payload,
+                };
+            }
             if (!payload.token) {
                 console.warn(
                     '[CARDPOINTE] Tokenizer message missing token.',
@@ -186,6 +195,98 @@ odoo.define('payment_cardpointe.payment_form', require => {
                 providerId: providerId,
                 payload: payload,
             };
+        },
+
+        /**
+         * Detect tokenization payloads, while allowing non-token iframe events.
+         *
+         * @private
+         * @param {object} payload
+         * @return {boolean}
+         */
+        _isCardpointeTokenMessage: function (payload) {
+            return !!(
+                payload && (
+                    Object.prototype.hasOwnProperty.call(payload, 'token')
+                    || (payload.data && Object.prototype.hasOwnProperty.call(payload.data, 'token'))
+                    || (payload.response && Object.prototype.hasOwnProperty.call(payload.response, 'token'))
+                    || (payload.message && typeof payload.message === 'object'
+                        && Object.prototype.hasOwnProperty.call(payload.message, 'token'))
+                )
+            );
+        },
+
+        /**
+         * Apply iframe UI updates emitted by the CardPointe tokenizer.
+         *
+         * @private
+         * @param {number} providerId
+         * @param {object} payload
+         */
+        _applyCardpointeIframeUpdate: function (providerId, payload) {
+            const iframeHeight = this._extractCardpointeIframeHeight(payload);
+            if (!iframeHeight) {
+                return;
+            }
+
+            const wrapper = this._getCardpointeWrapperByProviderId(providerId);
+            const iframe = wrapper ? wrapper.querySelector('iframe.o_cardpointe_iframe') : null;
+            if (!iframe) {
+                return;
+            }
+            iframe.style.height = `${iframeHeight}px`;
+            iframe.style.minHeight = `${iframeHeight}px`;
+        },
+
+        /**
+         * Extract iframe height updates from tokenizer postMessage payloads.
+         *
+         * @private
+         * @param {object} payload
+         * @return {number|null}
+         */
+        _extractCardpointeIframeHeight: function (payload) {
+            if (!payload || typeof payload !== 'object') {
+                return null;
+            }
+
+            const candidates = [
+                payload.height,
+                payload.iframeHeight,
+                payload.frameHeight,
+                payload.data && payload.data.height,
+                payload.data && payload.data.iframeHeight,
+                payload.response && payload.response.height,
+                payload.response && payload.response.iframeHeight,
+                payload.message && typeof payload.message === 'object' && payload.message.height,
+            ];
+
+            for (const candidate of candidates) {
+                const value = this._normalizeCardpointeDimension(candidate);
+                if (value) {
+                    return value;
+                }
+            }
+            return null;
+        },
+
+        /**
+         * Normalize a dimension value to a valid pixel integer.
+         *
+         * @private
+         * @param {number|string|boolean|null} value
+         * @return {number|null}
+         */
+        _normalizeCardpointeDimension: function (value) {
+            if (value === null || value === undefined || value === false) {
+                return null;
+            }
+            const raw = typeof value === 'string' ? value.replace(/px$/i, '').trim() : value;
+            const parsed = parseInt(raw, 10);
+            if (!Number.isFinite(parsed) || parsed <= 0) {
+                return null;
+            }
+            return parsed;
         },
 
         /**
