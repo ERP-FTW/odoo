@@ -67,18 +67,24 @@ class CardPointeController(http.Controller):
                 tx_sudo.partner_id.id,
             )
 
-        if not payment_utils.check_access_token(
+        access_token_valid = payment_utils.check_access_token(
             access_token,
+            tx_sudo.reference,
             tx_sudo.partner_id.id,
-            tx_sudo.amount,
-            tx_sudo.currency_id.id,
-        ):
+        )
+        if payload_partner_id and payload_partner_id != tx_sudo.partner_id.id:
+            access_token_valid = access_token_valid or payment_utils.check_access_token(
+                access_token,
+                tx_sudo.reference,
+                payload_partner_id,
+            )
+
+        if not access_token_valid:
             _logger.warning(
-                "[CARDPOINTE] tampered payment request tx_ref=%s partner_id=%s amount=%s currency_id=%s",
+                "[CARDPOINTE] tampered payment request tx_ref=%s tx_partner_id=%s payload_partner_id=%s",
                 tx_sudo.reference,
                 tx_sudo.partner_id.id,
-                tx_sudo.amount,
-                tx_sudo.currency_id.id,
+                payload_partner_id,
             )
             raise ValidationError("CardPointe: " + _("Received tampered payment request data."))
 
