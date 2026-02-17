@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_lv_vat_eds_xml">
+        <t t-foreach="docs" t-as="o">
+            <DokPVNv7 xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                <Precizejums><t t-esc="o._xml_bool(o.is_correction)"/></Precizejums>
+                <ParskGads><t t-esc="o._get_period_year_month()[0]"/></ParskGads>
+                <ParskMen><t t-esc="o._get_period_year_month()[1]"/></ParskMen>
+                <ParskCeturksnis t-if="not o.omit_optional_headers" t-att="o._xml_nil_attr()"/>
+                <NmrKods><t t-esc="o._xml_text(o._get_vid_taxpayer_code())"/></NmrKods>
+
+                <t t-if="o._should_nil(o.phone)"><Talrunis t-att="o._xml_nil_attr()"/></t>
+                <t t-else=""><Talrunis><t t-esc="o._xml_text(o.phone)"/></Talrunis></t>
+
+                <t t-if="not o.omit_optional_headers and o._should_nil(o.email)"><Epasts t-att="o._xml_nil_attr()"/></t>
+                <t t-if="not o.omit_optional_headers and not o._should_nil(o.email)"><Epasts><t t-esc="o._xml_text(o.email)"/></Epasts></t>
+
+                <Sagatavotajs t-if="not o.omit_optional_headers"><t t-esc="o._get_preparer_name()"/></Sagatavotajs>
+
+                <t t-if="not o.omit_optional_headers and o._should_nil(o._get_iban())"><IbanNumurs t-att="o._xml_nil_attr()"/></t>
+                <t t-if="not o.omit_optional_headers and not o._should_nil(o._get_iban())"><IbanNumurs><t t-esc="o._get_iban()"/></IbanNumurs></t>
+
+                <PVN t-if="o.export_pvn">
+                    <R41><t t-esc="o._xml_amount(o._get_amount(41))"/></R41>
+                    <R411><t t-esc="o._xml_amount(o._get_amount(411))"/></R411>
+                    <R42><t t-esc="o._xml_amount(o._get_amount(42))"/></R42>
+                    <R421><t t-esc="o._xml_amount(o._get_amount(421))"/></R421>
+                    <R43><t t-esc="o._xml_amount(o._get_amount(43))"/></R43>
+                    <R44><t t-esc="o._xml_amount(o._get_amount(44))"/></R44>
+                    <R45><t t-esc="o._xml_amount(o._get_amount(45))"/></R45>
+                    <R451><t t-esc="o._xml_amount(o._get_amount(451))"/></R451>
+                    <R46><t t-esc="o._xml_amount(o._get_amount(46))"/></R46>
+                    <R47><t t-esc="o._xml_amount(o._get_amount(47))"/></R47>
+                    <R48><t t-esc="o._xml_amount(o._get_amount(48))"/></R48>
+                    <R481><t t-esc="o._xml_amount(o._get_amount(481))"/></R481>
+                    <R482><t t-esc="o._xml_amount(o._get_amount(482))"/></R482>
+                    <R49><t t-esc="o._xml_amount(o._get_amount(49))"/></R49>
+                    <R50><t t-esc="o._xml_amount(o._get_amount(50))"/></R50>
+                    <R51><t t-esc="o._xml_amount(o._get_amount(51))"/></R51>
+                    <R511><t t-esc="o._xml_amount(o._get_amount(511))"/></R511>
+                    <R52><t t-esc="o._xml_amount(o._get_amount(52))"/></R52>
+                    <R53><t t-esc="o._xml_amount(o._get_amount(53))"/></R53>
+                    <R531><t t-esc="o._xml_amount(o._get_amount(531))"/></R531>
+                    <R54><t t-esc="o._xml_amount(o._get_amount(54))"/></R54>
+                    <R55><t t-esc="o._xml_amount(o._get_amount(55))"/></R55>
+                    <R56><t t-esc="o._xml_amount(o._get_amount(56))"/></R56>
+                    <R561><t t-esc="o._xml_amount(o._get_amount(561))"/></R561>
+                    <R57><t t-esc="o._xml_amount(o._get_amount(57))"/></R57>
+                    <R61><t t-esc="o._xml_amount(o._get_amount(61))"/></R61>
+                    <R62><t t-esc="o._xml_amount(o._get_amount(62))"/></R62>
+                    <R63><t t-esc="o._xml_amount(o._get_amount(63))"/></R63>
+                    <R64><t t-esc="o._xml_amount(o._get_amount(64))"/></R64>
+                    <R65><t t-esc="o._xml_amount(o._get_amount(65))"/></R65>
+                    <R66><t t-esc="o._xml_amount(o._get_amount(66))"/></R66>
+                    <R67><t t-esc="o._xml_amount(o._get_amount(67))"/></R67>
+                </PVN>
+
+                <PVN1I t-if="o.export_pvn1i">
+                    <t t-foreach="o._get_annex_rows('pvn1i')" t-as="row">
+                        <R>
+                            <t t-if="o._should_nil(row['dp_country']) and o._should_nil(row['dp_number']) and o._should_nil(row['dp_name']) and o._should_nil(row['dok_veids']) and o._should_nil(row['doc_number']) and o._should_nil(row['doc_date'])">
+                                <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
+                                <VertibaBezPvn><t t-esc="o._xml_text(row['base_amount'])"/></VertibaBezPvn>
+                                <t t-if="o._should_nil(row['vat_amount'])"><PvnVertiba t-att="o._xml_nil_attr()"/></t>
+                                <t t-else=""><PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba></t>
+                            </t>
+                            <t t-else="">
+                                <DpValsts><t t-esc="o._xml_text(row['dp_country'])"/></DpValsts>
+                                <DpNumurs><t t-esc="o._xml_text(row['dp_number'])"/></DpNumurs>
+                                <DpNosaukums><t t-esc="o._xml_text(row['dp_name'])"/></DpNosaukums>
+                                <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
+                                <VertibaBezPvn><t t-esc="o._xml_text(row['base_amount'])"/></VertibaBezPvn>
+                                <t t-if="o._should_nil(row['vat_amount'])"><PvnVertiba t-att="o._xml_nil_attr()"/></t>
+                                <t t-else=""><PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba></t>
+                                <DokVeids><t t-esc="o._xml_text(row['dok_veids'])"/></DokVeids>
+                                <DokNumurs><t t-esc="o._xml_text(row['doc_number'])"/></DokNumurs>
+                                <DokDatums><t t-esc="o._xml_text(row['doc_date'])"/></DokDatums>
+                            </t>
+                        </R>
+                    </t>
+                </PVN1I>
+
+                <PVN1II t-if="o.export_pvn1ii">
+                    <t t-foreach="o._get_annex_rows('pvn1ii')" t-as="row">
+                        <R>
+                            <DpValsts><t t-esc="o._xml_text(row['dp_country'])"/></DpValsts>
+                            <DpNumurs><t t-esc="o._xml_text(row['dp_number'])"/></DpNumurs>
+                            <DpNosaukums><t t-esc="o._xml_text(row['dp_name'])"/></DpNosaukums>
+                            <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
+                            <VertibaBezPvn><t t-esc="o._xml_text(row['base_amount'])"/></VertibaBezPvn>
+                            <t t-if="o._should_nil(row['vat_amount'])"><PvnVertiba t-att="o._xml_nil_attr()"/></t>
+                            <t t-else=""><PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba></t>
+                            <ValVertiba><t t-esc="o._xml_text(row['val_vertiba'])"/></ValVertiba>
+                            <ValKods><t t-esc="o._xml_text(row['val_kods'])"/></ValKods>
+                            <DokNumurs><t t-esc="o._xml_text(row['doc_number'])"/></DokNumurs>
+                            <DokDatums><t t-esc="o._xml_text(row['doc_date'])"/></DokDatums>
+                        </R>
+                    </t>
+                </PVN1II>
+
+                <PVN1III t-if="o.export_pvn1iii">
+                    <t t-foreach="o._get_annex_rows('pvn1iii')" t-as="row">
+                        <R>
+                            <DpValsts><t t-esc="o._xml_text(row['dp_country'])"/></DpValsts>
+                            <DpNumurs><t t-esc="o._xml_text(row['dp_number'])"/></DpNumurs>
+                            <DpNosaukums><t t-esc="o._xml_text(row['dp_name'])"/></DpNosaukums>
+                            <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
+                            <VertibaBezPvn><t t-esc="o._xml_text(row['base_amount'])"/></VertibaBezPvn>
+                            <t t-if="o._should_nil(row['vat_amount'])"><PvnVertiba t-att="o._xml_nil_attr()"/></t>
+                            <t t-else=""><PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba></t>
+                            <DokVeids><t t-esc="o._xml_text(row['dok_veids'])"/></DokVeids>
+                            <DokNumurs><t t-esc="o._xml_text(row['doc_number'])"/></DokNumurs>
+                            <DokDatums><t t-esc="o._xml_text(row['doc_date'])"/></DokDatums>
+                        </R>
+                    </t>
+                </PVN1III>
+
+                <PVN2 t-if="o.export_pvn2">
+                    <t t-foreach="o._get_annex_rows('pvn2')" t-as="row">
+                        <R>
+                            <Valsts><t t-esc="o._xml_text(row['valsts'])"/></Valsts>
+                            <PVNNumurs><t t-esc="o._xml_text(row['pvn_numurs'])"/></PVNNumurs>
+                            <Summa><t t-esc="o._xml_text(row['summa'])"/></Summa>
+                            <Pazime><t t-esc="o._xml_text(row['pazime'])"/></Pazime>
+                        </R>
+                    </t>
+                </PVN2>
+
+                <PVN7I t-if="o.export_pvn7i"/>
+            </DokPVNv7>
+        </t>
+    </template>
+</odoo>
