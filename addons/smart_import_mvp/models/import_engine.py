@@ -42,6 +42,40 @@ class FulcrumImportEngine(models.AbstractModel):
     def _normalized(self, value):
         return str(value or '').strip()
 
+    def _uom_key(self, value):
+        return self._normalized(value).lower()
+
+    def _resolve_uom(self, uom_name, uom_cache, uom_alias_cache):
+        if not uom_name:
+            return False
+        if uom_name in uom_cache:
+            return uom_cache[uom_name]
+        alias_uom = uom_alias_cache.get(self._uom_key(uom_name))
+        if alias_uom:
+            uom_cache[uom_name] = alias_uom
+            return alias_uom
+        return False
+
+    def _build_uom_alias_cache(self, env):
+        alias_cache = {}
+        aliases_by_xmlid = {
+            'uom.product_uom_unit': ['piece', 'pieces', 'unit', 'units', 'set', 'sets'],
+            'uom.product_uom_kgm': ['kg', 'kilogram', 'kilograms'],
+            'uom.product_uom_litre': ['l', 'liter', 'litre'],
+            'uom.product_uom_millilitre': ['ml', 'milliliter', 'millilitre'],
+            'uom.product_uom_inch': ['in', 'inch', 'inches'],
+            'uom.product_uom_foot': ['ft', 'foot', 'feet'],
+        }
+        for xmlid, aliases in aliases_by_xmlid.items():
+            uom = env.ref(xmlid, raise_if_not_found=False)
+            if not uom:
+                continue
+            alias_cache[self._uom_key(uom.name)] = uom
+            alias_cache[self._uom_key(uom.display_name)] = uom
+            for alias in aliases:
+                alias_cache[self._uom_key(alias)] = uom
+        return alias_cache
+
     def parse_items_xlsx(self, attachment):
         data = base64.b64decode(attachment.datas)
         workbook = load_workbook(io.BytesIO(data), data_only=True)
@@ -107,12 +141,13 @@ class FulcrumImportEngine(models.AbstractModel):
         bom_child_codes = {r['child_number'] for r in bom_rows if r['child_number']}
         missing_bom_products = sorted((bom_parent_codes | bom_child_codes) - product_codes)
 
+        uom_cache = {u.name: u for u in self.env['uom.uom'].search([])}
+        uom_alias_cache = self._build_uom_alias_cache(self.env)
         unknown_uoms = []
         for row in items_rows:
-            if row['uom_name']:
-                unknown_uoms.append(row['uom_name'])
-            if row['vendor_uom_name']:
-                unknown_uoms.append(row['vendor_uom_name'])
+            for uom_name in (row['uom_name'], row['vendor_uom_name']):
+                if uom_name and not self._resolve_uom(uom_name, uom_cache, uom_alias_cache):
+                    unknown_uoms.append(uom_name)
         unknown_uoms = sorted(set(unknown_uoms))
 
         grouped_boms = defaultdict(list)
@@ -165,6 +200,7 @@ class FulcrumImportEngine(models.AbstractModel):
 
         # Caches
         uom_cache = {u.name: u for u in env['uom.uom'].search([])}
+        uom_alias_cache = self._build_uom_alias_cache(env)
         categ_cache = {c.name: c for c in env['product.category'].search([])}
         partner_cache = {p.name: p for p in env['res.partner'].search([('supplier_rank', '>', 0)])}
         product_tmpl_cache = {p.default_code: p for p in env['product.template'].search([('default_code', '!=', False)])}
@@ -175,19 +211,22 @@ class FulcrumImportEngine(models.AbstractModel):
         manufacture_route = env['stock.route'].search([('name', '=', 'Manufacture'), ('company_id', 'in', [False, company.id])], limit=1)
 
         # UoMs
+        ref_uom = env.ref('uom.product_uom_unit')
         for uom_name in sorted({r['uom_name'] for r in items_rows if r['uom_name']} | {r['vendor_uom_name'] for r in items_rows if r['vendor_uom_name']}):
-            if uom_name in uom_cache:
+            if self._resolve_uom(uom_name, uom_cache, uom_alias_cache):
                 continue
             if not options.get('auto_create_unknown_uom'):
                 issue_bucket['unknown_uoms'].append(uom_name)
                 continue
             if dry_run:
                 stats['uom_would_create'] += 1
+                # Simulate availability for subsequent validation paths (products/vendors/BOM).
+                uom_cache[uom_name] = ref_uom
                 continue
-            ref_uom = env.ref('uom.product_uom_unit')
             created = env['uom.uom'].create({
                 'name': uom_name,
-                'uom_type': 'reference',
+                'uom_type': 'smaller',
+                'factor_inv': 1.0,
                 'category_id': ref_uom.category_id.id,
                 'rounding': ref_uom.rounding,
             })
@@ -201,6 +240,7 @@ class FulcrumImportEngine(models.AbstractModel):
                 continue
             if dry_run:
                 stats['category_would_create'] += 1
+                categ_cache[category_name] = env.ref('product.product_category_all')
                 continue
             created = env['product.category'].create({'name': category_name})
             categ_cache[category_name] = created
@@ -213,6 +253,7 @@ class FulcrumImportEngine(models.AbstractModel):
                 continue
             if dry_run:
                 stats['vendor_would_create'] += 1
+                partner_cache[vendor_name] = env.user.partner_id
                 continue
             created = env['res.partner'].create({'name': vendor_name, 'supplier_rank': 1, 'company_type': 'company'})
             partner_cache[vendor_name] = created
@@ -228,6 +269,7 @@ class FulcrumImportEngine(models.AbstractModel):
                     continue
                 if dry_run:
                     stats['location_would_create'] += 1
+                    location_cache[full_name] = stock_location
                     continue
                 parent = env['stock.location'].search([
                     ('name', '=', 'Fulcrum'),
@@ -262,7 +304,8 @@ class FulcrumImportEngine(models.AbstractModel):
 
         for code, row in product_rows_by_code.items():
             uom_name = row['uom_name']
-            if uom_name and uom_name not in uom_cache:
+            uom = self._resolve_uom(uom_name, uom_cache, uom_alias_cache) if uom_name else False
+            if uom_name and not uom:
                 issue_bucket['unknown_uoms'].append(uom_name)
                 errors.append({'type': 'product', 'key': code, 'error': f'Unknown UoM {uom_name}'})
                 continue
@@ -273,13 +316,13 @@ class FulcrumImportEngine(models.AbstractModel):
                 'name': row['description'] or code,
                 'sale_ok': row['is_sell_item'],
                 'purchase_ok': row['item_origin'] == 'Buy' or bool(row['vendor_name']),
-                'type': 'product' if row['minimum_stock_on_hand'] > 0 or row['default_location'] else 'consu',
+                'type': 'consu',
             }
             if category:
                 vals['categ_id'] = category.id
-            if uom_name and uom_cache.get(uom_name):
-                vals['uom_id'] = uom_cache[uom_name].id
-                vals['uom_po_id'] = uom_cache[uom_name].id
+            if uom:
+                vals['uom_id'] = uom.id
+                vals['uom_po_id'] = uom.id
 
             route_ids = []
             if row['item_origin'] == 'Make' and manufacture_route:
@@ -300,7 +343,9 @@ class FulcrumImportEngine(models.AbstractModel):
             else:
                 if dry_run:
                     stats['product_would_create'] += 1
-                    tmpl = False
+                    tmpl = env['product.template']
+                    product_tmpl_cache[code] = tmpl
+                    product_variant_cache[code] = env['product.product']
                 else:
                     tmpl = env['product.template'].create(vals)
                     stats['product_created'] += 1
@@ -317,8 +362,9 @@ class FulcrumImportEngine(models.AbstractModel):
                     'product_tmpl_id': tmpl.id,
                 }
                 vendor_uom_name = row['vendor_uom_name']
-                if vendor_uom_name and vendor_uom_name in uom_cache:
-                    supp_vals['product_uom'] = uom_cache[vendor_uom_name].id
+                vendor_uom = self._resolve_uom(vendor_uom_name, uom_cache, uom_alias_cache) if vendor_uom_name else False
+                if vendor_uom:
+                    supp_vals['product_uom'] = vendor_uom.id
                 elif vendor_uom_name:
                     issue_bucket['unknown_vendor_uom'].append(vendor_uom_name)
                 supplierinfo = env['product.supplierinfo'].search([
@@ -334,11 +380,17 @@ class FulcrumImportEngine(models.AbstractModel):
 
             if row['minimum_stock_on_hand'] > 0:
                 product_variant = product_variant_cache.get(code)
-                if not product_variant:
+                if not product_variant and code not in product_variant_cache:
                     continue
+
                 max_qty = row['minimum_stock_on_hand']
                 if options.get('orderpoint_max_policy') == 'double_min':
                     max_qty = row['minimum_stock_on_hand'] * 2
+
+                if dry_run and not product_variant:
+                    stats['orderpoint_would_create'] += 1
+                    continue
+
                 op_vals = {
                     'product_id': product_variant.id,
                     'location_id': stock_location.id,
@@ -391,11 +443,11 @@ class FulcrumImportEngine(models.AbstractModel):
                 boms_by_parent[row['parent_number']].append(row)
 
         for parent_code, lines in boms_by_parent.items():
-            parent_tmpl = product_tmpl_cache.get(parent_code)
-            if not parent_tmpl:
+            if parent_code not in product_tmpl_cache:
                 issue_bucket['missing_bom_parents'].append(parent_code)
                 errors.append({'type': 'bom', 'key': parent_code, 'error': 'Missing parent product'})
                 continue
+            parent_tmpl = product_tmpl_cache[parent_code]
             if dry_run:
                 stats['bom_would_process'] += 1
                 continue
