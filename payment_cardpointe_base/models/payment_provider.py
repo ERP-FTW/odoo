@@ -1,13 +1,10 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-import logging
-
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 from . import cardpointe_client
 
-_logger = logging.getLogger(__name__)
 
 ENDPOINT_TEST_CONNECTION = None  # TODO: set ENDPOINT_TEST_CONNECTION per Gateway API docs.
 
@@ -41,15 +38,6 @@ class PaymentProvider(models.Model):
     cardpointe_debug_logging = fields.Boolean(string="Enable CardPointe Debug Logging")
     cardpointe_timeout_connect = fields.Integer(string="Connect Timeout (s)", default=10)
     cardpointe_timeout_read = fields.Integer(string="Read Timeout (s)", default=30)
-
-    def _register_hook(self):
-        """Ensure provider payment method setup exists on upgrades too."""
-        res = super()._register_hook()
-        try:
-            self.env['payment.provider']._setup_provider('cardpointe')
-        except Exception:
-            _logger.exception("[CARDPOINTE] Failed to setup provider during registry hook.")
-        return res
 
     @api.model_create_multi
     def create(self, vals_list):
