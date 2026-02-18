@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="smart_import_rule_buy_or_make_buy" model="smart.import.rule">
+        <field name="name">BuyOrMake -&gt; Buy + Manufacture</field>
+        <field name="active">True</field>
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="applies_to">product_template</field>
+        <field name="when_key">buy_or_make</field>
+        <field name="operator">contains</field>
+        <field name="when_value">buy</field>
+        <field name="set_purchase_ok">True</field>
+        <field name="add_route_buy">True</field>
+        <field name="add_route_manufacture">True</field>
+        <field name="note">When source contains buy, force both buy and manufacture routes.</field>
+        <field name="priority">10</field>
+    </record>
+
+    <record id="smart_import_rule_make_or_buy_make" model="smart.import.rule">
+        <field name="name">MakeOrBuy -&gt; Buy + Manufacture</field>
+        <field name="active">True</field>
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="applies_to">product_template</field>
+        <field name="when_key">buy_or_make</field>
+        <field name="operator">contains</field>
+        <field name="when_value">make</field>
+        <field name="set_purchase_ok">True</field>
+        <field name="add_route_buy">True</field>
+        <field name="add_route_manufacture">True</field>
+        <field name="note">When source contains make, force both buy and manufacture routes.</field>
+        <field name="priority">20</field>
+    </record>
+
+    <record id="smart_import_rule_make_or_buy_both" model="smart.import.rule">
+        <field name="name">BuyOrMake contains both/make-buy -&gt; Buy + Manufacture</field>
+        <field name="active">True</field>
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="applies_to">product_template</field>
+        <field name="when_key">buy_or_make</field>
+        <field name="operator">regex</field>
+        <field name="when_value">both|make\s*/\s*buy</field>
+        <field name="set_purchase_ok">True</field>
+        <field name="add_route_buy">True</field>
+        <field name="add_route_manufacture">True</field>
+        <field name="note">Handle explicit both/make-buy values if present in source.</field>
+        <field name="priority">30</field>
+    </record>
+</odoo>

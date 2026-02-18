@@ -7,4 +7,6 @@
     <menuitem id="menu_smart_import_config" name="Configuration" parent="menu_smart_import_root" sequence="90"/>
     <menuitem id="menu_smart_import_mapping_profiles" name="Mapping Profiles" action="action_smart_import_mapping_profile" parent="menu_smart_import_config" sequence="10"/>
     <menuitem id="menu_smart_import_mapping_keywords" name="Mapping Keywords" action="action_smart_import_mapping_keyword" parent="menu_smart_import_config" sequence="20"/>
+    <menuitem id="menu_smart_import_rules" name="Rules" action="action_smart_import_rule" parent="menu_smart_import_config" sequence="30"/>
 </odoo>
+

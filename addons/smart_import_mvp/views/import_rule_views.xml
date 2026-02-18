@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_smart_import_rule_tree" model="ir.ui.view">
+        <field name="name">smart.import.rule.tree</field>
+        <field name="model">smart.import.rule</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="priority"/>
+                <field name="name"/>
+                <field name="profile_id"/>
+                <field name="applies_to"/>
+                <field name="when_key"/>
+                <field name="operator"/>
+                <field name="when_value"/>
+                <field name="set_purchase_ok"/>
+                <field name="add_route_buy"/>
+                <field name="add_route_manufacture"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_smart_import_rule_form" model="ir.ui.view">
+        <field name="name">smart.import.rule.form</field>
+        <field name="model">smart.import.rule</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="active"/>
+                            <field name="profile_id"/>
+                            <field name="priority"/>
+                        </group>
+                        <group>
+                            <field name="applies_to"/>
+                            <field name="when_key"/>
+                            <field name="operator"/>
+                            <field name="when_value"/>
+                        </group>
+                    </group>
+                    <group string="Actions">
+                        <field name="set_purchase_ok"/>
+                        <field name="add_route_buy"/>
+                        <field name="add_route_manufacture"/>
+                    </group>
+                    <group>
+                        <field name="note" placeholder="Internal explanation of what this rule does"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_smart_import_rule" model="ir.actions.act_window">
+        <field name="name">Import Rules</field>
+        <field name="res_model">smart.import.rule</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

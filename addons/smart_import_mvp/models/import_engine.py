@@ -122,6 +122,33 @@ class FulcrumImportEngine(models.AbstractModel):
                 header_map[header] = match.canonical_key
         return header_map
 
+    def apply_rules(self, profile, row, proposed_vals, explain_log_list, applies_to='product_template'):
+        if not profile:
+            return 0
+        match_count = 0
+        for rule in profile.rule_ids.filtered(lambda r: r.active and r.applies_to == applies_to):
+            source_value = row.get(rule.when_key)
+            if not rule.predicate_matches(source_value):
+                continue
+            if rule.set_purchase_ok:
+                proposed_vals['purchase_ok'] = True
+            if rule.add_route_buy:
+                proposed_vals['add_route_buy'] = True
+            if rule.add_route_manufacture:
+                proposed_vals['add_route_manufacture'] = True
+            explanation = _(
+                "Applied rule '%(rule)s' because %(key)s='%(value)s' %(operator)s '%(expected)s'"
+            ) % {
+                'rule': rule.name,
+                'key': rule.when_key,
+                'value': self._normalized(source_value),
+                'operator': rule.operator,
+                'expected': rule.when_value,
+            }
+            explain_log_list.append(explanation)
+            match_count += 1
+        return match_count
+
     def parse_items_xlsx(self, attachment, mapping_profile=False):
         data = base64.b64decode(attachment.datas)
         workbook = load_workbook(io.BytesIO(data), data_only=True)
@@ -162,6 +189,7 @@ class FulcrumImportEngine(models.AbstractModel):
                 'vendor_uom': self._normalized(canonical_vals.get('vendor_uom')),
                 'raw': vals,
                 '_extra_columns': extra_columns,
+                '_explain': [],
             })
         return parsed_rows
 
@@ -254,6 +282,7 @@ class FulcrumImportEngine(models.AbstractModel):
             session.append_log(message, level=level)
 
         add_log(_('Starting %s execution') % ('dry-run' if dry_run else 'import'))
+        mapping_profile = self.env['smart.import.mapping.profile'].browse(options.get('mapping_profile_id')) if options.get('mapping_profile_id') else self._get_default_mapping_profile()
 
         # Caches
         uom_cache = {u.name: u for u in env['uom.uom'].search([])}
@@ -368,11 +397,23 @@ class FulcrumImportEngine(models.AbstractModel):
                 continue
 
             category = categ_cache.get(row['category'])
+            row_explain = row.setdefault('_explain', [])
+            proposed_vals = {
+                'purchase_ok': row['buy_or_make'] == 'Buy' or bool(row['vendor_name']),
+                'add_route_buy': row['buy_or_make'] == 'Buy' or bool(row['vendor_name']),
+                'add_route_manufacture': row['buy_or_make'] == 'Make',
+            }
+            rule_matches = self.apply_rules(mapping_profile, row, proposed_vals, row_explain)
+            if rule_matches:
+                stats['rules_applied'] += rule_matches
+                for message in row_explain[-rule_matches:]:
+                    add_log(_('%(code)s: %(message)s') % {'code': code, 'message': message})
+
             vals = {
                 'default_code': code,
                 'name': row['name'] or code,
                 'sale_ok': row['sell_ok'],
-                'purchase_ok': row['buy_or_make'] == 'Buy' or bool(row['vendor_name']),
+                'purchase_ok': proposed_vals['purchase_ok'],
                 'type': 'consu',
             }
             if category:
@@ -382,9 +423,9 @@ class FulcrumImportEngine(models.AbstractModel):
                 vals['uom_po_id'] = uom.id
 
             route_ids = []
-            if row['buy_or_make'] == 'Make' and manufacture_route:
+            if proposed_vals['add_route_manufacture'] and manufacture_route:
                 route_ids.append(manufacture_route.id)
-            if (row['buy_or_make'] == 'Buy' or row['vendor_name']) and buy_route:
+            if proposed_vals['add_route_buy'] and buy_route:
                 route_ids.append(buy_route.id)
             if route_ids:
                 vals['route_ids'] = [(6, 0, route_ids)]
@@ -556,6 +597,7 @@ class FulcrumImportEngine(models.AbstractModel):
                 stats['bom_line_created'] += 1
 
         issue_payload = {k: sorted(set(filter(None, v))) for k, v in issue_bucket.items()}
+        issue_payload['rule_applied_count'] = stats.get('rules_applied', 0)
         session_vals = {
             'stats_json': json.dumps(dict(stats), indent=2, sort_keys=True),
             'issues_json': json.dumps(issue_payload, indent=2, sort_keys=True),

@@ -4,3 +4,4 @@ access_fulcrum_import_wizard,access.fulcrum.import.wizard,model_mlr_fulcrum_impo
 access_fulcrum_import_wizard_bom_line,access.fulcrum.import.wizard.bom.line,model_mlr_fulcrum_import_wizard_bom_line,smart_import_mvp.group_smart_import_manager,1,1,1,1
 access_smart_import_mapping_profile_manager,access.smart.import.mapping.profile.manager,model_smart_import_mapping_profile,smart_import_mvp.group_smart_import_manager,1,1,1,1
 access_smart_import_mapping_keyword_manager,access.smart.import.mapping.keyword.manager,model_smart_import_mapping_keyword,smart_import_mvp.group_smart_import_manager,1,1,1,1
+access_smart_import_rule_manager,access.smart.import.rule.manager,model_smart_import_rule,smart_import_mvp.group_smart_import_manager,1,1,1,1

@@ -145,3 +145,69 @@ class TestFulcrumImportEngine(TransactionCase):
         self.assertEqual(rows[0]['name'], 'Syn Product')
         self.assertEqual(rows[0]['buy_or_make'], 'Buy')
         self.assertEqual(rows[0]['_extra_columns']['Unknown Header'], 'Extra')
+
+
+    def test_apply_rules_sets_flags_and_explanations(self):
+        engine = self.env['mlr.fulcrum.import.engine']
+        profile = self.env.ref('smart_import_mvp.mapping_profile_fulcrum_default')
+        row = {
+            'buy_or_make': 'Make/Buy',
+            'vendor_name': '',
+        }
+        proposed_vals = {
+            'purchase_ok': False,
+            'add_route_buy': False,
+            'add_route_manufacture': False,
+        }
+        explain = []
+
+        count = engine.apply_rules(profile, row, proposed_vals, explain)
+
+        self.assertGreaterEqual(count, 2)
+        self.assertTrue(proposed_vals['purchase_ok'])
+        self.assertTrue(proposed_vals['add_route_buy'])
+        self.assertTrue(proposed_vals['add_route_manufacture'])
+        self.assertTrue(any('BuyOrMake -> Buy + Manufacture' in msg for msg in explain))
+
+    def test_execute_collects_rule_applied_count(self):
+        engine = self.env['mlr.fulcrum.import.engine']
+        session = self.env['mlr.fulcrum.import.session'].create({})
+        profile = self.env.ref('smart_import_mvp.mapping_profile_fulcrum_default')
+
+        items_rows = [{
+            'default_code': 'RULE-001',
+            'name': 'Rule Product',
+            'tags': '',
+            'buy_or_make': 'Make/Buy',
+            'min_stock': 0.0,
+            'min_production_qty': 0.0,
+            'uom_name': 'Units',
+            'category': '',
+            'sell_ok': False,
+            'default_location': '',
+            'vendor_name': '',
+            'vendor_price': 0.0,
+            'vendor_moq': 0.0,
+            'vendor_uom': '',
+            'raw': {},
+            '_extra_columns': {},
+            '_explain': [],
+        }]
+
+        result = engine.execute(
+            session,
+            items_rows,
+            [],
+            {
+                'auto_create_unknown_uom': True,
+                'create_locations_putaway': False,
+                'create_placeholder_missing_bom_children': False,
+                'orderpoint_max_policy': 'same_as_min',
+                'mapping_profile_id': profile.id,
+            },
+            dry_run=True,
+        )
+
+        self.assertGreaterEqual(result['issues'].get('rule_applied_count', 0), 2)
+        self.assertIn("Applied rule 'BuyOrMake -> Buy + Manufacture'", session.log_text)
+        self.assertTrue(items_rows[0]['_explain'])
