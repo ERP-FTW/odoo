@@ -305,9 +305,9 @@ class FulcrumImportEngine(models.AbstractModel):
             else:
                 if dry_run:
                     stats['product_would_create'] += 1
-                    tmpl = True
+                    tmpl = env['product.template']
                     product_tmpl_cache[code] = tmpl
-                    product_variant_cache[code] = True
+                    product_variant_cache[code] = env['product.product']
                 else:
                     tmpl = env['product.template'].create(vals)
                     stats['product_created'] += 1
@@ -341,11 +341,17 @@ class FulcrumImportEngine(models.AbstractModel):
 
             if row['minimum_stock_on_hand'] > 0:
                 product_variant = product_variant_cache.get(code)
-                if not product_variant:
+                if not product_variant and code not in product_variant_cache:
                     continue
+
                 max_qty = row['minimum_stock_on_hand']
                 if options.get('orderpoint_max_policy') == 'double_min':
                     max_qty = row['minimum_stock_on_hand'] * 2
+
+                if dry_run and not product_variant:
+                    stats['orderpoint_would_create'] += 1
+                    continue
+
                 op_vals = {
                     'product_id': product_variant.id,
                     'location_id': stock_location.id,

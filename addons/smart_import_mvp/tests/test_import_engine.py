@@ -59,7 +59,7 @@ class TestFulcrumImportEngine(TransactionCase):
             'description': 'Assembly',
             'tags': '',
             'item_origin': 'Make',
-            'minimum_stock_on_hand': 0.0,
+            'minimum_stock_on_hand': 1.0,
             'minimum_production_qty': 0.0,
             'uom_name': 'Piece',
             'category_name': 'New Cat',
@@ -101,3 +101,4 @@ class TestFulcrumImportEngine(TransactionCase):
         self.assertEqual(result['stats'].get('location_would_create'), 1)
         self.assertEqual(result['stats'].get('product_would_create'), 1)
         self.assertEqual(result['stats'].get('bom_would_process'), 1)
+        self.assertEqual(result['stats'].get('orderpoint_would_create'), 1)
