@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_fulcrum_import_session_tree" model="ir.ui.view">
+        <field name="name">mlr.fulcrum.import.session.tree</field>
+        <field name="model">mlr.fulcrum.import.session</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="state"/>
+                <field name="create_date"/>
+                <field name="items_attachment_id"/>
+                <field name="error_csv_attachment_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_fulcrum_import_session_form" model="ir.ui.view">
+        <field name="name">mlr.fulcrum.import.session.form</field>
+        <field name="model">mlr.fulcrum.import.session</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,planned,done,error"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="items_attachment_id"/>
+                        <field name="bom_attachment_ids" widget="many2many_tags"/>
+                        <field name="error_csv_attachment_id"/>
+                    </group>
+                    <notebook>
+                        <page string="Stats">
+                            <field name="stats_pretty" nolabel="1" widget="text" readonly="1"/>
+                        </page>
+                        <page string="Issues">
+                            <field name="issues_pretty" nolabel="1" widget="text" readonly="1"/>
+                        </page>
+                        <page string="Log">
+                            <field name="log_text" nolabel="1" widget="text" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_fulcrum_import_session" model="ir.actions.act_window">
+        <field name="name">Import Sessions</field>
+        <field name="res_model">mlr.fulcrum.import.session</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

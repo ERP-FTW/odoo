@@ -1,0 +1,17 @@
+{
+    'name': 'Smart Import MVP',
+    'version': '18.0.1.0.0',
+    'summary': 'Wizard-driven Fulcrum data import to Odoo',
+    'license': 'LGPL-3',
+    'depends': ['base', 'product', 'stock', 'purchase_stock', 'mrp', 'sale_management'],
+    'data': [
+        'security/security.xml',
+        'security/ir.model.access.csv',
+        'data/product_category_data.xml',
+        'views/import_session_views.xml',
+        'views/fulcrum_import_wizard_views.xml',
+        'views/menus.xml',
+    ],
+    'installable': True,
+    'application': False,
+}

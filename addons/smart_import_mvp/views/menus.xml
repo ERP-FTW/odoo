@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_smart_import_root" name="Smart Import" parent="stock.menu_stock_root" groups="smart_import_mvp.group_smart_import_manager" sequence="90"/>
+    <menuitem id="menu_smart_import_run" name="Run Import" action="action_fulcrum_import_wizard" parent="menu_smart_import_root" sequence="10"/>
+    <menuitem id="menu_smart_import_sessions" name="Sessions" action="action_fulcrum_import_session" parent="menu_smart_import_root" sequence="20"/>
+</odoo>
