@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_smart_import_session_form_inventory" model="ir.ui.view">
+        <field name="name">smart.import.session.form.inventory</field>
+        <field name="model">smart.import.session</field>
+        <field name="inherit_id" ref="smart_import_base.view_smart_import_session_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Inventory">
+                    <group>
+                        <field name="stats_json" widget="text" readonly="1"/>
+                        <field name="issues_json" widget="text" readonly="1"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

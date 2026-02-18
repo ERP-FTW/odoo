@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_smart_import_mapping_profile_tree" model="ir.ui.view">
+        <field name="name">smart.import.mapping.profile.tree</field>
+        <field name="model">smart.import.mapping.profile</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="company_id"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_smart_import_mapping_profile_form" model="ir.ui.view">
+        <field name="name">smart.import.mapping.profile.form</field>
+        <field name="model">smart.import.mapping.profile</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="company_id"/>
+                        <field name="active"/>
+                    </group>
+                    <notebook>
+                        <page string="Keywords">
+                            <field name="keyword_ids">
+                                <list editable="bottom">
+                                    <field name="priority"/>
+                                    <field name="source_key"/>
+                                    <field name="canonical_key"/>
+                                    <field name="active"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Rules">
+                            <field name="rule_ids">
+                                <list editable="bottom">
+                                    <field name="priority"/>
+                                    <field name="name"/>
+                                    <field name="applies_to"/>
+                                    <field name="when_key"/>
+                                    <field name="operator"/>
+                                    <field name="when_value"/>
+                                    <field name="set_purchase_ok"/>
+                                    <field name="add_route_buy"/>
+                                    <field name="add_route_manufacture"/>
+                                    <field name="active"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_smart_import_mapping_keyword_tree" model="ir.ui.view">
+        <field name="name">smart.import.mapping.keyword.tree</field>
+        <field name="model">smart.import.mapping.keyword</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="profile_id"/>
+                <field name="source_key"/>
+                <field name="canonical_key"/>
+                <field name="priority"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_smart_import_mapping_profile" model="ir.actions.act_window">
+        <field name="name">Mapping Profiles</field>
+        <field name="res_model">smart.import.mapping.profile</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_smart_import_mapping_keyword" model="ir.actions.act_window">
+        <field name="name">Mapping Keywords</field>
+        <field name="res_model">smart.import.mapping.keyword</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

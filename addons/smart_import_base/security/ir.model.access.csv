@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_smart_import_session_user,access.smart.import.session.user,model_smart_import_session,smart_import_base.group_smart_import_user,1,1,1,0
+access_smart_import_session_file_user,access.smart.import.session.file.user,model_smart_import_session_file,smart_import_base.group_smart_import_user,1,1,1,0
+access_smart_import_wizard_user,access.smart.import.wizard.user,model_smart_import_wizard,smart_import_base.group_smart_import_user,1,1,1,1
+access_smart_import_mapping_profile_manager,access.smart.import.mapping.profile.manager,model_smart_import_mapping_profile,smart_import_base.group_smart_import_manager,1,1,1,1
+access_smart_import_mapping_keyword_manager,access.smart.import.mapping.keyword.manager,model_smart_import_mapping_keyword,smart_import_base.group_smart_import_manager,1,1,1,1
+access_smart_import_rule_manager,access.smart.import.rule.manager,model_smart_import_rule,smart_import_base.group_smart_import_manager,1,1,1,1
