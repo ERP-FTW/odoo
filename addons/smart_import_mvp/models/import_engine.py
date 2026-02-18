@@ -175,6 +175,7 @@ class FulcrumImportEngine(models.AbstractModel):
         manufacture_route = env['stock.route'].search([('name', '=', 'Manufacture'), ('company_id', 'in', [False, company.id])], limit=1)
 
         # UoMs
+        ref_uom = env.ref('uom.product_uom_unit')
         for uom_name in sorted({r['uom_name'] for r in items_rows if r['uom_name']} | {r['vendor_uom_name'] for r in items_rows if r['vendor_uom_name']}):
             if uom_name in uom_cache:
                 continue
@@ -183,8 +184,9 @@ class FulcrumImportEngine(models.AbstractModel):
                 continue
             if dry_run:
                 stats['uom_would_create'] += 1
+                # Simulate availability for subsequent validation paths (products/vendors/BOM).
+                uom_cache[uom_name] = ref_uom
                 continue
-            ref_uom = env.ref('uom.product_uom_unit')
             created = env['uom.uom'].create({
                 'name': uom_name,
                 'uom_type': 'reference',
@@ -201,6 +203,7 @@ class FulcrumImportEngine(models.AbstractModel):
                 continue
             if dry_run:
                 stats['category_would_create'] += 1
+                categ_cache[category_name] = env.ref('product.product_category_all')
                 continue
             created = env['product.category'].create({'name': category_name})
             categ_cache[category_name] = created
@@ -213,6 +216,7 @@ class FulcrumImportEngine(models.AbstractModel):
                 continue
             if dry_run:
                 stats['vendor_would_create'] += 1
+                partner_cache[vendor_name] = env.user.partner_id
                 continue
             created = env['res.partner'].create({'name': vendor_name, 'supplier_rank': 1, 'company_type': 'company'})
             partner_cache[vendor_name] = created
@@ -228,6 +232,7 @@ class FulcrumImportEngine(models.AbstractModel):
                     continue
                 if dry_run:
                     stats['location_would_create'] += 1
+                    location_cache[full_name] = stock_location
                     continue
                 parent = env['stock.location'].search([
                     ('name', '=', 'Fulcrum'),
@@ -300,7 +305,9 @@ class FulcrumImportEngine(models.AbstractModel):
             else:
                 if dry_run:
                     stats['product_would_create'] += 1
-                    tmpl = False
+                    tmpl = True
+                    product_tmpl_cache[code] = tmpl
+                    product_variant_cache[code] = True
                 else:
                     tmpl = env['product.template'].create(vals)
                     stats['product_created'] += 1
@@ -391,11 +398,11 @@ class FulcrumImportEngine(models.AbstractModel):
                 boms_by_parent[row['parent_number']].append(row)
 
         for parent_code, lines in boms_by_parent.items():
-            parent_tmpl = product_tmpl_cache.get(parent_code)
-            if not parent_tmpl:
+            if parent_code not in product_tmpl_cache:
                 issue_bucket['missing_bom_parents'].append(parent_code)
                 errors.append({'type': 'bom', 'key': parent_code, 'error': 'Missing parent product'})
                 continue
+            parent_tmpl = product_tmpl_cache[parent_code]
             if dry_run:
                 stats['bom_would_process'] += 1
                 continue
