@@ -149,6 +149,25 @@ class FulcrumImportEngine(models.AbstractModel):
             match_count += 1
         return match_count
 
+    def _apply_session_overrides(self, proposed_vals, options):
+        if options.get('force_purchase_ok'):
+            proposed_vals['purchase_ok'] = True
+        if options.get('force_buy_route'):
+            proposed_vals['add_route_buy'] = True
+        if options.get('force_manufacture_route'):
+            proposed_vals['add_route_manufacture'] = True
+
+    def _build_product_proposal(self, row, profile=False, options=False, explain_log_list=False):
+        explain_log_list = explain_log_list if explain_log_list is not False else []
+        proposed_vals = {
+            'purchase_ok': row['buy_or_make'] == 'Buy' or bool(row['vendor_name']),
+            'add_route_buy': row['buy_or_make'] == 'Buy' or bool(row['vendor_name']),
+            'add_route_manufacture': row['buy_or_make'] == 'Make',
+        }
+        rule_matches = self.apply_rules(profile, row, proposed_vals, explain_log_list)
+        self._apply_session_overrides(proposed_vals, options or {})
+        return proposed_vals, rule_matches
+
     def parse_items_xlsx(self, attachment, mapping_profile=False):
         data = base64.b64decode(attachment.datas)
         workbook = load_workbook(io.BytesIO(data), data_only=True)
@@ -215,7 +234,8 @@ class FulcrumImportEngine(models.AbstractModel):
             })
         return parsed_rows
 
-    def build_plan(self, items_rows, bom_rows):
+    def build_plan(self, items_rows, bom_rows, mapping_profile=False, options=False):
+        options = options or {}
         unique_uoms = sorted({r['uom_name'] for r in items_rows if r['uom_name']})
         unique_categories = sorted({r['category'] for r in items_rows if r['category']})
         unique_vendors = sorted({r['vendor_name'] for r in items_rows if r['vendor_name']})
@@ -264,7 +284,48 @@ class FulcrumImportEngine(models.AbstractModel):
                 'missing_bom_products': missing_bom_products,
                 'rows_without_product_number': [idx + 2 for idx, row in enumerate(items_rows) if not row['default_code']],
             },
+            'route_preview_counts': {
+                'count_need_buy': 0,
+                'count_need_manufacture': 0,
+                'count_need_both': 0,
+            },
+            'sample_previews': [],
+            'proposed_defaults': {
+                'product_type_policy': _('Default product type is Consumable for imported products.'),
+                'route_policy_summary': _('Routes are proposed from Buy/Make values, vendor availability, mapping rules, and session override toggles.'),
+                'purchase_ok_policy_summary': _('Purchase is enabled from Buy/Make values, vendor availability, mapping rules, and can be forced globally from the wizard.'),
+                'orderpoint_policy_summary': _('Orderpoints are prepared when minimum stock is set. Maximum quantity follows the selected max policy.'),
+            },
         }
+
+        for row in items_rows:
+            proposed_vals, _rule_matches = self._build_product_proposal(
+                row,
+                profile=mapping_profile,
+                options=options,
+                explain_log_list=[],
+            )
+            if proposed_vals['add_route_buy']:
+                plan['route_preview_counts']['count_need_buy'] += 1
+            if proposed_vals['add_route_manufacture']:
+                plan['route_preview_counts']['count_need_manufacture'] += 1
+            if proposed_vals['add_route_buy'] and proposed_vals['add_route_manufacture']:
+                plan['route_preview_counts']['count_need_both'] += 1
+
+            if len(plan['sample_previews']) < 10:
+                proposed_routes = []
+                if proposed_vals['add_route_buy']:
+                    proposed_routes.append('Buy')
+                if proposed_vals['add_route_manufacture']:
+                    proposed_routes.append('Manufacture')
+                plan['sample_previews'].append({
+                    'default_code': row['default_code'],
+                    'name': row['name'],
+                    'buy_or_make': row['buy_or_make'],
+                    'purchase_ok': proposed_vals['purchase_ok'],
+                    'routes': proposed_routes,
+                })
+
         return plan
 
     def execute(self, session, items_rows, bom_rows, options, dry_run=False):
@@ -398,12 +459,12 @@ class FulcrumImportEngine(models.AbstractModel):
 
             category = categ_cache.get(row['category'])
             row_explain = row.setdefault('_explain', [])
-            proposed_vals = {
-                'purchase_ok': row['buy_or_make'] == 'Buy' or bool(row['vendor_name']),
-                'add_route_buy': row['buy_or_make'] == 'Buy' or bool(row['vendor_name']),
-                'add_route_manufacture': row['buy_or_make'] == 'Make',
-            }
-            rule_matches = self.apply_rules(mapping_profile, row, proposed_vals, row_explain)
+            proposed_vals, rule_matches = self._build_product_proposal(
+                row,
+                profile=mapping_profile,
+                options=options,
+                explain_log_list=row_explain,
+            )
             if rule_matches:
                 stats['rules_applied'] += rule_matches
                 for message in row_explain[-rule_matches:]:

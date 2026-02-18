@@ -211,3 +211,90 @@ class TestFulcrumImportEngine(TransactionCase):
         self.assertGreaterEqual(result['issues'].get('rule_applied_count', 0), 2)
         self.assertIn("Applied rule 'BuyOrMake -> Buy + Manufacture'", session.log_text)
         self.assertTrue(items_rows[0]['_explain'])
+
+
+    def test_build_plan_includes_route_preview_and_samples(self):
+        engine = self.env['mlr.fulcrum.import.engine']
+        profile = self.env.ref('smart_import_mvp.mapping_profile_fulcrum_default')
+        items_rows = [
+            {
+                'default_code': f'PRE-{idx:03d}',
+                'name': f'Preview {idx}',
+                'tags': '',
+                'buy_or_make': 'Buy' if idx % 2 else 'Make',
+                'min_stock': 0.0,
+                'min_production_qty': 0.0,
+                'uom_name': 'Units',
+                'category': '',
+                'sell_ok': False,
+                'default_location': '',
+                'vendor_name': '',
+                'vendor_price': 0.0,
+                'vendor_moq': 0.0,
+                'vendor_uom': '',
+                'raw': {},
+                '_extra_columns': {},
+                '_explain': [],
+            }
+            for idx in range(1, 13)
+        ]
+
+        plan = engine.build_plan(
+            items_rows,
+            [],
+            mapping_profile=profile,
+            options={'force_buy_route': True, 'force_manufacture_route': False, 'force_purchase_ok': True},
+        )
+
+        self.assertIn('proposed_defaults', plan)
+        self.assertEqual(plan['route_preview_counts']['count_need_buy'], 12)
+        self.assertEqual(plan['route_preview_counts']['count_need_both'], 6)
+        self.assertEqual(len(plan['sample_previews']), 10)
+        self.assertTrue(all(sample['purchase_ok'] for sample in plan['sample_previews']))
+
+    def test_execute_respects_global_purchase_override(self):
+        engine = self.env['mlr.fulcrum.import.engine']
+        session = self.env['mlr.fulcrum.import.session'].create({})
+
+        items_rows = [{
+            'default_code': 'FORCE-PUR-001',
+            'name': 'Forced Purchase Product',
+            'tags': '',
+            'buy_or_make': 'Make',
+            'min_stock': 0.0,
+            'min_production_qty': 0.0,
+            'uom_name': 'Units',
+            'category': '',
+            'sell_ok': False,
+            'default_location': '',
+            'vendor_name': '',
+            'vendor_price': 0.0,
+            'vendor_moq': 0.0,
+            'vendor_uom': '',
+            'raw': {},
+            '_extra_columns': {},
+            '_explain': [],
+        }]
+
+        engine.execute(
+            session,
+            items_rows,
+            [],
+            {
+                'auto_create_unknown_uom': True,
+                'create_locations_putaway': False,
+                'create_placeholder_missing_bom_children': False,
+                'orderpoint_max_policy': 'same_as_min',
+                'force_buy_route': True,
+                'force_manufacture_route': False,
+                'force_purchase_ok': True,
+            },
+            dry_run=False,
+        )
+
+        tmpl = self.env['product.template'].search([('default_code', '=', 'FORCE-PUR-001')], limit=1)
+        self.assertTrue(tmpl)
+        self.assertTrue(tmpl.purchase_ok)
+        buy_route = self.env['stock.route'].search([('name', '=', 'Buy'), ('company_id', 'in', [False, self.env.company.id])], limit=1)
+        if buy_route:
+            self.assertIn(buy_route, tmpl.route_ids)

@@ -18,6 +18,9 @@ class FulcrumImportWizard(models.TransientModel):
     create_locations_putaway = fields.Boolean(default=True)
     create_placeholder_missing_bom_children = fields.Boolean(default=False)
     orderpoint_max_policy = fields.Selection([('same_as_min', 'Same as Min'), ('double_min', 'Double Min')], default='same_as_min', required=True)
+    force_buy_route = fields.Boolean(default=False)
+    force_manufacture_route = fields.Boolean(default=False)
+    force_purchase_ok = fields.Boolean(default=False)
     mapping_profile_id = fields.Many2one(
         'smart.import.mapping.profile',
         string='Mapping Profile',
@@ -28,6 +31,8 @@ class FulcrumImportWizard(models.TransientModel):
     session_id = fields.Many2one('mlr.fulcrum.import.session', readonly=True)
     plan_text = fields.Text(readonly=True)
     issues_text = fields.Text(readonly=True)
+    route_preview_counts_text = fields.Text(readonly=True)
+    sample_preview_line_ids = fields.One2many('mlr.fulcrum.import.wizard.preview.line', 'wizard_id', readonly=True)
 
     def _default_mapping_profile_id(self):
         company = self.env.company
@@ -103,18 +108,55 @@ class FulcrumImportWizard(models.TransientModel):
         for attachment in bom_attachments:
             bom_rows.extend(engine.parse_bom_xlsx(attachment))
 
-        plan = engine.build_plan(items_rows, bom_rows)
+        plan = engine.build_plan(
+            items_rows,
+            bom_rows,
+            mapping_profile=self.mapping_profile_id,
+            options={
+                'orderpoint_max_policy': self.orderpoint_max_policy,
+                'force_buy_route': self.force_buy_route,
+                'force_manufacture_route': self.force_manufacture_route,
+                'force_purchase_ok': self.force_purchase_ok,
+            },
+        )
         session.write({
-            'stats_json': json.dumps(plan['counts'], indent=2, sort_keys=True),
+            'stats_json': json.dumps({
+                'counts': plan['counts'],
+                'proposed_defaults': plan['proposed_defaults'],
+                'route_preview_counts': plan['route_preview_counts'],
+                'sample_previews': plan['sample_previews'],
+            }, indent=2, sort_keys=True),
             'issues_json': json.dumps(plan['issues'], indent=2, sort_keys=True),
             'state': 'planned',
         })
         session.append_log(_('Plan generated: %s items rows, %s bom lines') % (len(items_rows), len(bom_rows)))
 
+        self.sample_preview_line_ids.unlink()
+        line_commands = []
+        for sample in plan['sample_previews']:
+            line_commands.append((0, 0, {
+                'default_code': sample.get('default_code'),
+                'name': sample.get('name'),
+                'buy_or_make': sample.get('buy_or_make'),
+                'proposed_purchase_ok': sample.get('purchase_ok'),
+                'proposed_routes': ', '.join(sample.get('routes', [])),
+            }))
+
         self.write({
             'session_id': session.id,
-            'plan_text': json.dumps({'steps': plan['steps'], 'counts': plan['counts'], 'mapped_fields': plan['mapped_fields']}, indent=2, sort_keys=True),
+            'plan_text': json.dumps(
+                {
+                    'steps': plan['steps'],
+                    'counts': plan['counts'],
+                    'mapped_fields': plan['mapped_fields'],
+                    'proposed_defaults': plan['proposed_defaults'],
+                },
+                indent=2,
+                sort_keys=True,
+            ),
             'issues_text': json.dumps(plan['issues'], indent=2, sort_keys=True),
+            'route_preview_counts_text': json.dumps(plan['route_preview_counts'], indent=2, sort_keys=True),
+            'sample_preview_line_ids': line_commands,
             'step': 'plan',
         })
         return self._open_self()
@@ -140,6 +182,9 @@ class FulcrumImportWizard(models.TransientModel):
                 'create_placeholder_missing_bom_children': self.create_placeholder_missing_bom_children,
                 'orderpoint_max_policy': self.orderpoint_max_policy,
                 'mapping_profile_id': self.mapping_profile_id.id,
+                'force_buy_route': self.force_buy_route,
+                'force_manufacture_route': self.force_manufacture_route,
+                'force_purchase_ok': self.force_purchase_ok,
             },
             dry_run=dry_run,
         )
@@ -164,3 +209,15 @@ class FulcrumImportWizardBomLine(models.TransientModel):
     wizard_id = fields.Many2one('mlr.fulcrum.import.wizard', required=True, ondelete='cascade')
     file_data = fields.Binary(required=True)
     filename = fields.Char(required=True)
+
+
+class FulcrumImportWizardPreviewLine(models.TransientModel):
+    _name = 'mlr.fulcrum.import.wizard.preview.line'
+    _description = 'Fulcrum Import Wizard Preview Line'
+
+    wizard_id = fields.Many2one('mlr.fulcrum.import.wizard', required=True, ondelete='cascade')
+    default_code = fields.Char(readonly=True)
+    name = fields.Char(readonly=True)
+    buy_or_make = fields.Char(readonly=True)
+    proposed_purchase_ok = fields.Boolean(readonly=True)
+    proposed_routes = fields.Char(readonly=True)
