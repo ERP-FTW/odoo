@@ -102,3 +102,28 @@ class TestFulcrumImportEngine(TransactionCase):
         self.assertEqual(result['stats'].get('product_would_create'), 1)
         self.assertEqual(result['stats'].get('bom_would_process'), 1)
         self.assertEqual(result['stats'].get('orderpoint_would_create'), 1)
+
+
+    def test_build_plan_resolves_common_uom_aliases(self):
+        engine = self.env['mlr.fulcrum.import.engine']
+        items_rows = [{
+            'number': 'UOM-001',
+            'description': 'Alias Product',
+            'tags': '',
+            'item_origin': 'Buy',
+            'minimum_stock_on_hand': 0.0,
+            'minimum_production_qty': 0.0,
+            'uom_name': 'Piece',
+            'category_name': 'Cat',
+            'is_sell_item': True,
+            'default_location': '',
+            'vendor_name': '',
+            'vendor_price': 0.0,
+            'vendor_min_qty': 0.0,
+            'vendor_uom_name': 'Kilogram',
+            'raw': {},
+        }]
+
+        plan = engine.build_plan(items_rows, [])
+
+        self.assertEqual(plan['issues']['unknown_uoms'], [])
