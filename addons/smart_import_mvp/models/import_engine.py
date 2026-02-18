@@ -316,7 +316,7 @@ class FulcrumImportEngine(models.AbstractModel):
                 'name': row['description'] or code,
                 'sale_ok': row['is_sell_item'],
                 'purchase_ok': row['item_origin'] == 'Buy' or bool(row['vendor_name']),
-                'type': 'product' if row['minimum_stock_on_hand'] > 0 or row['default_location'] else 'consu',
+                'type': 'consu',
             }
             if category:
                 vals['categ_id'] = category.id
