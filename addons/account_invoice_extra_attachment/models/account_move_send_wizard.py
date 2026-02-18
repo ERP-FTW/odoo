@@ -1,5 +1,6 @@
-from odoo import models, api
 import logging
+
+from odoo import api, models
 
 _logger = logging.getLogger(__name__)
 
@@ -18,60 +19,37 @@ class AccountMoveSendWizard(models.TransientModel):
         # Let Odoo build the default attachments first (invoice PDF, EDI, etc.)
         super()._compute_mail_attachments_widget()
 
-        Attachment = self.env["ir.attachment"]
-
         for wizard in self:
             move = wizard.move_id
             if not move:
-                _logger.debug(
-                    "Extra attachment: wizard %s has no move_id, skipping",
-                    wizard.id,
-                )
+                _logger.debug("Extra attachments: wizard %s has no move_id, skipping", wizard.id)
                 continue
 
-            if not move.email_extra_attachment:
-                _logger.debug(
-                    "Extra attachment: move %s has no email_extra_attachment",
-                    move.id,
-                )
-                continue
-
-            extra_attachment = Attachment.search([
-                ("res_model", "=", "account.move"),
-                ("res_id", "=", move.id),
-                ("res_field", "=", "email_extra_attachment"),
-            ], limit=1)
-
-            if not extra_attachment:
-                _logger.warning(
-                    "Extra attachment: binary set on move %s but no ir.attachment found",
-                    move.id,
-                )
-                continue
+            # Safe migration entry point on user interaction, not on every write.
+            move._migrate_legacy_extra_attachment_to_m2m()
 
             widget_data = list(wizard.mail_attachments_widget or [])
+            widget_attachment_ids = {data.get("id") for data in widget_data if data.get("id")}
 
-            # Guardrail: avoid duplicates
-            if any(a.get("id") == extra_attachment.id for a in widget_data):
-                _logger.debug(
-                    "Extra attachment: attachment %s already present for move %s",
-                    extra_attachment.id, move.id,
+            for extra_attachment in move.email_extra_attachment_ids.filtered(
+                lambda att: att.res_model == "account.move" and att.res_id == move.id
+            ):
+                if extra_attachment.id in widget_attachment_ids:
+                    continue
+
+                widget_data.append(
+                    {
+                        "id": extra_attachment.id,
+                        "name": extra_attachment.name or "attachment",
+                        "mimetype": extra_attachment.mimetype or "application/octet-stream",
+                        "checksum": extra_attachment.checksum,
+                    }
                 )
-                continue
-
-            widget_data.append({
-                "id": extra_attachment.id,
-                "name": extra_attachment.name
-                        or move.email_extra_attachment_filename
-                        or "attachment",
-                "mimetype": extra_attachment.mimetype
-                            or "application/octet-stream",
-                "checksum": extra_attachment.checksum,
-            })
+                widget_attachment_ids.add(extra_attachment.id)
 
             wizard.mail_attachments_widget = widget_data
-
             _logger.info(
-                "Extra attachment: attached ir.attachment %s to email for move %s",
-                extra_attachment.id, move.id,
+                "Extra attachments: prepared %s extra attachment(s) for move %s in send wizard",
+                len(move.email_extra_attachment_ids),
+                move.id,
             )

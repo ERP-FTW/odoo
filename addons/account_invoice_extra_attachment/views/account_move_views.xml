@@ -7,12 +7,15 @@
     <field name="arch" type="xml">
       <xpath expr="//page[@name='other_info']" position="inside">
         <group string="Email Attachments">
-          <field name="email_extra_attachment_filename" placeholder="filename.ext"/>
-          <field name="email_extra_attachment" filename="email_extra_attachment_filename"/>
-          <!-- Use a styled div instead of a label without 'for' -->
+          <field
+            name="email_extra_attachment_ids"
+            widget="many2many_binary"
+            context="{'default_res_model': 'account.move', 'default_res_id': id}"
+            domain="[('res_model', '=', 'account.move'), ('res_id', '=', id)]"
+          />
           <div class="o_form_label">Note</div>
           <div class="text-muted">
-            If set, this file will be attached automatically when you click
+            Files set here are attached automatically when you click
             “Send &amp; Print” (or “Send”).
           </div>
         </group>
