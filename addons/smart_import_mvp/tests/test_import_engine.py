@@ -55,20 +55,20 @@ class TestFulcrumImportEngine(TransactionCase):
         session = self.env['mlr.fulcrum.import.session'].create({})
 
         items_rows = [{
-            'number': 'ASM-ELE-00002',
-            'description': 'Assembly',
+            'default_code': 'ASM-ELE-00002',
+            'name': 'Assembly',
             'tags': '',
-            'item_origin': 'Make',
-            'minimum_stock_on_hand': 1.0,
-            'minimum_production_qty': 0.0,
+            'buy_or_make': 'Make',
+            'min_stock': 1.0,
+            'min_production_qty': 0.0,
             'uom_name': 'Piece',
-            'category_name': 'New Cat',
-            'is_sell_item': False,
+            'category': 'New Cat',
+            'sell_ok': False,
             'default_location': 'A1',
             'vendor_name': 'New Vendor',
             'vendor_price': 0.0,
-            'vendor_min_qty': 0.0,
-            'vendor_uom_name': 'Set',
+            'vendor_moq': 0.0,
+            'vendor_uom': 'Set',
             'raw': {},
         }]
         bom_rows = [{
@@ -107,23 +107,41 @@ class TestFulcrumImportEngine(TransactionCase):
     def test_build_plan_resolves_common_uom_aliases(self):
         engine = self.env['mlr.fulcrum.import.engine']
         items_rows = [{
-            'number': 'UOM-001',
-            'description': 'Alias Product',
+            'default_code': 'UOM-001',
+            'name': 'Alias Product',
             'tags': '',
-            'item_origin': 'Buy',
-            'minimum_stock_on_hand': 0.0,
-            'minimum_production_qty': 0.0,
+            'buy_or_make': 'Buy',
+            'min_stock': 0.0,
+            'min_production_qty': 0.0,
             'uom_name': 'Piece',
-            'category_name': 'Cat',
-            'is_sell_item': True,
+            'category': 'Cat',
+            'sell_ok': True,
             'default_location': '',
             'vendor_name': '',
             'vendor_price': 0.0,
-            'vendor_min_qty': 0.0,
-            'vendor_uom_name': 'Kilogram',
+            'vendor_moq': 0.0,
+            'vendor_uom': 'Kilogram',
             'raw': {},
         }]
 
         plan = engine.build_plan(items_rows, [])
 
         self.assertEqual(plan['issues']['unknown_uoms'], [])
+
+
+    def test_parse_items_uses_mapping_profile_synonyms(self):
+        engine = self.env['mlr.fulcrum.import.engine']
+        profile = self.env.ref('smart_import_mvp.mapping_profile_fulcrum_default')
+        items_attachment = self._make_attachment(
+            'items_syn.xlsx',
+            'Filtered Items',
+            ['Number', 'Description', 'BuyOrMake', 'Unknown Header'],
+            [['A100', 'Syn Product', 'Buy', 'Extra']],
+        )
+
+        rows = engine.parse_items_xlsx(items_attachment, mapping_profile=profile)
+
+        self.assertEqual(rows[0]['default_code'], 'A100')
+        self.assertEqual(rows[0]['name'], 'Syn Product')
+        self.assertEqual(rows[0]['buy_or_make'], 'Buy')
+        self.assertEqual(rows[0]['_extra_columns']['Unknown Header'], 'Extra')

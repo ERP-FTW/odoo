@@ -25,6 +25,7 @@
                             <field name="create_locations_putaway"/>
                             <field name="create_placeholder_missing_bom_children"/>
                             <field name="orderpoint_max_policy"/>
+                            <field name="mapping_profile_id"/>
                         </group>
                     </group>
                     <group invisible="step != 'plan'">
