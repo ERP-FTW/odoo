@@ -1,6 +1,24 @@
 from odoo import fields, models
 
 
+CANONICAL_KEY_SELECTION = [
+    ('default_code', 'Default Code'),
+    ('name', 'Name'),
+    ('category', 'Category'),
+    ('uom_name', 'UoM Name'),
+    ('vendor_name', 'Vendor Name'),
+    ('vendor_price', 'Vendor Price'),
+    ('vendor_moq', 'Vendor MOQ'),
+    ('vendor_uom', 'Vendor UoM'),
+    ('default_location', 'Default Location'),
+    ('min_stock', 'Minimum Stock'),
+    ('min_production_qty', 'Minimum Production Quantity'),
+    ('sell_ok', 'Can Be Sold'),
+    ('buy_or_make', 'Buy Or Make'),
+    ('tags', 'Tags'),
+]
+
+
 class SmartImportMappingProfile(models.Model):
     _name = 'smart.import.mapping.profile'
     _description = 'Smart Import Mapping Profile'
@@ -9,6 +27,7 @@ class SmartImportMappingProfile(models.Model):
     company_id = fields.Many2one('res.company')
     active = fields.Boolean(default=True)
     keyword_ids = fields.One2many('smart.import.mapping.keyword', 'profile_id', string='Keywords')
+    rule_ids = fields.One2many('smart.import.rule', 'profile_id', string='Rules')
 
 
 class SmartImportMappingKeyword(models.Model):
@@ -18,21 +37,6 @@ class SmartImportMappingKeyword(models.Model):
 
     profile_id = fields.Many2one('smart.import.mapping.profile', required=True, ondelete='cascade')
     source_key = fields.Char(required=True)
-    canonical_key = fields.Selection([
-        ('default_code', 'Default Code'),
-        ('name', 'Name'),
-        ('category', 'Category'),
-        ('uom_name', 'UoM Name'),
-        ('vendor_name', 'Vendor Name'),
-        ('vendor_price', 'Vendor Price'),
-        ('vendor_moq', 'Vendor MOQ'),
-        ('vendor_uom', 'Vendor UoM'),
-        ('default_location', 'Default Location'),
-        ('min_stock', 'Minimum Stock'),
-        ('min_production_qty', 'Minimum Production Quantity'),
-        ('sell_ok', 'Can Be Sold'),
-        ('buy_or_make', 'Buy Or Make'),
-        ('tags', 'Tags'),
-    ], required=True)
+    canonical_key = fields.Selection(CANONICAL_KEY_SELECTION, required=True)
     priority = fields.Integer(default=10)
     active = fields.Boolean(default=True)

@@ -23,14 +23,34 @@
                         <field name="company_id"/>
                         <field name="active"/>
                     </group>
-                    <field name="keyword_ids">
-                        <list editable="bottom">
-                            <field name="priority"/>
-                            <field name="source_key"/>
-                            <field name="canonical_key"/>
-                            <field name="active"/>
-                        </list>
-                    </field>
+                    <notebook>
+                        <page string="Keywords">
+                            <field name="keyword_ids">
+                                <list editable="bottom">
+                                    <field name="priority"/>
+                                    <field name="source_key"/>
+                                    <field name="canonical_key"/>
+                                    <field name="active"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Rules">
+                            <field name="rule_ids">
+                                <list editable="bottom">
+                                    <field name="priority"/>
+                                    <field name="name"/>
+                                    <field name="applies_to"/>
+                                    <field name="when_key"/>
+                                    <field name="operator"/>
+                                    <field name="when_value"/>
+                                    <field name="set_purchase_ok"/>
+                                    <field name="add_route_buy"/>
+                                    <field name="add_route_manufacture"/>
+                                    <field name="active"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>

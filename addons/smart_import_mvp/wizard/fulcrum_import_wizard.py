@@ -139,6 +139,7 @@ class FulcrumImportWizard(models.TransientModel):
                 'create_locations_putaway': self.create_locations_putaway,
                 'create_placeholder_missing_bom_children': self.create_placeholder_missing_bom_children,
                 'orderpoint_max_policy': self.orderpoint_max_policy,
+                'mapping_profile_id': self.mapping_profile_id.id,
             },
             dry_run=dry_run,
         )
