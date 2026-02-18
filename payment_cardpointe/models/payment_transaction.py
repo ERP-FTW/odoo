@@ -5,6 +5,8 @@ import logging
 from odoo import _, models
 from odoo.exceptions import UserError
 
+from odoo.addons.payment import utils as payment_utils
+
 _logger = logging.getLogger(__name__)
 
 ENDPOINT_CHARGE = None  # TODO: set ENDPOINT_CHARGE per Gateway API docs.
@@ -12,6 +14,19 @@ ENDPOINT_CHARGE = None  # TODO: set ENDPOINT_CHARGE per Gateway API docs.
 
 class PaymentTransaction(models.Model):
     _inherit = 'payment.transaction'
+
+    def _get_specific_processing_values(self, processing_values):
+        """Expose the canonical payment access token for checkout RPC flows."""
+        self.ensure_one()
+        res = super()._get_specific_processing_values(processing_values)
+        if self.provider_code != 'cardpointe':
+            return res
+        res['access_token'] = payment_utils.generate_access_token(
+            processing_values['partner_id'],
+            processing_values['amount'],
+            processing_values['currency_id'],
+        )
+        return res
 
     def _cardpointe_charge_from_token(self, token, meta=None):
         """Charge a transaction using a CardPointe hosted token.

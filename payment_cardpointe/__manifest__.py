@@ -9,6 +9,8 @@
         'views/payment_templates.xml',
         'views/payment_provider_data.xml',
     ],
+    'post_init_hook': 'post_init_hook',
+    'uninstall_hook': 'uninstall_hook',
     'assets': {
         'web.assets_frontend': [
             'payment_cardpointe/static/src/js/payment_form.js',
