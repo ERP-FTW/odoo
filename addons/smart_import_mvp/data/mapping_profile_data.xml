@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="mapping_profile_fulcrum_default" model="smart.import.mapping.profile">
+        <field name="name">Fulcrum Default</field>
+        <field name="active">True</field>
+    </record>
+
+    <record id="mapping_keyword_number" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">Number</field>
+        <field name="canonical_key">default_code</field>
+    </record>
+    <record id="mapping_keyword_description" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">Description</field>
+        <field name="canonical_key">name</field>
+    </record>
+    <record id="mapping_keyword_category" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">Category</field>
+        <field name="canonical_key">category</field>
+    </record>
+    <record id="mapping_keyword_uom_name" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">UnitOfMeasureName</field>
+        <field name="canonical_key">uom_name</field>
+    </record>
+    <record id="mapping_keyword_vendor_name" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">Vendor - Vendor.Name</field>
+        <field name="canonical_key">vendor_name</field>
+    </record>
+    <record id="mapping_keyword_vendor_price" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">Vendor - BasePrice</field>
+        <field name="canonical_key">vendor_price</field>
+    </record>
+    <record id="mapping_keyword_vendor_moq" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">Vendor - MinimumOrderQuantity</field>
+        <field name="canonical_key">vendor_moq</field>
+    </record>
+    <record id="mapping_keyword_vendor_uom" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">Vendor - Vendor Unit of Measure</field>
+        <field name="canonical_key">vendor_uom</field>
+    </record>
+    <record id="mapping_keyword_default_location" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">Default Location</field>
+        <field name="canonical_key">default_location</field>
+    </record>
+    <record id="mapping_keyword_min_stock" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">MinimumStockOnHand</field>
+        <field name="canonical_key">min_stock</field>
+    </record>
+    <record id="mapping_keyword_min_production_qty" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">MinimumProductionQuantity</field>
+        <field name="canonical_key">min_production_qty</field>
+    </record>
+    <record id="mapping_keyword_sell_ok" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">IsSellItem</field>
+        <field name="canonical_key">sell_ok</field>
+    </record>
+    <record id="mapping_keyword_tags" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">Tags</field>
+        <field name="canonical_key">tags</field>
+    </record>
+    <record id="mapping_keyword_make_or_buy" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">MakeOrBuy</field>
+        <field name="canonical_key">buy_or_make</field>
+    </record>
+    <record id="mapping_keyword_buy_or_make" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">BuyOrMake</field>
+        <field name="canonical_key">buy_or_make</field>
+    </record>
+    <record id="mapping_keyword_item_origin" model="smart.import.mapping.keyword">
+        <field name="profile_id" ref="smart_import_mvp.mapping_profile_fulcrum_default"/>
+        <field name="source_key">ItemOrigin</field>
+        <field name="canonical_key">buy_or_make</field>
+    </record>
+</odoo>

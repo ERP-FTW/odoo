@@ -3,4 +3,8 @@
     <menuitem id="menu_smart_import_root" name="Smart Import" parent="stock.menu_stock_root" groups="smart_import_mvp.group_smart_import_manager" sequence="90"/>
     <menuitem id="menu_smart_import_run" name="Run Import" action="action_fulcrum_import_wizard" parent="menu_smart_import_root" sequence="10"/>
     <menuitem id="menu_smart_import_sessions" name="Sessions" action="action_fulcrum_import_session" parent="menu_smart_import_root" sequence="20"/>
+
+    <menuitem id="menu_smart_import_config" name="Configuration" parent="menu_smart_import_root" sequence="90"/>
+    <menuitem id="menu_smart_import_mapping_profiles" name="Mapping Profiles" action="action_smart_import_mapping_profile" parent="menu_smart_import_config" sequence="10"/>
+    <menuitem id="menu_smart_import_mapping_keywords" name="Mapping Keywords" action="action_smart_import_mapping_keyword" parent="menu_smart_import_config" sequence="20"/>
 </odoo>

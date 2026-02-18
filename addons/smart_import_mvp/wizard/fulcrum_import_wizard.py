@@ -18,10 +18,38 @@ class FulcrumImportWizard(models.TransientModel):
     create_locations_putaway = fields.Boolean(default=True)
     create_placeholder_missing_bom_children = fields.Boolean(default=False)
     orderpoint_max_policy = fields.Selection([('same_as_min', 'Same as Min'), ('double_min', 'Double Min')], default='same_as_min', required=True)
+    mapping_profile_id = fields.Many2one(
+        'smart.import.mapping.profile',
+        string='Mapping Profile',
+        default=lambda self: self._default_mapping_profile_id(),
+        domain="[('active', '=', True)]",
+    )
 
     session_id = fields.Many2one('mlr.fulcrum.import.session', readonly=True)
     plan_text = fields.Text(readonly=True)
     issues_text = fields.Text(readonly=True)
+
+    def _default_mapping_profile_id(self):
+        company = self.env.company
+        profile = self.env['smart.import.mapping.profile'].search([
+            ('name', '=', 'Fulcrum Default'),
+            ('active', '=', True),
+            ('company_id', '=', company.id),
+        ], limit=1)
+        if not profile:
+            profile = self.env['smart.import.mapping.profile'].search([
+                ('name', '=', 'Fulcrum Default'),
+                ('active', '=', True),
+                ('company_id', '=', False),
+            ], limit=1)
+        if not profile:
+            profile = self.env['smart.import.mapping.profile'].search([
+                ('active', '=', True),
+                '|', ('company_id', '=', company.id), ('company_id', '=', False),
+            ], limit=1)
+        if not profile:
+            profile = self.env['smart.import.mapping.profile'].search([('active', '=', True)], limit=1)
+        return profile
 
     def _prepare_attachment(self, name, file_data, session):
         return self.env['ir.attachment'].create({
@@ -70,7 +98,7 @@ class FulcrumImportWizard(models.TransientModel):
             'issues_json': False,
         })
 
-        items_rows = engine.parse_items_xlsx(items_attachment)
+        items_rows = engine.parse_items_xlsx(items_attachment, mapping_profile=self.mapping_profile_id)
         bom_rows = []
         for attachment in bom_attachments:
             bom_rows.extend(engine.parse_bom_xlsx(attachment))
@@ -97,7 +125,7 @@ class FulcrumImportWizard(models.TransientModel):
             raise UserError(_('Generate a plan first.'))
 
         engine = self.env['mlr.fulcrum.import.engine']
-        items_rows = engine.parse_items_xlsx(self.session_id.items_attachment_id)
+        items_rows = engine.parse_items_xlsx(self.session_id.items_attachment_id, mapping_profile=self.mapping_profile_id)
         bom_rows = []
         for attachment in self.session_id.bom_attachment_ids:
             bom_rows.extend(engine.parse_bom_xlsx(attachment))

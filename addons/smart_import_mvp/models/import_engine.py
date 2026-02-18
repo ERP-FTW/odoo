@@ -76,7 +76,53 @@ class FulcrumImportEngine(models.AbstractModel):
                 alias_cache[self._uom_key(alias)] = uom
         return alias_cache
 
-    def parse_items_xlsx(self, attachment):
+    def _header_lookup_key(self, value):
+        return self._normalized(value).lower()
+
+    def _get_default_mapping_profile(self):
+        company = self.env.company
+        profile = self.env['smart.import.mapping.profile'].search([
+            ('name', '=', 'Fulcrum Default'),
+            ('active', '=', True),
+            ('company_id', '=', company.id),
+        ], limit=1)
+        if not profile:
+            profile = self.env['smart.import.mapping.profile'].search([
+                ('name', '=', 'Fulcrum Default'),
+                ('active', '=', True),
+                ('company_id', '=', False),
+            ], limit=1)
+        if not profile:
+            profile = self.env['smart.import.mapping.profile'].search([
+                ('active', '=', True),
+                "|", ('company_id', '=', company.id), ('company_id', '=', False),
+            ], limit=1)
+        if not profile:
+            profile = self.env['smart.import.mapping.profile'].search([('active', '=', True)], limit=1)
+        return profile
+
+    def _build_header_map(self, headers, mapping_profile=False):
+        profile = mapping_profile or self._get_default_mapping_profile()
+        header_map = {}
+        if not profile:
+            return header_map
+        keyword_map = {}
+        for keyword in profile.keyword_ids.filtered('active'):
+            key = self._header_lookup_key(keyword.source_key)
+            if not key:
+                continue
+            current = keyword_map.get(key)
+            if not current or keyword.priority < current.priority:
+                keyword_map[key] = keyword
+        for header in headers:
+            if not header:
+                continue
+            match = keyword_map.get(self._header_lookup_key(header))
+            if match:
+                header_map[header] = match.canonical_key
+        return header_map
+
+    def parse_items_xlsx(self, attachment, mapping_profile=False):
         data = base64.b64decode(attachment.datas)
         workbook = load_workbook(io.BytesIO(data), data_only=True)
         sheet = workbook['Filtered Items'] if 'Filtered Items' in workbook.sheetnames else workbook.active
@@ -84,27 +130,38 @@ class FulcrumImportEngine(models.AbstractModel):
         if not rows:
             return []
         headers = [self._normalized(head) for head in rows[0]]
+        header_map = self._build_header_map(headers, mapping_profile=mapping_profile)
         parsed_rows = []
         for row in rows[1:]:
             if not any(row):
                 continue
             vals = {headers[idx]: row[idx] if idx < len(row) else False for idx in range(len(headers))}
+            canonical_vals = {}
+            extra_columns = {}
+            for header, value in vals.items():
+                canonical_key = header_map.get(header)
+                if canonical_key:
+                    canonical_vals[canonical_key] = value
+                else:
+                    extra_columns[header] = value
+
             parsed_rows.append({
-                'number': self._normalized(vals.get('Number')),
-                'description': self._normalized(vals.get('Description')),
-                'tags': self._normalized(vals.get('Tags')),
-                'item_origin': self._normalized(vals.get('ItemOrigin')),
-                'minimum_stock_on_hand': self._to_float(vals.get('MinimumStockOnHand')),
-                'minimum_production_qty': self._to_float(vals.get('MinimumProductionQuantity')),
-                'uom_name': self._normalized(vals.get('UnitOfMeasureName')),
-                'category_name': self._normalized(vals.get('Category')),
-                'is_sell_item': self._to_bool(vals.get('IsSellItem')),
-                'default_location': self._normalized(vals.get('Default Location')),
-                'vendor_name': self._normalized(vals.get('Vendor - Vendor.Name')),
-                'vendor_price': self._to_float(vals.get('Vendor - BasePrice')),
-                'vendor_min_qty': self._to_float(vals.get('Vendor - MinimumOrderQuantity')),
-                'vendor_uom_name': self._normalized(vals.get('Vendor - Vendor Unit of Measure')),
+                'default_code': self._normalized(canonical_vals.get('default_code')),
+                'name': self._normalized(canonical_vals.get('name')),
+                'tags': self._normalized(canonical_vals.get('tags')),
+                'buy_or_make': self._normalized(canonical_vals.get('buy_or_make')),
+                'min_stock': self._to_float(canonical_vals.get('min_stock')),
+                'min_production_qty': self._to_float(canonical_vals.get('min_production_qty')),
+                'uom_name': self._normalized(canonical_vals.get('uom_name')),
+                'category': self._normalized(canonical_vals.get('category')),
+                'sell_ok': self._to_bool(canonical_vals.get('sell_ok')),
+                'default_location': self._normalized(canonical_vals.get('default_location')),
+                'vendor_name': self._normalized(canonical_vals.get('vendor_name')),
+                'vendor_price': self._to_float(canonical_vals.get('vendor_price')),
+                'vendor_moq': self._to_float(canonical_vals.get('vendor_moq')),
+                'vendor_uom': self._normalized(canonical_vals.get('vendor_uom')),
                 'raw': vals,
+                '_extra_columns': extra_columns,
             })
         return parsed_rows
 
@@ -132,10 +189,10 @@ class FulcrumImportEngine(models.AbstractModel):
 
     def build_plan(self, items_rows, bom_rows):
         unique_uoms = sorted({r['uom_name'] for r in items_rows if r['uom_name']})
-        unique_categories = sorted({r['category_name'] for r in items_rows if r['category_name']})
+        unique_categories = sorted({r['category'] for r in items_rows if r['category']})
         unique_vendors = sorted({r['vendor_name'] for r in items_rows if r['vendor_name']})
         unique_locations = sorted({r['default_location'] for r in items_rows if r['default_location']})
-        product_codes = {r['number'] for r in items_rows if r['number']}
+        product_codes = {r['default_code'] for r in items_rows if r['default_code']}
 
         bom_parent_codes = {r['parent_number'] for r in bom_rows if r['parent_number']}
         bom_child_codes = {r['child_number'] for r in bom_rows if r['child_number']}
@@ -145,7 +202,7 @@ class FulcrumImportEngine(models.AbstractModel):
         uom_alias_cache = self._build_uom_alias_cache(self.env)
         unknown_uoms = []
         for row in items_rows:
-            for uom_name in (row['uom_name'], row['vendor_uom_name']):
+            for uom_name in (row['uom_name'], row['vendor_uom']):
                 if uom_name and not self._resolve_uom(uom_name, uom_cache, uom_alias_cache):
                     unknown_uoms.append(uom_name)
         unknown_uoms = sorted(set(unknown_uoms))
@@ -163,7 +220,7 @@ class FulcrumImportEngine(models.AbstractModel):
                 'unique_vendors': len(unique_vendors),
                 'unique_locations': len(unique_locations),
                 'product_rows_count': len(items_rows),
-                'orderpoints_count': len([r for r in items_rows if r['minimum_stock_on_hand'] > 0]),
+                'orderpoints_count': len([r for r in items_rows if r['min_stock'] > 0]),
                 'boms_count': len(grouped_boms),
                 'bom_lines_count': len(bom_rows),
             },
@@ -177,7 +234,7 @@ class FulcrumImportEngine(models.AbstractModel):
             'issues': {
                 'unknown_uoms': unknown_uoms,
                 'missing_bom_products': missing_bom_products,
-                'rows_without_product_number': [idx + 2 for idx, row in enumerate(items_rows) if not row['number']],
+                'rows_without_product_number': [idx + 2 for idx, row in enumerate(items_rows) if not row['default_code']],
             },
         }
         return plan
@@ -212,7 +269,7 @@ class FulcrumImportEngine(models.AbstractModel):
 
         # UoMs
         ref_uom = env.ref('uom.product_uom_unit')
-        for uom_name in sorted({r['uom_name'] for r in items_rows if r['uom_name']} | {r['vendor_uom_name'] for r in items_rows if r['vendor_uom_name']}):
+        for uom_name in sorted({r['uom_name'] for r in items_rows if r['uom_name']} | {r['vendor_uom'] for r in items_rows if r['vendor_uom']}):
             if self._resolve_uom(uom_name, uom_cache, uom_alias_cache):
                 continue
             if not options.get('auto_create_unknown_uom'):
@@ -235,7 +292,7 @@ class FulcrumImportEngine(models.AbstractModel):
             add_log(_('Created UoM %s') % uom_name)
 
         # Categories
-        for category_name in sorted({r['category_name'] for r in items_rows if r['category_name']}):
+        for category_name in sorted({r['category'] for r in items_rows if r['category']}):
             if category_name in categ_cache:
                 continue
             if dry_run:
@@ -297,10 +354,10 @@ class FulcrumImportEngine(models.AbstractModel):
         # Products + supplierinfo + orderpoints
         product_rows_by_code = {}
         for row in items_rows:
-            if not row['number']:
+            if not row['default_code']:
                 issue_bucket['rows_without_product_number'].append(row)
                 continue
-            product_rows_by_code[row['number']] = row
+            product_rows_by_code[row['default_code']] = row
 
         for code, row in product_rows_by_code.items():
             uom_name = row['uom_name']
@@ -310,12 +367,12 @@ class FulcrumImportEngine(models.AbstractModel):
                 errors.append({'type': 'product', 'key': code, 'error': f'Unknown UoM {uom_name}'})
                 continue
 
-            category = categ_cache.get(row['category_name'])
+            category = categ_cache.get(row['category'])
             vals = {
                 'default_code': code,
-                'name': row['description'] or code,
-                'sale_ok': row['is_sell_item'],
-                'purchase_ok': row['item_origin'] == 'Buy' or bool(row['vendor_name']),
+                'name': row['name'] or code,
+                'sale_ok': row['sell_ok'],
+                'purchase_ok': row['buy_or_make'] == 'Buy' or bool(row['vendor_name']),
                 'type': 'consu',
             }
             if category:
@@ -325,9 +382,9 @@ class FulcrumImportEngine(models.AbstractModel):
                 vals['uom_po_id'] = uom.id
 
             route_ids = []
-            if row['item_origin'] == 'Make' and manufacture_route:
+            if row['buy_or_make'] == 'Make' and manufacture_route:
                 route_ids.append(manufacture_route.id)
-            if (row['item_origin'] == 'Buy' or row['vendor_name']) and buy_route:
+            if (row['buy_or_make'] == 'Buy' or row['vendor_name']) and buy_route:
                 route_ids.append(buy_route.id)
             if route_ids:
                 vals['route_ids'] = [(6, 0, route_ids)]
@@ -358,10 +415,10 @@ class FulcrumImportEngine(models.AbstractModel):
                 supp_vals = {
                     'partner_id': partner.id,
                     'price': row['vendor_price'],
-                    'min_qty': row['vendor_min_qty'] or 0.0,
+                    'min_qty': row['vendor_moq'] or 0.0,
                     'product_tmpl_id': tmpl.id,
                 }
-                vendor_uom_name = row['vendor_uom_name']
+                vendor_uom_name = row['vendor_uom']
                 vendor_uom = self._resolve_uom(vendor_uom_name, uom_cache, uom_alias_cache) if vendor_uom_name else False
                 if vendor_uom:
                     supp_vals['product_uom'] = vendor_uom.id
@@ -378,14 +435,14 @@ class FulcrumImportEngine(models.AbstractModel):
                     env['product.supplierinfo'].create(supp_vals)
                     stats['supplierinfo_created'] += 1
 
-            if row['minimum_stock_on_hand'] > 0:
+            if row['min_stock'] > 0:
                 product_variant = product_variant_cache.get(code)
                 if not product_variant and code not in product_variant_cache:
                     continue
 
-                max_qty = row['minimum_stock_on_hand']
+                max_qty = row['min_stock']
                 if options.get('orderpoint_max_policy') == 'double_min':
-                    max_qty = row['minimum_stock_on_hand'] * 2
+                    max_qty = row['min_stock'] * 2
 
                 if dry_run and not product_variant:
                     stats['orderpoint_would_create'] += 1
@@ -394,9 +451,9 @@ class FulcrumImportEngine(models.AbstractModel):
                 op_vals = {
                     'product_id': product_variant.id,
                     'location_id': stock_location.id,
-                    'product_min_qty': row['minimum_stock_on_hand'],
+                    'product_min_qty': row['min_stock'],
                     'product_max_qty': max_qty,
-                    'qty_multiple': row['minimum_production_qty'] if row['minimum_production_qty'] > 0 else 1.0,
+                    'qty_multiple': row['min_production_qty'] if row['min_production_qty'] > 0 else 1.0,
                     'company_id': company.id,
                 }
                 op = env['stock.warehouse.orderpoint'].search([
