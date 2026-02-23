@@ -19,21 +19,21 @@
                         name="pre_zip_match_condition"
                         widget="domain"
                         options="{'model': 'res.partner', 'in_dialog': True}"
-                        attrs="{'invisible': [('enable_zip_auto_assignment', '=', False)]}"
+                        invisible="not enable_zip_auto_assignment"
                     />
                 <field
                         name="zip_assignment_priority"
-                        attrs="{'invisible': [('enable_zip_auto_assignment', '=', False)]}"
+                        invisible="not enable_zip_auto_assignment"
                     />
                 <field
                         name="country_ids"
                         widget="many2many_tags"
-                        attrs="{'required': [('enable_zip_auto_assignment', '=', True)], 'invisible': [('enable_zip_auto_assignment', '=', False)]}"
+                        required="enable_zip_auto_assignment" invisible="not enable_zip_auto_assignment"
                     />
                         <field
                         name="state_ids"
                         widget="many2many_tags"
-                        attrs="{'required': [('enable_zip_auto_assignment', '=', True)], 'invisible': [('enable_zip_auto_assignment', '=', False)]}"
+                        required="enable_zip_auto_assignment" invisible="not enable_zip_auto_assignment"
                     />
                 </group>
             </xpath>
@@ -41,13 +41,13 @@
                 <page
                     name="zip_patterns"
                     string="ZIP Patterns"
-                    attrs="{'invisible': [('enable_zip_auto_assignment', '=', False)], 'required': [('enable_zip_auto_assignment', '=', True)]}"
+                    invisible="not enable_zip_auto_assignment" required="enable_zip_auto_assignment"
                 >
                     <field name="zip_regex_ids" nolabel="1">
-                        <tree editable="bottom">
+                        <list editable="bottom">
                             <field name="pattern" placeholder="^1[0-5].*" />
                             <field name="team_id" invisible="1" />
-                        </tree>
+                        </list>
                     </field>
                 </page>
             </xpath>
