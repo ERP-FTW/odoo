@@ -10,12 +10,14 @@
             </xpath>
 
             <xpath expr="//field[@name='phone']" position="after">
-                <field name="phone_raw"/>
-                <field name="phone_extension"/>
-                <button name="action_save_phone_raw"
-                        type="object"
-                        string="Save Phone"
-                        class="oe_highlight"/>
+                <group>
+                    <field name="phone_raw" string="Phone Raw"/>
+                    <field name="phone_extension" string="Phone Extension"/>
+                    <button name="action_save_phone_raw"
+                            type="object"
+                            string="Save Phone"
+                            class="oe_highlight"/>
+                </group>
             </xpath>
         </field>
     </record>
