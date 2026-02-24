@@ -49,7 +49,7 @@ class TestPartnerRequirePhoneOrEmail(TransactionCase):
 
         user = self.env['res.users'].create({
             'name': 'No Contact User',
-            'login': 'noconctuser',
+            'login': 'noconctuser2',
             'email': False,
         })
         user.partner_id.write({
@@ -58,3 +58,61 @@ class TestPartnerRequirePhoneOrEmail(TransactionCase):
             'mobile': False,
         })
         self.assertTrue(user.partner_id)
+
+    def test_duplicate_email_prevented(self):
+        self.env['res.partner'].create({
+            'name': 'Email A',
+            'email': 'Test@Example.com',
+        })
+        with self.assertRaises(ValidationError):
+            self.env['res.partner'].create({
+                'name': 'Email B',
+                'email': ' test@example.com ',
+            })
+
+    def test_duplicate_phone_prevented(self):
+        self.env['res.partner'].create({
+            'name': 'Phone A',
+            'phone': '(313) 555-0101',
+        })
+        with self.assertRaises(ValidationError):
+            self.env['res.partner'].create({
+                'name': 'Phone B',
+                'mobile': '3135550101',
+            })
+
+    def test_cross_field_collision_prevented(self):
+        self.env['res.partner'].create({
+            'name': 'Cross A',
+            'mobile': '3135550102',
+        })
+        with self.assertRaises(ValidationError):
+            self.env['res.partner'].create({
+                'name': 'Cross B',
+                'phone': '313-555-0102',
+            })
+
+    def test_allow_distinct_contact_methods(self):
+        partner_a = self.env['res.partner'].create({
+            'name': 'Distinct A',
+            'email': 'a@example.com',
+            'phone': '3135550199',
+        })
+        partner_b = self.env['res.partner'].create({
+            'name': 'Distinct B',
+            'email': 'b@example.com',
+            'phone': '3135550200',
+        })
+        self.assertTrue(partner_a and partner_b)
+
+    def test_archived_partner_does_not_block_active_duplicate(self):
+        partner_a = self.env['res.partner'].create({
+            'name': 'Archive A',
+            'phone': '3135550103',
+        })
+        partner_a.active = False
+        partner_b = self.env['res.partner'].create({
+            'name': 'Archive B',
+            'phone': '3135550103',
+        })
+        self.assertTrue(partner_b)
