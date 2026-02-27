@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_order_product_pivot_inherit_inactive_customer" model="ir.ui.view">
+        <field name="name">sale.report.pivot.inactive.customer</field>
+        <field name="model">sale.report</field>
+        <field name="inherit_id" ref="sale.view_order_product_pivot"/>
+        <field name="arch" type="xml">
+            <xpath expr="//pivot" position="inside">
+                <field name="partner_last_order_date" type="measure"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_order_product_search_inherit_inactive_customer" model="ir.ui.view">
+        <field name="name">sale.report.search.inactive.customer</field>
+        <field name="model">sale.report</field>
+        <field name="inherit_id" ref="sale.view_order_product_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search/field[@name='partner_id']" position="after">
+                <field name="partner_last_order_date"/>
+            </xpath>
+            <xpath expr="//search/filter[@name='filter_order_date']" position="after">
+                <filter
+                    string="Inactive 90+ days"
+                    name="inactive_90_days"
+                    domain="[('partner_last_order_date', '&lt;', (context_today() - relativedelta(days=90)).strftime('%Y-%m-%d'))]"
+                />
+            </xpath>
+            <xpath expr="//search/group[filter[@name='User']]" position="inside">
+                <separator/>
+                <filter string="Last Order Date" name="group_by_partner_last_order_date" context="{'group_by': 'partner_last_order_date'}"/>
+                <filter string="Last Order Date (Month)" name="group_by_partner_last_order_date_month" context="{'group_by': 'partner_last_order_date:month'}"/>
+                <filter string="Last Order Date (Quarter)" name="group_by_partner_last_order_date_quarter" context="{'group_by': 'partner_last_order_date:quarter'}"/>
+                <filter string="Last Order Date (Year)" name="group_by_partner_last_order_date_year" context="{'group_by': 'partner_last_order_date:year'}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
