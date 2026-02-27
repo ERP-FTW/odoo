@@ -6,6 +6,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
     const PaymentInterface = require('point_of_sale.PaymentInterface');
     const models = require('point_of_sale.models');
     const Registries = require('point_of_sale.Registries');
+    const { Gui } = require('point_of_sale.Gui');
 
     const _t = core._t;
 
@@ -99,7 +100,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
         },
 
         _showError: function (message) {
-            this.pos.chrome.showPopup('ErrorPopup', {
+            Gui.showPopup('ErrorPopup', {
                 title: _t('CardPointe POC'),
                 body: message,
             });
