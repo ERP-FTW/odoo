@@ -26,7 +26,7 @@
                     domain="[('partner_last_order_date', '&lt;', (context_today() - relativedelta(days=90)).strftime('%Y-%m-%d'))]"
                 />
             </xpath>
-            <xpath expr="//search/group[@string='Group By']" position="inside">
+            <xpath expr="//search/group[filter[@name='User']]" position="inside">
                 <separator/>
                 <filter string="Last Order Date" name="group_by_partner_last_order_date" context="{'group_by': 'partner_last_order_date'}"/>
                 <filter string="Last Order Date (Month)" name="group_by_partner_last_order_date_month" context="{'group_by': 'partner_last_order_date:month'}"/>
