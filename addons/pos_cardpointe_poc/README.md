@@ -1,6 +1,6 @@
 # pos_cardpointe_poc
 
-Minimal Odoo 18 proof-of-concept addon to run a POS card-present sale on a CardPointe Integrated Terminal (Clover Flex) through server-side proxy routes.
+Minimal Odoo 16 proof-of-concept addon to run a POS card-present sale on a CardPointe Integrated Terminal (Clover Flex) through server-side proxy routes.
 
 ## What this POC does
 
