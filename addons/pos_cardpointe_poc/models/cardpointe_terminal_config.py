@@ -7,9 +7,9 @@ class CardPointeTerminalConfig(models.Model):
 
     name = fields.Char(required=True)
     company_id = fields.Many2one('res.company', required=True, default=lambda self: self.env.company)
-    base_url = fields.Char(default='https://bolt-terminal-uat.cardpointe.com', required=True)
-    port = fields.Integer(default=443, required=True)
+    base_url = fields.Char(default='https://bolt-uat.cardpointe.com/api', required=True)
     merchant_id = fields.Char(default='800000009875', required=True)
+    auth_key = fields.Char(required=True)
     device_type = fields.Selection([('clover_flex', 'Clover Flex')], default='clover_flex', required=True)
-    device_serial = fields.Char()
-    timeout_seconds = fields.Integer(default=60, required=True)
+    device_serial = fields.Char(string='HSN', help='Terminal hardware serial number (HSN).')
+    request_timeout_seconds = fields.Integer(default=120, required=True)

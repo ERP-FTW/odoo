@@ -24,10 +24,10 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
                 return false;
             }
 
-            line.set_payment_status('waiting');
-            let start;
+            line.set_payment_status('waitingCard');
+            let result;
             try {
-                start = await rpc.query({
+                result = await rpc.query({
                     route: '/pos_cardpointe_poc/start',
                     params: {
                         pos_config_id: this.pos.config.id,
@@ -37,66 +37,53 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
                         order_uid: order.uid,
                         payment_line_uuid: line.cid,
                     },
-                }, {shadow: true});
+                }, { shadow: true, timeout: 150000 });
             } catch (_error) {
-                this._showError(_t('Could not reach Odoo server.'));
+                this._showError(_t('Could not reach Odoo server during terminal payment.'));
                 line.set_payment_status('retry');
                 return false;
             }
 
-            if (start.status !== 'started' || !start.request_id) {
-                this._showError(start.message || _t('Could not start CardPointe transaction.'));
-                line.set_payment_status('retry');
-                return false;
+            if (result.status === 'approved') {
+                const approvedAmount = this._normalizeAmount(result.amount, line.amount);
+                line.set_amount(approvedAmount);
+                line.cardpointe_retref = result.retref || '';
+                line.cardpointe_authcode = result.authcode || '';
+                line.cardpointe_respcode = result.respcode || '';
+                line.cardpointe_resptext = result.resptext || '';
+                line.cardpointe_token = result.token || '';
+                line.cardpointe_status = 'approved';
+                line.transaction_id = result.retref || '';
+                line.set_payment_status('done');
+                return true;
             }
 
-            return await this._pollStatus(line, start.request_id);
+            line.cardpointe_status = result.status || 'error';
+            line.cardpointe_respcode = result.respcode || '';
+            line.cardpointe_resptext = result.resptext || '';
+            line.set_payment_status('retry');
+
+            if (result.status === 'merchant_mode') {
+                this._showError(_t('Terminal is in Merchant Mode. Open the CardPointe Integrated/Bolt app or switch terminal to Integrated mode.'));
+            } else if (result.status === 'cancelled') {
+                this._showError(_t('Payment cancelled on terminal.'));
+            } else if (result.status === 'timeout') {
+                this._showError(_t('Terminal request timed out. Please check device status and try again.'));
+            } else {
+                this._showError(result.message || _t('Card payment not approved.'));
+            }
+            return false;
         },
 
-        _pollStatus: async function (line, requestId) {
-            for (let i = 0; i < 120; i++) {
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-                let poll;
-                try {
-                    poll = await rpc.query({
-                        route: '/pos_cardpointe_poc/poll',
-                        params: {
-                            payment_method_id: line.payment_method.id,
-                            request_id: requestId,
-                        },
-                    }, {shadow: true});
-                } catch (_error) {
-                    this._showError(_t('Lost connection while polling terminal status.'));
-                    line.set_payment_status('retry');
-                    return false;
-                }
-
-                if (poll.status === 'pending' || poll.status === 'started') {
-                    continue;
-                }
-
-                if (poll.status === 'approved') {
-                    line.set_amount(poll.amount || line.amount);
-                    line.cardpointe_retref = poll.retref || '';
-                    line.cardpointe_authcode = poll.authcode || '';
-                    line.cardpointe_status = 'approved';
-                    line.card_type = poll.brand || '';
-                    line.transaction_id = poll.retref || '';
-                    line.cardholder_name = poll.last4 ? `****${poll.last4}` : '';
-                    line.set_payment_status('done');
-                    return true;
-                }
-
-                line.cardpointe_status = poll.status || 'error';
-                line.set_payment_status('retry');
-                this._showError(poll.message || _t('Card payment not approved.'));
-                return false;
+        _normalizeAmount: function (amount, fallback) {
+            if (amount === undefined || amount === null || amount === '') {
+                return fallback;
             }
-
-            line.cardpointe_status = 'timeout';
-            line.set_payment_status('retry');
-            this._showError(_t('Terminal timeout.'));
-            return false;
+            const value = String(amount);
+            if (value.indexOf('.') !== -1) {
+                return parseFloat(value);
+            }
+            return parseFloat(value) / 100;
         },
 
         _showError: function (message) {
@@ -114,6 +101,9 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             super.init_from_JSON(json);
             this.cardpointe_retref = json.cardpointe_retref || '';
             this.cardpointe_authcode = json.cardpointe_authcode || '';
+            this.cardpointe_respcode = json.cardpointe_respcode || '';
+            this.cardpointe_resptext = json.cardpointe_resptext || '';
+            this.cardpointe_token = json.cardpointe_token || '';
             this.cardpointe_status = json.cardpointe_status || '';
         }
 
@@ -121,6 +111,9 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             const json = super.export_as_JSON();
             json.cardpointe_retref = this.cardpointe_retref || '';
             json.cardpointe_authcode = this.cardpointe_authcode || '';
+            json.cardpointe_respcode = this.cardpointe_respcode || '';
+            json.cardpointe_resptext = this.cardpointe_resptext || '';
+            json.cardpointe_token = this.cardpointe_token || '';
             json.cardpointe_status = this.cardpointe_status || '';
             return json;
         }

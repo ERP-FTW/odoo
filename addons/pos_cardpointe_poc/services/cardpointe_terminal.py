@@ -1,122 +1,175 @@
 import logging
+from decimal import Decimal, ROUND_HALF_UP
 
 import requests
 
 _logger = logging.getLogger(__name__)
 
 
+def _mask_secret(value):
+    if not value:
+        return '-'
+    text = str(value)
+    if len(text) <= 8:
+        return '***'
+    return f"{text[:4]}...{text[-4:]}"
+
+
 class CardPointeTerminalClient:
     def __init__(self, config):
         self.config = config
-        self.timeout = max(5, config.timeout_seconds or 60)
         self.base_url = (config.base_url or '').rstrip('/')
 
     def _url(self, path):
-        return f"{self.base_url}:{self.config.port}{path}"
+        return f"{self.base_url}{path}"
 
-    def _request(self, method, path, payload=None):
+    def _headers(self, session_key=None):
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'User-Agent': 'Odoo/18 pos_cardpointe_poc',
+            'Authorization': self.config.auth_key,
+        }
+        if session_key:
+            headers['X-CardConnect-SessionKey'] = session_key
+        return headers
+
+    def _safe_headers(self, headers):
+        safe = dict(headers)
+        if 'Authorization' in safe:
+            safe['Authorization'] = f"masked:{_mask_secret(safe['Authorization'])}"
+        if 'X-CardConnect-SessionKey' in safe:
+            safe['X-CardConnect-SessionKey'] = f"masked:{_mask_secret(safe['X-CardConnect-SessionKey'])}"
+        return safe
+
+    def _request(self, method, path, payload=None, session_key=None, timeout=30):
         url = self._url(path)
-        _logger.info("CardPointe HTTP request: method=%s url=%s payload=%s", method, url, payload or {})
+        headers = self._headers(session_key=session_key)
+        _logger.info(
+            "CardPointe request method=%s path=%s headers=%s payload=%s timeout=%s",
+            method,
+            path,
+            self._safe_headers(headers),
+            payload or {},
+            timeout,
+        )
         try:
             response = requests.request(
                 method,
                 url,
                 json=payload,
-                timeout=(10, self.timeout),
-                headers={'Content-Type': 'application/json'},
+                headers=headers,
+                timeout=timeout,
             )
         except requests.Timeout:
-            _logger.warning("CardPointe HTTP timeout: method=%s url=%s", method, url)
-            return {'ok': False, 'status': 'timeout', 'message': 'CardPointe terminal request timed out.'}
+            _logger.warning("CardPointe timeout method=%s path=%s", method, path)
+            return {'ok': False, 'status': 'timeout', 'message': 'Terminal request timed out.'}
         except requests.RequestException as exc:
-            _logger.exception("CardPointe HTTP request exception: method=%s url=%s error=%s", method, url, exc)
+            _logger.exception("CardPointe request failed method=%s path=%s", method, path)
             return {'ok': False, 'status': 'error', 'message': str(exc)}
 
         _logger.info(
-            "CardPointe HTTP response: method=%s url=%s status_code=%s body=%s",
+            "CardPointe response method=%s path=%s status=%s body=%s",
             method,
-            url,
+            path,
             response.status_code,
-            response.text[:500],
+            (response.text or '')[:500],
         )
 
-        if response.status_code >= 400:
-            return {'ok': False, 'status': 'error', 'message': f'HTTP {response.status_code}: {response.text[:200]}'}
+        data = {}
+        if response.text:
+            try:
+                data = response.json()
+            except ValueError:
+                data = {}
 
-        try:
-            return {'ok': True, 'data': response.json()}
-        except ValueError:
-            _logger.warning("CardPointe HTTP invalid JSON response: method=%s url=%s", method, url)
-            return {'ok': False, 'status': 'error', 'message': 'Invalid JSON response from terminal gateway.'}
+        return {'ok': True, 'http_status': response.status_code, 'data': data, 'headers': dict(response.headers), 'text': response.text}
 
-    def sale(self, amount, currency, merchid, device_serial=None, order_uid=None):
+    def connect(self):
         payload = {
-            'amount': f'{amount:.2f}',
-            'currency': currency,
-            'merchid': merchid,
-            'orderid': order_uid,
-            'capture': 'y',
+            'merchantId': self.config.merchant_id,
+            'hsn': self.config.device_serial,
         }
-        if device_serial:
-            payload['deviceid'] = device_serial
+        result = self._request('POST', '/v2/connect', payload=payload, timeout=15)
+        if not result.get('ok'):
+            return result
 
-        _logger.info(
-            "CardPointe sale start: amount=%s currency=%s merchid=%s order_uid=%s device_serial=%s",
-            payload['amount'],
-            currency,
-            merchid,
-            order_uid,
-            device_serial or '-',
+        header_value = result['headers'].get('X-CardConnect-SessionKey', '')
+        session_key = header_value.split(';', 1)[0].strip()
+        if result['http_status'] != 200 or not session_key:
+            return {
+                'ok': False,
+                'status': 'error',
+                'message': f"Connect failed (HTTP {result['http_status']}).",
+                'raw': result,
+            }
+
+        return {'ok': True, 'session_key': session_key}
+
+    def _to_implied_cents(self, amount_dollars):
+        value = Decimal(str(amount_dollars)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        return str(int(value * 100))
+
+    def auth_card(self, amount_dollars, order_id):
+        connect_result = self.connect()
+        if not connect_result.get('ok'):
+            return {
+                'ok': False,
+                'status': connect_result.get('status', 'error'),
+                'message': connect_result.get('message', 'Unable to connect terminal session.'),
+            }
+
+        payload = {
+            'merchantId': self.config.merchant_id,
+            'hsn': self.config.device_serial,
+            'amount': self._to_implied_cents(amount_dollars),
+            'capture': True,
+            'orderId': order_id,
+        }
+        result = self._request(
+            'POST',
+            '/v4/authCard',
+            payload=payload,
+            session_key=connect_result['session_key'],
+            timeout=max(30, self.config.request_timeout_seconds or 120),
         )
-        result = self._request('POST', '/api/v2/connectedterminal/sale', payload)
-        if not result['ok']:
-            _logger.warning("CardPointe sale failed: %s", result)
+        if not result.get('ok'):
             return result
 
-        data = result['data']
-        request_id = data.get('requestid') or data.get('request_id') or data.get('retref')
-        _logger.info("CardPointe sale accepted: request_id=%s raw=%s", request_id, data)
-        return {
-            'ok': True,
-            'status': 'started',
-            'request_id': request_id,
-            'raw': data,
-        }
+        http_status = result.get('http_status')
+        data = result.get('data') or {}
 
-    def status(self, request_id):
-        _logger.info("CardPointe status check: request_id=%s", request_id)
-        result = self._request('GET', f'/api/v2/connectedterminal/status/{request_id}')
-        if not result['ok']:
-            _logger.warning("CardPointe status failed: request_id=%s result=%s", request_id, result)
-            return result
+        error_code = data.get('errorCode')
+        error_message = data.get('errorMessage') or data.get('resptext') or data.get('message')
 
-        data = result['data']
-        gateway_status = (data.get('respstat') or data.get('status') or '').lower()
-        resp_code = (data.get('respcode') or data.get('resp_code') or '').lower()
-
-        if gateway_status in {'approved', 'complete'} or resp_code == '00':
-            normalized_status = 'approved'
-        elif gateway_status in {'declined'}:
-            normalized_status = 'declined'
-        elif gateway_status in {'cancelled', 'canceled'}:
-            normalized_status = 'cancelled'
-        elif gateway_status in {'timeout'}:
-            normalized_status = 'timeout'
-        elif gateway_status in {'pending', 'in_progress', 'processing'} or not gateway_status:
-            normalized_status = 'pending'
+        if error_code == 9:
+            status = 'merchant_mode'
+        elif error_code == 8:
+            status = 'cancelled'
+        elif error_code:
+            status = 'error'
         else:
-            normalized_status = 'error'
+            respcode = str(data.get('respcode') or '')
+            if respcode == '00':
+                status = 'approved'
+            elif respcode:
+                status = 'declined'
+            elif http_status >= 400:
+                status = 'error'
+            else:
+                status = 'error'
 
         normalized = {
-            'ok': True,
-            'status': normalized_status,
+            'ok': status == 'approved',
+            'status': status,
             'retref': data.get('retref'),
             'authcode': data.get('authcode'),
-            'amount': float(data.get('amount') or 0.0),
-            'brand': data.get('cardtype') or data.get('brand'),
-            'last4': data.get('acctlastfour') or data.get('last4'),
-            'message': data.get('resptext') or data.get('message'),
+            'respcode': data.get('respcode') or str(error_code or ''),
+            'resptext': data.get('resptext') or error_message,
+            'amount': data.get('amount'),
+            'token': data.get('token'),
             'raw': data,
         }
-        _logger.info("CardPointe status normalized: request_id=%s normalized=%s", request_id, normalized)
+        if not normalized['ok']:
+            normalized['message'] = normalized.get('resptext') or f'authCard failed (HTTP {http_status}).'
         return normalized

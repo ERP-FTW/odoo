@@ -9,11 +9,11 @@
                         <field name="name"/>
                         <field name="company_id"/>
                         <field name="base_url"/>
-                        <field name="port"/>
                         <field name="merchant_id"/>
                         <field name="device_type"/>
                         <field name="device_serial"/>
-                        <field name="timeout_seconds"/>
+                        <field name="auth_key" password="True"/>
+                        <field name="request_timeout_seconds"/>
                     </group>
                 </sheet>
             </form>
@@ -29,6 +29,7 @@
                 <field name="company_id"/>
                 <field name="merchant_id"/>
                 <field name="device_serial"/>
+                <field name="request_timeout_seconds"/>
             </tree>
         </field>
     </record>

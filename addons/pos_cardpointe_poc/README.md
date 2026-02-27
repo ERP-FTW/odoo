@@ -1,49 +1,58 @@
 # pos_cardpointe_poc
 
-Minimal Odoo 16 proof-of-concept addon to run a POS card-present sale on a CardPointe Integrated Terminal (Clover Flex) through server-side proxy routes.
+Minimal Odoo 16 proof-of-concept addon to run POS card-present sales on CardPointe Bolt terminals (Clover Flex) through server-side proxy calls.
 
-## What this POC does
+## Flow used by this module
 
-- Adds payment terminal option `CardPointe POC` on POS payment methods.
-- Adds CardPointe terminal configuration model (`pos.cardpointe.terminal.config`).
-- Sends sale request from POS to Odoo JSON controller, then Odoo calls CardPointe terminal API.
-- Polls terminal status every second from POS.
-- On approval, stores safe metadata on payment line/payment record:
-  - `cardpointe_retref`
-  - `cardpointe_authcode`
-  - `cardpointe_status`
-  - optional card brand/last4 (if returned)
+1. `POST /v2/connect`
+   - Body: `merchantId`, `hsn`
+   - Header: `Authorization: <auth_key>`
+   - Reads `X-CardConnect-SessionKey` response header.
+2. `POST /v4/authCard`
+   - Body: `merchantId`, `hsn`, `amount` (implied cents), `capture: true`, `orderId`
+   - Headers: `Authorization` + `X-CardConnect-SessionKey`
 
 No PAN is stored.
 
-## Setup
+## Configuration
 
-1. Place module in addons path and update app list.
-2. Install module **POS CardPointe POC**.
-3. Go to **Point of Sale > Configuration > CardPointe Terminal Configs** and create config:
-   - Base URL: `https://bolt-terminal-uat.cardpointe.com`
-   - Port: `443`
-   - Merchant ID: `800000009875`
-   - Device Type: `Clover Flex`
-   - Device Serial: optional (`C0...`)
-4. Open or create POS payment method named `Card (CardPointe POC)`:
-   - Set **Use a Payment Terminal** = `CardPointe POC`
-   - Set **CardPointe Config** = your config
-5. Ensure method is enabled on your POS configuration.
+Create **Point of Sale > Configuration > CardPointe Terminal Configs**:
 
-## Testing checklist
+- Base URL: `https://bolt-uat.cardpointe.com/api`
+- Auth Key: CardPointe Bolt authorization key
+- Merchant ID: `800000009875`
+- HSN: `C047UG43720996`
+- Request Timeout Seconds: `120`
 
-1. Open POS session.
-2. Add product and go to payment.
-3. Select `Card (CardPointe POC)`.
-4. Click **Send Payment Request** (terminal action button on payment line).
-5. Complete tap/insert/swipe on Clover Flex.
-6. Confirm POS shows done or error.
-7. Validate order.
-8. Check `pos.payment` record has `cardpointe_retref` and `cardpointe_authcode` for approved payment.
+Then configure payment method `Card (CardPointe POC)`:
 
-## Notes
+- Use a Payment Terminal: `CardPointe POC`
+- CardPointe Config: your config record
 
-- POC only: no refund/void/tip/split/offline flow.
-- Uses polling endpoint (`/pos_cardpointe_poc/poll`).
-- Secrets stay server-side in Odoo models; browser only sends IDs and transaction values.
+## What is persisted on payment
+
+- `cardpointe_retref`
+- `cardpointe_authcode`
+- `cardpointe_respcode`
+- `cardpointe_resptext`
+- `cardpointe_token` (if returned)
+- `cardpointe_status`
+
+## Troubleshooting
+
+- **401 Unauthorized**: wrong/missing `auth_key`.
+- **errorCode 9 / merchant mode**: terminal is in Merchant Mode, switch to CardPointe Integrated/Bolt app.
+- **errorCode 8 / cancelled**: payment cancelled on terminal.
+- **timeout**: terminal or network did not finish within timeout; verify terminal app mode, connectivity, and retry.
+
+## Test checklist
+
+1. Create terminal config:
+   - `base_url = https://bolt-uat.cardpointe.com/api`
+   - `auth_key = <provided>`
+   - `merchant_id = 800000009875`
+   - `hsn = C047UG43720996`
+2. Link payment method **Card (CardPointe POC)** to this config.
+3. Open POS, create order `$1.00`, click **Send Payment Request**.
+4. Confirm terminal prompts for card (if not in merchant mode).
+5. Confirm approved payment stores `retref/authcode/respcode/resptext` on `pos.payment`.
