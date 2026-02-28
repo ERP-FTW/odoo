@@ -2,62 +2,19 @@
 
 import logging
 import uuid
-from json import JSONDecodeError
-
-import requests
+from urllib.parse import urlsplit
 
 from odoo import _
+from odoo.addons.payment_cardpointe_base.services.http import (
+    CardPointeRequestError,
+    redact_payload,
+    request_json,
+    safe_log_headers,
+    safe_truncate,
+)
 from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
-
-SENSITIVE_KEYS = {
-    'authorization',
-    'password',
-    'token',
-    'card',
-    'pan',
-    'cvv',
-    'cvc',
-    'number',
-    'account',
-    'signature',
-    'key',
-}
-
-
-# Docs: Gateway API https://developer.fiserv.com/product/CardPointe/docs/?path=docs/APIs/CardPointeGatewayAPI.md
-# Docs: Tokenizer https://developer.fiserv.com/product/CardPointe/docs/?path=docs/documentation/HostediFrameTokenizer.md
-# Never log secrets/PAN/CVV; redact tokens.
-
-def _mask_token(value):
-    if not value:
-        return '****'
-    if not isinstance(value, str):
-        return '****'
-    return f"****{value[-4:]}" if len(value) >= 4 else '****'
-
-
-def _cardpointe_redact(obj):
-    """Redact sensitive keys in nested dict/list structures."""
-    if isinstance(obj, dict):
-        redacted = {}
-        for key, value in obj.items():
-            key_lower = str(key).lower()
-            if any(sensitive in key_lower for sensitive in SENSITIVE_KEYS):
-                if 'token' in key_lower:
-                    redacted[key] = _mask_token(value)
-                else:
-                    redacted[key] = '***'
-            else:
-                redacted[key] = _cardpointe_redact(value)
-        return redacted
-    if isinstance(obj, list):
-        return [_cardpointe_redact(item) for item in obj]
-    return obj
-
-
-from urllib.parse import urlsplit
 
 
 def _cardpointe_build_url(api_base, endpoint):
@@ -79,7 +36,6 @@ def _cardpointe_request(provider, method, endpoint, payload=None, headers=None, 
     api_base = provider.cardpointe_api_base
     url = _cardpointe_build_url(api_base, endpoint)
 
-    # Helpful sanity warning (does not block).
     try:
         base_path = urlsplit(api_base).path or ""
         if "/cardconnect/rest" not in base_path:
@@ -90,11 +46,6 @@ def _cardpointe_request(provider, method, endpoint, payload=None, headers=None, 
     except Exception:
         pass
 
-    _logger.info(
-        "[CARDPOINTE] operation=%s url=%s tx_ref=%s correlation_id=%s",
-        operation, url, tx_reference or '-', correlation_id,
-    )
-
     request_headers = headers.copy() if headers else {}
     if 'Accept' not in request_headers:
         request_headers['Accept'] = 'application/json'
@@ -103,98 +54,89 @@ def _cardpointe_request(provider, method, endpoint, payload=None, headers=None, 
 
     if provider.cardpointe_debug_logging:
         _logger.info(
-            "[CARDPOINTE] request method=%s endpoint=%s url=%s correlation_id=%s payload=%s",
-            method, endpoint, url, correlation_id, _cardpointe_redact(payload or {}),
+            "[CARDPOINTE] request method=%s endpoint=%s url=%s tx_ref=%s correlation_id=%s headers=%s payload=%s",
+            method,
+            endpoint,
+            url,
+            tx_reference or '-',
+            correlation_id,
+            safe_log_headers(request_headers),
+            redact_payload(payload or {}),
         )
+
+    _logger.info(
+        "[CARDPOINTE] operation=%s url=%s tx_ref=%s correlation_id=%s",
+        operation, url, tx_reference or '-', correlation_id,
+    )
 
     connect_timeout = provider.cardpointe_timeout_connect
     read_timeout = provider.cardpointe_timeout_read
     request_timeout = timeout or (connect_timeout, read_timeout)
 
     try:
-        response = requests.request(
+        http_status, _response_headers, response_text, response_data = request_json(
             method=method,
             url=url,
-            json=payload,
             headers=request_headers,
-            auth=(provider.cardpointe_username or '', provider.cardpointe_password or ''),
+            json=payload,
             timeout=request_timeout,
+            auth=(provider.cardpointe_username or '', provider.cardpointe_password or ''),
         )
-        http_status = response.status_code
+    except CardPointeRequestError as exc:
+        lower = str(exc).lower()
+        error_code = 'timeout' if 'timeout' in lower else 'request_error'
+        error_message = _("CardPointe request timed out.") if error_code == 'timeout' else str(exc)
+        if 'name or service not known' in lower or 'failed to establish a new connection' in lower:
+            error_code = 'connection_error'
+            error_message = _("CardPointe connection error.")
+        return {
+            'ok': False,
+            'data': {},
+            'error_message': error_message,
+            'error_code': error_code,
+            'http_status': None,
+            'correlation_id': correlation_id,
+        }
 
-        # Parse JSON if possible; if not, keep a short snippet (often HTML for 404).
-        response_data = {}
-        response_text_snippet = ""
-        if response.content:
-            try:
-                response_data = response.json()
-            except JSONDecodeError:
-                response_text_snippet = (response.text or "")[:200]
+    response_data = response_data or {}
+    response_text_snippet = safe_truncate(response_text, limit=200)
 
-        if provider.cardpointe_debug_logging:
-            _logger.info(
-                "[CARDPOINTE] response correlation_id=%s http_status=%s body=%s",
-                correlation_id,
-                http_status,
-                _cardpointe_redact(response_data) if response_data else response_text_snippet,
-            )
+    if provider.cardpointe_debug_logging:
+        body = redact_payload(response_data) if response_data else response_text_snippet
+        _logger.info(
+            "[CARDPOINTE] response correlation_id=%s http_status=%s body=%s",
+            correlation_id,
+            http_status,
+            body,
+        )
 
-        if http_status >= 400:
-            # Always log failures with URL + body snippet to diagnose 404 routing issues.
-            _logger.warning(
-                "[CARDPOINTE] http error method=%s url=%s correlation_id=%s http_status=%s body=%s",
-                method,
-                url,
-                correlation_id,
-                http_status,
-                _cardpointe_redact(response_data) if response_data else response_text_snippet,
-            )
-            error_message = response_data.get('message') or response_data.get('error')
-            if not error_message and response_text_snippet:
-                error_message = response_text_snippet
-
-            return {
-                'ok': False,
-                'data': response_data or {'raw': response_text_snippet},
-                'error_message': error_message or _("CardPointe request failed."),
-                'error_code': response_data.get('code') if response_data else None,
-                'http_status': http_status,
-                'correlation_id': correlation_id,
-            }
+    if http_status >= 400:
+        _logger.warning(
+            "[CARDPOINTE] http error method=%s url=%s correlation_id=%s http_status=%s body=%s",
+            method,
+            url,
+            correlation_id,
+            http_status,
+            redact_payload(response_data) if response_data else response_text_snippet,
+        )
+        error_message = response_data.get('message') or response_data.get('error')
+        if not error_message and response_text_snippet:
+            error_message = response_text_snippet
 
         return {
-            'ok': True,
-            'data': response_data,
-            'error_message': '',
-            'error_code': None,
+            'ok': False,
+            'data': response_data or {'raw': response_text_snippet},
+            'error_message': error_message or _("CardPointe request failed."),
+            'error_code': response_data.get('code') if response_data else None,
             'http_status': http_status,
             'correlation_id': correlation_id,
         }
 
-    except requests.exceptions.Timeout:
-        return {
-            'ok': False,
-            'data': {},
-            'error_message': _("CardPointe request timed out."),
-            'error_code': 'timeout',
-            'http_status': None,
-            'correlation_id': correlation_id,
-        }
-    except requests.exceptions.ConnectionError:
-        return {
-            'ok': False,
-            'data': {},
-            'error_message': _("CardPointe connection error."),
-            'error_code': 'connection_error',
-            'http_status': None,
-            'correlation_id': correlation_id,
-        }
-    except requests.exceptions.RequestException as exc:
-        return {
-            'ok': False,
-            'data': {},
-            'error_message': str(exc),
-            'error_code': 'request_error',
-            'http_status': None,
-            'correlation_id': correlation_id,
-        }
+    return {
+        'ok': True,
+        'data': response_data,
+        'error_message': '',
+        'error_code': None,
+        'http_status': http_status,
+        'correlation_id': correlation_id,
+    }

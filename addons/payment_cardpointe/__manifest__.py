@@ -4,7 +4,7 @@
     'category': 'Accounting/Payment Providers',
     'summary': 'CardPointe payment integration for e-commerce',
     'description': 'CardPointe payment integration for website checkout.',
-    'depends': ['payment', 'payment_cardpointe_base', 'website_sale'],
+    'depends': ['payment', 'website_sale', 'payment_cardpointe_base'],
     'data': [
         'views/payment_templates.xml',
         'views/account_journal.xml',
