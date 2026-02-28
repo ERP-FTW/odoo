@@ -56,3 +56,11 @@ Then configure payment method `Card (CardPointe POC)`:
 3. Open POS, create order `$1.00`, click **Send Payment Request**.
 4. Confirm terminal prompts for card (if not in merchant mode).
 5. Confirm approved payment stores `retref/authcode/respcode/resptext` on `pos.payment`.
+
+
+## Sanity checklist
+
+- Module dependency: install `cardpointe_api_base` before/with this addon.
+- `POST /v2/connect` must return `X-CardConnect-SessionKey`.
+- `POST /v4/authCard` must return `respstat/respcode`; approvals accept `respstat=A` or `respcode in {000,00}`.
+- Ensure Authorization and session key are always redacted in logs.

@@ -3,7 +3,7 @@
     'version': '16.0.1.0.0',
     'summary': 'POC CardPointe terminal integration for POS',
     'category': 'Sales/Point of Sale',
-    'depends': ['point_of_sale'],
+    'depends': ['point_of_sale', 'cardpointe_api_base'],
     'data': [
         'security/ir.model.access.csv',
         'views/cardpointe_terminal_config_views.xml',
