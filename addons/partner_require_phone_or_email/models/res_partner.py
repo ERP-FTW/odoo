@@ -21,24 +21,6 @@ class ResPartner(models.Model):
         index=True,
     )
 
-    _sql_constraints = [
-        (
-            'partner_email_normalized_custom_uniq',
-            'unique(email_normalized_custom)',
-            'A contact with this email already exists.',
-        ),
-        (
-            'partner_phone_normalized_custom_uniq',
-            'unique(phone_normalized_custom)',
-            'A contact with this phone number already exists.',
-        ),
-        (
-            'partner_mobile_normalized_custom_uniq',
-            'unique(mobile_normalized_custom)',
-            'A contact with this phone number already exists.',
-        ),
-    ]
-
     @api.model
     def _normalize_email(self, email):
         email = (email or '').strip().lower()
@@ -89,12 +71,7 @@ class ResPartner(models.Model):
                     _('Please set at least one contact method: Email or Phone/Mobile.')
                 )
 
-    @api.constrains(
-        'email_normalized_custom',
-        'phone_normalized_custom',
-        'mobile_normalized_custom',
-        'active',
-    )
+    @api.constrains('email', 'phone', 'mobile', 'active')
     def _check_unique_contact_methods_cross_fields(self):
         for partner in self:
             if not partner._requires_unique_contact_methods():
