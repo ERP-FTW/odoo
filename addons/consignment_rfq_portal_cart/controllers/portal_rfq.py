@@ -106,10 +106,10 @@ class ConsignmentRfqPortal(http.Controller):
         cart = self._get_or_create_cart(partner)
         line = cart.order_line.filtered(lambda l: l.product_id == product and float_is_zero(l.price_unit, precision_rounding=0.00001))[:1]
         if line:
-            line.product_qty += quantity
+            line.with_user(SUPERUSER_ID).write({'product_qty': line.product_qty + quantity})
             _logger.info('Portal RFQ line updated: po_id=%s partner_id=%s product_id=%s', cart.id, partner.id, product.id)
         else:
-            request.env['purchase.order.line'].create({
+            request.env['purchase.order.line'].with_user(SUPERUSER_ID).create({
                 'order_id': cart.id,
                 'product_id': product.id,
                 'product_qty': quantity,
@@ -149,9 +149,9 @@ class ConsignmentRfqPortal(http.Controller):
             except (TypeError, ValueError):
                 quantity = 0.0
             if quantity <= 0:
-                line.unlink()
+                line.with_user(SUPERUSER_ID).unlink()
             else:
-                line.product_qty = quantity
+                line.with_user(SUPERUSER_ID).write({'product_qty': quantity})
 
         cart.x_portal_notes = x_portal_notes
         _logger.info('Portal RFQ cart updated: po_id=%s partner_id=%s', cart.id, partner.id)
