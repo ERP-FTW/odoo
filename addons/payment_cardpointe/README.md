@@ -40,3 +40,11 @@ Tail logs for correlation IDs:
 ```bash
 tail -f odoo.log | rg "\[CARDPOINTE\]"
 ```
+
+
+## Sanity checklist
+
+- Module dependency: install `cardpointe_api_base` (and `payment_cardpointe_base`) before/with this addon.
+- Gateway requests (`inquire`, `void`, `refund`, `auth`) continue using Basic auth user/password.
+- Endpoint semantics and payload shapes remain unchanged from existing gateway flow.
+- Sensitive headers remain redacted in debug logs.
