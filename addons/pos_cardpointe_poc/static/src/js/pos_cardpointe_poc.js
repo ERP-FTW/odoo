@@ -11,6 +11,11 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
     const _t = core._t;
 
     const CardPointePOC = PaymentInterface.extend({
+        init: function () {
+            this._super.apply(this, arguments);
+            this._activeRequestByCid = {};
+        },
+
         send_payment_request: async function (cid) {
             this._super.apply(this, arguments);
             const order = this.pos.get_order();
@@ -25,9 +30,9 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             }
 
             line.set_payment_status('waitingCard');
-            let result;
+            let startResult;
             try {
-                result = await rpc.query({
+                startResult = await rpc.query({
                     route: '/pos_cardpointe_poc/start',
                     params: {
                         pos_config_id: this.pos.config.id,
@@ -37,12 +42,32 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
                         order_uid: order.uid,
                         payment_line_uuid: line.cid,
                     },
+                }, { shadow: true, timeout: 30000 });
+            } catch (_error) {
+                this._showError(_t('Could not reach Odoo server while starting terminal payment.'));
+                line.set_payment_status('retry');
+                return false;
+            }
+
+            if (startResult.status !== 'ready' || !startResult.request_id) {
+                this._handleFailedResult(line, startResult);
+                return false;
+            }
+
+            this._activeRequestByCid[cid] = startResult.request_id;
+            let result;
+            try {
+                result = await rpc.query({
+                    route: '/pos_cardpointe_poc/auth',
+                    params: { request_id: startResult.request_id },
                 }, { shadow: true, timeout: 150000 });
             } catch (_error) {
                 this._showError(_t('Could not reach Odoo server during terminal payment.'));
                 line.set_payment_status('retry');
+                delete this._activeRequestByCid[cid];
                 return false;
             }
+            delete this._activeRequestByCid[cid];
 
             if (result.status === 'approved') {
                 const approvedAmount = this._normalizeAmount(result.amount, line.amount);
@@ -58,6 +83,49 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
                 return true;
             }
 
+            this._handleFailedResult(line, result);
+            return false;
+        },
+
+        send_payment_cancel: async function (order, cid) {
+            this._super.apply(this, arguments);
+            const line = order.paymentlines.find((paymentLine) => paymentLine.cid === cid);
+            if (!line) {
+                return false;
+            }
+
+            const requestId = this._activeRequestByCid[cid];
+            if (!requestId) {
+                line.set_payment_status('retry');
+                return true;
+            }
+
+            let result;
+            try {
+                result = await rpc.query({
+                    route: '/pos_cardpointe_poc/cancel',
+                    params: { request_id: requestId },
+                }, { shadow: true, timeout: 30000 });
+            } catch (_error) {
+                this._showError(_t('Could not reach Odoo server to cancel terminal payment.'));
+                line.set_payment_status('retry');
+                return false;
+            }
+
+            delete this._activeRequestByCid[cid];
+            line.cardpointe_status = result.status || 'error';
+            line.cardpointe_respcode = result.respcode || '';
+            line.cardpointe_resptext = result.resptext || '';
+            line.set_payment_status('retry');
+
+            if (result.status !== 'cancelled') {
+                this._showError(result.message || _t('Cancel request was not accepted by terminal.'));
+                return false;
+            }
+            return true;
+        },
+
+        _handleFailedResult: function (line, result) {
             line.cardpointe_status = result.status || 'error';
             line.cardpointe_respcode = result.respcode || '';
             line.cardpointe_resptext = result.resptext || '';
@@ -74,7 +142,6 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             } else {
                 this._showError(result.message || _t('Card payment not approved.'));
             }
-            return false;
         },
 
         _normalizeAmount: function (amount, fallback) {

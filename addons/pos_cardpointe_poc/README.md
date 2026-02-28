@@ -11,6 +11,9 @@ Minimal Odoo 16 proof-of-concept addon to run POS card-present sales on CardPoin
 2. `POST /v4/authCard`
    - Body: `merchantId`, `hsn`, `amount` (implied cents), `capture: true`, `orderId`
    - Headers: `Authorization` + `X-CardConnect-SessionKey`
+3. `POST /v2/cancel` (when cashier clicks **Cancel** while terminal is waiting)
+   - Body: `merchantId`, `hsn`
+   - Headers: `Authorization` + `X-CardConnect-SessionKey`
 
 No PAN is stored.
 
@@ -44,6 +47,8 @@ Then configure payment method `Card (CardPointe POC)`:
 - **errorCode 9 / merchant mode**: terminal is in Merchant Mode, switch to CardPointe Integrated/Bolt app.
 - **errorCode 8 / cancelled**: payment cancelled on terminal.
 - **timeout**: terminal or network did not finish within timeout; verify terminal app mode, connectivity, and retry.
+- **Cancel button appears to do nothing**: ensure multiple Odoo workers are available so a long-running `/auth` request does not starve the `/cancel` request, then verify logs for `CardPointe cancel mapped`.
+- **Proactive troubleshooting logs**: track one payment lifecycle by filtering server logs for request id (`CardPointe terminal session established request_id=...`, `CardPointe auth started request_id=...`, `CardPointe cancel ...`).
 
 ## Test checklist
 
