@@ -1,6 +1,6 @@
 import logging
 
-from odoo import _, fields, http
+from odoo import _, fields, http, SUPERUSER_ID
 from odoo.exceptions import AccessError
 from odoo.http import request
 from odoo.tools import float_is_zero
@@ -41,9 +41,11 @@ class ConsignmentRfqPortal(http.Controller):
             'x_portal_rfq': True,
             'x_portal_submitted': False,
         }
-        cart = request.env['purchase.order'].create(values)
+        # Portal users cannot access ir.sequence. Creating the PO with superuser
+        # avoids sequence access errors while keeping ownership on partner_id.
+        cart = request.env['purchase.order'].with_user(SUPERUSER_ID).create(values)
         _logger.info('Portal RFQ cart created: po_id=%s partner_id=%s', cart.id, partner.id)
-        return cart
+        return request.env['purchase.order'].browse(cart.id)
 
     def _get_allowed_products_domain(self, search=None):
         domain = [
