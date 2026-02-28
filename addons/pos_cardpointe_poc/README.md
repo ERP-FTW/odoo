@@ -47,6 +47,7 @@ Then configure payment method `Card (CardPointe POC)`:
 - **errorCode 9 / merchant mode**: terminal is in Merchant Mode, switch to CardPointe Integrated/Bolt app.
 - **errorCode 8 / cancelled**: payment cancelled on terminal.
 - **timeout**: terminal or network did not finish within timeout; verify terminal app mode, connectivity, and retry.
+- **errorCode 7 / already in use on connect**: treat as stale terminal session state; retry once, then restart CardPointe app on terminal if it persists.
 - **Cancel button appears to do nothing**: ensure multiple Odoo workers are available so a long-running `/auth` request does not starve the `/cancel` request, then verify logs for `CardPointe cancel mapped`.
 - **Proactive troubleshooting logs**: track one payment lifecycle by filtering server logs for request id (`CardPointe terminal session established request_id=...`, `CardPointe auth started request_id=...`, `CardPointe cancel ...`).
 

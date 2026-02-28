@@ -80,13 +80,22 @@ class CardPointeTerminalClient:
         data = dict(result.get('data') or {})
         error_code = str(data.get('errorCode') or '')
         error_message = data.get('errorMessage') or f"Connect failed (HTTP {result.get('http_status')})."
+
         if error_code == '7' or 'already in use' in error_message.lower():
+            _logger.warning(
+                "CardPointe connect returned errorCode=7 (already in use). Treating as recoverable connect error, not active POS in_use state. raw_message=%s",
+                error_message,
+            )
             return {
                 'ok': False,
-                'status': 'in_use',
-                'message': 'Terminal is already in use. Please wait a few seconds, then retry.',
+                'status': 'error',
+                'message': (
+                    'Terminal session was not ready (CardPointe errorCode 7). '
+                    'Please retry once. If it persists, restart the CardPointe app on terminal and try again.'
+                ),
                 'raw': result,
             }
+
         if error_code == '9' or 'merchant mode' in error_message.lower():
             return {
                 'ok': False,
@@ -94,6 +103,7 @@ class CardPointeTerminalClient:
                 'message': 'Terminal is in Merchant Mode. Switch to CardPointe Integrated/Bolt app and retry.',
                 'raw': result,
             }
+
         return {
             'ok': False,
             'status': 'error',
