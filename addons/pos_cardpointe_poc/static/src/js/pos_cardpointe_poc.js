@@ -14,6 +14,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
         init: function () {
             this._super.apply(this, arguments);
             this._activeRequestByCid = {};
+            this._cashierCancelledByCid = {};
         },
 
         send_payment_request: async function (cid) {
@@ -26,6 +27,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             if (line.amount <= 0) {
                 this._showError(_t('Amount must be greater than zero.'));
                 line.set_payment_status('retry');
+                delete this._cashierCancelledByCid[cid];
                 return false;
             }
 
@@ -55,6 +57,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             }
 
             this._activeRequestByCid[cid] = startResult.request_id;
+            delete this._cashierCancelledByCid[cid];
             let result;
             try {
                 result = await rpc.query({
@@ -83,7 +86,17 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
                 return true;
             }
 
+            if (result.status === 'cancelled' && this._cashierCancelledByCid[cid]) {
+                line.cardpointe_status = 'cancelled';
+                line.cardpointe_respcode = result.respcode || '';
+                line.cardpointe_resptext = result.resptext || '';
+                line.set_payment_status('retry');
+                delete this._cashierCancelledByCid[cid];
+                return false;
+            }
+
             this._handleFailedResult(line, result);
+            delete this._cashierCancelledByCid[cid];
             return false;
         },
 
@@ -97,8 +110,11 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             const requestId = this._activeRequestByCid[cid];
             if (!requestId) {
                 line.set_payment_status('retry');
+                delete this._cashierCancelledByCid[cid];
                 return true;
             }
+
+            this._cashierCancelledByCid[cid] = true;
 
             let result;
             try {
@@ -109,6 +125,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             } catch (_error) {
                 this._showError(_t('Could not reach Odoo server to cancel terminal payment.'));
                 line.set_payment_status('retry');
+                delete this._cashierCancelledByCid[cid];
                 return false;
             }
 
@@ -120,6 +137,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
 
             if (result.status !== 'cancelled') {
                 this._showError(result.message || _t('Cancel request was not accepted by terminal.'));
+                delete this._cashierCancelledByCid[cid];
                 return false;
             }
             return true;

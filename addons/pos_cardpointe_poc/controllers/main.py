@@ -126,14 +126,22 @@ class PosCardPointeController(http.Controller):
             return {'status': 'error', 'message': 'CardPointe config missing on payment method.'}
 
         _logger.info("CardPointe auth started request_id=%s", request_id)
+        terminal_client = CardPointeTerminalClient(config)
         try:
-            result = CardPointeTerminalClient(config).auth_card_with_session(
+            result = terminal_client.auth_card_with_session(
                 amount_dollars=active_request['amount'],
                 order_id=active_request['order_uid'],
                 session_key=active_request['session_key'],
             )
         finally:
             self._pop_active_request(request_id)
+            disconnect_result = terminal_client.disconnect(active_request['session_key'])
+            if not disconnect_result.get('ok'):
+                _logger.warning(
+                    "CardPointe auth cleanup disconnect failed request_id=%s reason=%s",
+                    request_id,
+                    disconnect_result.get('message'),
+                )
 
         if result.get('status') == 'approved':
             return {
@@ -175,7 +183,16 @@ class PosCardPointeController(http.Controller):
         if not payment_method or not payment_method.cardpointe_config_id:
             return {'status': 'error', 'message': 'CardPointe config no longer available for cancellation.'}
 
-        result = CardPointeTerminalClient(payment_method.cardpointe_config_id).cancel(active_request['session_key'])
+        terminal_client = CardPointeTerminalClient(payment_method.cardpointe_config_id)
+        result = terminal_client.cancel(active_request['session_key'])
+        disconnect_result = terminal_client.disconnect(active_request['session_key'])
+        if not disconnect_result.get('ok'):
+            _logger.warning(
+                "CardPointe cancel cleanup disconnect failed request_id=%s reason=%s",
+                request_id,
+                disconnect_result.get('message'),
+            )
+
         if result.get('ok'):
             return {
                 'status': 'cancelled',

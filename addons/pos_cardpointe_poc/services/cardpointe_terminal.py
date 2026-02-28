@@ -76,6 +76,31 @@ class CardPointeTerminalClient:
             'text': text,
         }
 
+    def _map_connect_error(self, result):
+        data = dict(result.get('data') or {})
+        error_code = str(data.get('errorCode') or '')
+        error_message = data.get('errorMessage') or f"Connect failed (HTTP {result.get('http_status')})."
+        if error_code == '7' or 'already in use' in error_message.lower():
+            return {
+                'ok': False,
+                'status': 'in_use',
+                'message': 'Terminal is already in use. Please wait a few seconds, then retry.',
+                'raw': result,
+            }
+        if error_code == '9' or 'merchant mode' in error_message.lower():
+            return {
+                'ok': False,
+                'status': 'merchant_mode',
+                'message': 'Terminal is in Merchant Mode. Switch to CardPointe Integrated/Bolt app and retry.',
+                'raw': result,
+            }
+        return {
+            'ok': False,
+            'status': 'error',
+            'message': error_message,
+            'raw': result,
+        }
+
     def connect(self):
         payload = {
             'merchantId': self.config.merchant_id,
@@ -88,14 +113,33 @@ class CardPointeTerminalClient:
         header_value = result['headers'].get('X-CardConnect-SessionKey', '')
         session_key = header_value.split(';', 1)[0].strip()
         if result['http_status'] != 200 or not session_key:
-            return {
-                'ok': False,
-                'status': 'error',
-                'message': f"Connect failed (HTTP {result['http_status']}).",
-                'raw': result,
-            }
+            return self._map_connect_error(result)
 
         return {'ok': True, 'session_key': session_key}
+
+    def disconnect(self, session_key):
+        payload = {
+            'merchantId': self.config.merchant_id,
+            'hsn': self.config.device_serial,
+        }
+        result = self._request(
+            'POST',
+            '/v2/disconnect',
+            payload=payload,
+            session_key=session_key,
+            timeout=15,
+        )
+        if not result.get('ok'):
+            return result
+
+        is_ok = result.get('http_status') == 200
+        _logger.info("CardPointe disconnect mapped ok=%s http_status=%s", is_ok, result.get('http_status'))
+        return {
+            'ok': is_ok,
+            'status': 'ok' if is_ok else 'error',
+            'message': 'Disconnect accepted by terminal.' if is_ok else 'Disconnect failed.',
+            'raw': dict(result.get('data') or {}),
+        }
 
     def cancel(self, session_key):
         payload = {
