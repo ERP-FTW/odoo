@@ -13,6 +13,9 @@
                         <field name="device_type"/>
                         <field name="device_serial"/>
                         <field name="auth_key" password="True"/>
+                        <field name="gateway_base_url"/>
+                        <field name="gateway_username"/>
+                        <field name="gateway_password" password="True"/>
                         <field name="request_timeout_seconds"/>
                     </group>
                 </sheet>

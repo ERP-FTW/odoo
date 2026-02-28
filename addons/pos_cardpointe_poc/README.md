@@ -70,3 +70,43 @@ Then configure payment method `Card (CardPointe POC)`:
 - `POST /v2/connect` must return `X-CardConnect-SessionKey`.
 - `POST /v4/authCard` must return `respstat/respcode`; approvals accept `respstat=A` or `respcode in {000,00}`.
 - Ensure Authorization and session key are always redacted in logs.
+
+
+## Gateway refund/void flow for POS return orders
+
+When a POS payment line amount is negative, this module now triggers a server-side Gateway flow:
+
+1. Find the original sale `retref` values from refunded ticket lines.
+2. Allocate refund amount across original sale payments (partial refunds supported).
+3. `GET /inquire/{retref}/{merchid}`.
+4. If unsettled (`setlstat` indicates not settled): `POST /void`.
+5. Otherwise: `POST /refund` with allocated amount.
+
+Results are written back to the refund `pos.payment` line (`cardpointe_retref`, `cardpointe_respcode`, `cardpointe_resptext`, `cardpointe_operation`, `cardpointe_original_retref`).
+
+### cURL examples
+
+```bash
+GW_USER="testing"
+GW_PASS="testing123"
+MID="800000009875"
+RETREF="343005123105"
+
+curl -sv -u "$GW_USER:$GW_PASS" \
+  "https://fts-uat.cardconnect.com/cardconnect/rest/inquire/$RETREF/$MID"
+```
+
+```bash
+curl -sv -u "$GW_USER:$GW_PASS" \
+  -H "Content-Type: application/json" \
+  -d '{"merchid":"$MID","retref":"$RETREF"}' \
+  "https://fts-uat.cardconnect.com/cardconnect/rest/void"
+```
+
+```bash
+AMT="1.00"
+curl -sv -u "$GW_USER:$GW_PASS" \
+  -H "Content-Type: application/json" \
+  -d '{"merchid":"$MID","retref":"$RETREF","amount":"$AMT"}' \
+  "https://fts-uat.cardconnect.com/cardconnect/rest/refund"
+```

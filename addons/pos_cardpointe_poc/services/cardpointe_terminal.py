@@ -88,11 +88,8 @@ class CardPointeTerminalClient:
             )
             return {
                 'ok': False,
-                'status': 'error',
-                'message': (
-                    'Terminal session was not ready (CardPointe errorCode 7). '
-                    'Please retry once. If it persists, restart the CardPointe app on terminal and try again.'
-                ),
+                'status': 'in_use',
+                'message': 'Terminal is in use, retry in a few seconds.',
                 'raw': result,
             }
 
