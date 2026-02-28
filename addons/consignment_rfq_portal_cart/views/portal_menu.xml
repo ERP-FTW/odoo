@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="portal_my_home_consignment" inherit_id="portal.portal_my_home" name="Portal Consignment Entries">
+        <xpath expr="//div[contains(@class, 'o_portal_docs')]" position="inside">
+            <t t-if="request.env.user.has_group('base.group_portal') and request.env.user.partner_id.x_is_consigner">
+                <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="/my/consign">
+                    <span>Consign RFQ</span>
+                </a>
+            </t>
+        </xpath>
+    </template>
+</odoo>
