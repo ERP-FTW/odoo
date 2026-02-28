@@ -2,7 +2,7 @@
 <odoo>
     <record id="group_consignment_rfq_manager" model="res.groups">
         <field name="name">Consignment RFQ Manager</field>
-        <field name="category_id" ref="base.module_category_purchase_management"/>
+        <field name="category_id" ref="base.module_category_inventory_purchase"/>
         <field name="implied_ids" eval="[(4, ref('purchase.group_purchase_user'))]"/>
     </record>
 
