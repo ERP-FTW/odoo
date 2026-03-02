@@ -16,6 +16,7 @@
     "data": [
         "security/ir.model.access.csv",
         "views/vat_eds_export_wizard_views.xml",
+        "views/account_move_views.xml",
         "report/vat_eds_xml_report.xml",
         "report/vat_eds_xml_templates.xml",
     ],

@@ -34,7 +34,17 @@ class AccountTax(models.Model):
         selection=L10N_LV_EDS_DAR_VEIDS_SELECTION,
         string="LV EDS DarVeids",
     )
-    l10n_lv_eds_dok_veids = fields.Char(string="LV EDS DokVeids")
+    l10n_lv_eds_dok_veids = fields.Selection(
+        selection=[
+            ("1", "1 - Invoice"),
+            ("2", "2 - Receipt"),
+            ("3", "3 - Non-cash payment document"),
+            ("4", "4 - Credit note"),
+            ("5", "5 - Other"),
+            ("6", "6 - Customs declaration"),
+        ],
+        string="LV EDS DokVeids",
+    )
     l10n_lv_eds_pazime = fields.Char(string="LV EDS Pazime")
     l10n_lv_eds_requires_partner_vat = fields.Boolean(string="LV EDS Requires Partner VAT")
     l10n_lv_eds_include_vat_amount = fields.Boolean(string="LV EDS Include VAT Amount", default=True)

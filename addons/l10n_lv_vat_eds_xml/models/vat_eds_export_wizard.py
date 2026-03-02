@@ -493,19 +493,40 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
     # Annex framework (tax-driven)
     # -----------------------
 
-    def _validate_dar_veids(self, code, tax):
-        allowed_codes = {value for value, _label in tax.L10N_LV_EDS_DAR_VEIDS_SELECTION}
+    def _get_default_move_dok_veids(self, move):
+        if move.move_type in ("out_refund", "in_refund"):
+            return "4"
+        return "1"
+
+    def _get_primary_eds_tax(self, line, mapped_taxes):
+        applied_taxes = (line.tax_line_id or line.tax_ids).filtered(lambda tax: tax.id in mapped_taxes).sorted("id")
+        return applied_taxes[:1]
+
+    def _validate_dar_veids(self, code, move, line):
+        allowed_codes = {value for value, _label in self.env["account.tax"].L10N_LV_EDS_DAR_VEIDS_SELECTION}
         normalized_code = (code or "").strip()
         if normalized_code not in allowed_codes:
             raise UserError(_(
-                "Invalid DarVeids '%(code)s' configured on tax '%(tax_name)s' (ID: %(tax_id)s). "
-                "Please select one of the allowed DarVeids codes."
+                "Invalid DarVeids '%(code)s' on invoice %(move)s line %(line)s."
             ) % {
                 "code": normalized_code or "<empty>",
-                "tax_name": tax.display_name,
-                "tax_id": tax.id,
+                "move": move.display_name,
+                "line": line.display_name or line.id,
             })
         return normalized_code
+
+    def _get_effective_eds_mapping(self, move, line, primary_tax):
+        section = line.l10n_lv_eds_section or primary_tax.l10n_lv_eds_section
+        dar_veids = line.l10n_lv_eds_dar_veids or primary_tax.l10n_lv_eds_dar_veids
+        if not section or section == "none":
+            raise UserError(_(
+                "Missing EDS Section on invoice %(move)s line %(line)s."
+            ) % {"move": move.display_name, "line": line.display_name or line.id})
+        if not dar_veids:
+            raise UserError(_(
+                "Missing DarVeids on invoice %(move)s line %(line)s."
+            ) % {"move": move.display_name, "line": line.display_name or line.id})
+        return section, self._validate_dar_veids(dar_veids, move, line)
 
     def _get_annex_data(self):
         self.ensure_one()
@@ -539,13 +560,8 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             if line.display_type in ("line_note", "line_section"):
                 reasons["non_transaction_line"] += 1
                 continue
-            applied_taxes = line.tax_line_id or line.tax_ids
-            if not applied_taxes:
-                reasons["line_without_taxes"] += 1
-                continue
-
-            matched_taxes = applied_taxes.filtered(lambda t: t.id in mapped_taxes)
-            if not matched_taxes:
+            primary_tax = self._get_primary_eds_tax(line, mapped_taxes)
+            if not primary_tax:
                 reasons["tax_unmapped_to_eds"] += 1
                 continue
 
@@ -554,55 +570,52 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             partner_vat = self._get_partner_vat(partner)
             partner_country = partner.country_id.code or ""
 
-            for tax in matched_taxes:
-                cfg_tax = mapped_taxes[tax.id]
-                if not cfg_tax.l10n_lv_eds_dar_veids:
-                    reasons["tax_missing_dar_veids"] += 1
-                    continue
-                if cfg_tax.l10n_lv_eds_requires_partner_vat and not partner_vat:
-                    reasons["partner_vat_missing"] += 1
-                    continue
-                if not partner_country:
-                    reasons["partner_country_missing"] += 1
-                    continue
+            cfg_tax = mapped_taxes[primary_tax.id]
+            section, dar_veids = self._get_effective_eds_mapping(move, line, cfg_tax)
+            dok_veids = move.l10n_lv_eds_dok_veids or self._get_default_move_dok_veids(move)
+            if cfg_tax.l10n_lv_eds_requires_partner_vat and not partner_vat:
+                reasons["partner_vat_missing"] += 1
+                continue
+            if not partner_country:
+                reasons["partner_country_missing"] += 1
+                continue
 
-                section = cfg_tax.l10n_lv_eds_section
-                row_currency = move.currency_id or company.currency_id
-                row_currency_code = row_currency.name or company.currency_id.name or "EUR"
-                is_foreign_currency = row_currency != company.currency_id
-                if section == "pvn2":
-                    key = (
-                        section,
-                        cfg_tax.l10n_lv_eds_pazime or "",
-                        partner_country,
-                        partner_vat,
-                    )
+            row_currency = move.currency_id or company.currency_id
+            row_currency_code = row_currency.name or company.currency_id.name or "EUR"
+            is_foreign_currency = row_currency != company.currency_id
+            if section == "pvn2":
+                key = (
+                    section,
+                    cfg_tax.l10n_lv_eds_pazime or "",
+                    partner_country,
+                    partner_vat,
+                )
+            else:
+                key = (
+                    section,
+                    dar_veids,
+                    dok_veids,
+                    cfg_tax.l10n_lv_eds_pazime or "",
+                    partner_country,
+                    partner_vat,
+                    self._xml_text(partner.name),
+                    self._xml_text(move.name or move.ref),
+                    move.invoice_date or move.date,
+                    row_currency_code,
+                )
+            bucket = grouped[key]
+            bucket["include_vat"] = bool(cfg_tax.l10n_lv_eds_include_vat_amount)
+            sign = -1 if move.move_type in ("out_refund", "in_refund") else 1
+            if line.tax_line_id:
+                bucket["vat"] += sign * abs(line.balance)
+            else:
+                bucket["base"] += sign * abs(line.balance)
+                if is_foreign_currency:
+                    bucket["base_currency"] += sign * abs(line.amount_currency)
+                    counters["currency_rows_foreign"] += 1
                 else:
-                    key = (
-                        section,
-                        self._validate_dar_veids(cfg_tax.l10n_lv_eds_dar_veids, cfg_tax),
-                        cfg_tax.l10n_lv_eds_dok_veids or self._default_doc_type(move),
-                        cfg_tax.l10n_lv_eds_pazime or "",
-                        partner_country,
-                        partner_vat,
-                        self._xml_text(partner.name),
-                        self._xml_text(move.name or move.ref),
-                        move.invoice_date or move.date,
-                        row_currency_code,
-                    )
-                bucket = grouped[key]
-                bucket["include_vat"] = bool(cfg_tax.l10n_lv_eds_include_vat_amount)
-                sign = -1 if move.move_type in ("out_refund", "in_refund") else 1
-                if line.tax_line_id:
-                    bucket["vat"] += sign * abs(line.balance)
-                else:
-                    bucket["base"] += sign * abs(line.balance)
-                    if is_foreign_currency:
-                        bucket["base_currency"] += sign * abs(line.amount_currency)
-                        counters["currency_rows_foreign"] += 1
-                    else:
-                        bucket["base_currency"] += sign * abs(line.balance)
-                        counters["currency_rows_company"] += 1
+                    bucket["base_currency"] += sign * abs(line.balance)
+                    counters["currency_rows_company"] += 1
 
         counters.update(reasons)
 
@@ -689,7 +702,3 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             vat = vat[2:]
         return vat
 
-    def _default_doc_type(self, move):
-        if move.move_type in ("out_refund", "in_refund"):
-            return "K"
-        return "R"
