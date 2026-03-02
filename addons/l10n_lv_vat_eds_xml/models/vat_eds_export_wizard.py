@@ -492,6 +492,21 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
     # -----------------------
     # Annex framework (tax-driven)
     # -----------------------
+
+    def _validate_dar_veids(self, code, tax):
+        allowed_codes = {value for value, _label in tax.L10N_LV_EDS_DAR_VEIDS_SELECTION}
+        normalized_code = (code or "").strip()
+        if normalized_code not in allowed_codes:
+            raise UserError(_(
+                "Invalid DarVeids '%(code)s' configured on tax '%(tax_name)s' (ID: %(tax_id)s). "
+                "Please select one of the allowed DarVeids codes."
+            ) % {
+                "code": normalized_code or "<empty>",
+                "tax_name": tax.display_name,
+                "tax_id": tax.id,
+            })
+        return normalized_code
+
     def _get_annex_data(self):
         self.ensure_one()
         company = self.company_id
@@ -565,7 +580,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
                 else:
                     key = (
                         section,
-                        cfg_tax.l10n_lv_eds_dar_veids,
+                        self._validate_dar_veids(cfg_tax.l10n_lv_eds_dar_veids, cfg_tax),
                         cfg_tax.l10n_lv_eds_dok_veids or self._default_doc_type(move),
                         cfg_tax.l10n_lv_eds_pazime or "",
                         partner_country,
