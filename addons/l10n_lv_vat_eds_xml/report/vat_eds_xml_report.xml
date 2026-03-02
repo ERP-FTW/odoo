@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_lv_vat_eds_xml" model="ir.actions.report">
+        <field name="name">Latvia VAT Return (VID EDS XML)</field>
+        <field name="model">l10n_lv.vat.eds.export.wizard</field>
+        <field name="report_type">qweb-xml</field>
+        <field name="report_name">l10n_lv_vat_eds_xml.report_lv_vat_eds_xml</field>
+        <field name="report_file">l10n_lv_vat_eds_xml.report_lv_vat_eds_xml</field>
+        <!-- Optional: set xsd_schema here (supported by report_xml) once you add VID XSD to /data -->
+        <!-- <field name="xsd_schema" ref="l10n_lv_vat_eds_xml.xsd_dok_pvn_v7"/> -->
+        <field name="print_report_name">
+            (object._get_vid_taxpayer_code() or 'LV') + '_' + str(object._get_period_year_month()[0]) + str(object._get_period_year_month()[1]).zfill(2) + '_PVN.xml'
+        </field>
+    </record>
+</odoo>
