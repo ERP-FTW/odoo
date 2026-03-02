@@ -7,19 +7,16 @@
                 <Precizejums><t t-esc="o._xml_bool(o.is_correction)"/></Precizejums>
                 <ParskGads><t t-esc="o._get_period_year_month()[0]"/></ParskGads>
                 <ParskMen><t t-esc="o._get_period_year_month()[1]"/></ParskMen>
-                <ParskCeturksnis t-if="not o.omit_optional_headers" t-att="o._xml_nil_attr()"/>
+                <ParskCeturksnis t-if="not o.omit_optional_headers"></ParskCeturksnis>
                 <NmrKods><t t-esc="o._xml_text(o._get_vid_taxpayer_code())"/></NmrKods>
 
-                <t t-if="o._should_nil(o.phone)"><Talrunis t-att="o._xml_nil_attr()"/></t>
-                <t t-else=""><Talrunis><t t-esc="o._xml_text(o.phone)"/></Talrunis></t>
+                <Talrunis><t t-esc="o._xml_text(o.phone)"/></Talrunis>
 
-                <t t-if="not o.omit_optional_headers and o._should_nil(o.email)"><Epasts t-att="o._xml_nil_attr()"/></t>
-                <t t-if="not o.omit_optional_headers and not o._should_nil(o.email)"><Epasts><t t-esc="o._xml_text(o.email)"/></Epasts></t>
+                <Epasts t-if="not o.omit_optional_headers"><t t-esc="o._xml_text(o.email)"/></Epasts>
 
                 <Sagatavotajs t-if="not o.omit_optional_headers"><t t-esc="o._get_preparer_name()"/></Sagatavotajs>
 
-                <t t-if="not o.omit_optional_headers and o._should_nil(o._get_iban())"><IbanNumurs t-att="o._xml_nil_attr()"/></t>
-                <t t-if="not o.omit_optional_headers and not o._should_nil(o._get_iban())"><IbanNumurs><t t-esc="o._get_iban()"/></IbanNumurs></t>
+                <IbanNumurs t-if="not o.omit_optional_headers"><t t-esc="o._get_iban()"/></IbanNumurs>
 
                 <PVN t-if="o.export_pvn">
                     <R41><t t-esc="o._xml_amount(o._get_amount(41))"/></R41>
@@ -62,8 +59,7 @@
                             <t t-if="o._should_nil(row['dp_country']) and o._should_nil(row['dp_number']) and o._should_nil(row['dp_name']) and o._should_nil(row['dok_veids']) and o._should_nil(row['doc_number']) and o._should_nil(row['doc_date'])">
                                 <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
                                 <VertibaBezPvn><t t-esc="o._xml_text(row['base_amount'])"/></VertibaBezPvn>
-                                <t t-if="o._should_nil(row['vat_amount'])"><PvnVertiba t-att="o._xml_nil_attr()"/></t>
-                                <t t-else=""><PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba></t>
+                                <PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba>
                             </t>
                             <t t-else="">
                                 <DpValsts><t t-esc="o._xml_text(row['dp_country'])"/></DpValsts>
@@ -71,8 +67,7 @@
                                 <DpNosaukums><t t-esc="o._xml_text(row['dp_name'])"/></DpNosaukums>
                                 <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
                                 <VertibaBezPvn><t t-esc="o._xml_text(row['base_amount'])"/></VertibaBezPvn>
-                                <t t-if="o._should_nil(row['vat_amount'])"><PvnVertiba t-att="o._xml_nil_attr()"/></t>
-                                <t t-else=""><PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba></t>
+                                <PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba>
                                 <DokVeids><t t-esc="o._xml_text(row['dok_veids'])"/></DokVeids>
                                 <DokNumurs><t t-esc="o._xml_text(row['doc_number'])"/></DokNumurs>
                                 <DokDatums><t t-esc="o._xml_text(row['doc_date'])"/></DokDatums>
@@ -89,8 +84,7 @@
                             <DpNosaukums><t t-esc="o._xml_text(row['dp_name'])"/></DpNosaukums>
                             <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
                             <VertibaBezPvn><t t-esc="o._xml_text(row['base_amount'])"/></VertibaBezPvn>
-                            <t t-if="o._should_nil(row['vat_amount'])"><PvnVertiba t-att="o._xml_nil_attr()"/></t>
-                            <t t-else=""><PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba></t>
+                            <PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba>
                             <ValVertiba><t t-esc="o._xml_text(row['val_vertiba'])"/></ValVertiba>
                             <ValKods><t t-esc="o._xml_text(row['val_kods'])"/></ValKods>
                             <DokNumurs><t t-esc="o._xml_text(row['doc_number'])"/></DokNumurs>
@@ -107,8 +101,7 @@
                             <DpNosaukums><t t-esc="o._xml_text(row['dp_name'])"/></DpNosaukums>
                             <DarVeids><t t-esc="o._xml_text(row['dar_veids'])"/></DarVeids>
                             <VertibaBezPvn><t t-esc="o._xml_text(row['base_amount'])"/></VertibaBezPvn>
-                            <t t-if="o._should_nil(row['vat_amount'])"><PvnVertiba t-att="o._xml_nil_attr()"/></t>
-                            <t t-else=""><PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba></t>
+                            <PvnVertiba><t t-esc="o._xml_text(row['vat_amount'])"/></PvnVertiba>
                             <DokVeids><t t-esc="o._xml_text(row['dok_veids'])"/></DokVeids>
                             <DokNumurs><t t-esc="o._xml_text(row['doc_number'])"/></DokNumurs>
                             <DokDatums><t t-esc="o._xml_text(row['doc_date'])"/></DokDatums>
@@ -127,8 +120,9 @@
                     </t>
                 </PVN2>
 
-                <PVN7I t-if="o.export_pvn7i"/>
+                <PVN7I t-if="o.export_pvn7i"></PVN7I>
             </DokPVNv7>
         </t>
+        <!-- Self-closing -> open/close tag fixes: ParskCeturksnis, Talrunis, Epasts, IbanNumurs, PvnVertiba, PVN7I -->
     </template>
 </odoo>

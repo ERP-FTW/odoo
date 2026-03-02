@@ -112,6 +112,11 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         xml_text = (xml_content or b"").decode("utf-8", errors="replace")
         xml_text = re.sub(r"^\s*<\?xml[^>]*\?>\s*", "", xml_text, count=1)
         xml_text = "<?xml version=\"1.0\" encoding=\"windows-1257\"?>\n" + xml_text.lstrip()
+        if "/>" in xml_text:
+            raise UserError(_(
+                "Invalid LV VAT EDS XML export: self-closing tags ('/>') are not allowed. "
+                "Please render every XML tag with explicit opening and closing tags."
+            ))
         return xml_text.encode("windows-1257", errors="xmlcharrefreplace")
 
     def _build_export_filename(self):
@@ -266,7 +271,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
         return value and fields.Date.to_string(value) or None
 
     def _xml_nil_attr(self):
-        return {"xsi:nil": "true"}
+        return {}
 
     def _should_nil(self, value):
         return value is None or value is False or value == ""
