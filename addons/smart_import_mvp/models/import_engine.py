@@ -1,0 +1,483 @@
+import base64
+import csv
+import io
+import json
+import logging
+from collections import defaultdict
+
+from openpyxl import load_workbook
+
+from odoo import _, fields, models
+
+_logger = logging.getLogger(__name__)
+
+
+class FulcrumImportEngine(models.AbstractModel):
+    _name = 'mlr.fulcrum.import.engine'
+    _description = 'Fulcrum Import Engine'
+
+    PLAN_ORDER = [
+        'uoms',
+        'categories',
+        'vendors',
+        'locations_putaway',
+        'products',
+        'orderpoints',
+        'boms',
+    ]
+
+    def _to_float(self, value):
+        if value in (False, None, ''):
+            return 0.0
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _to_bool(self, value):
+        if isinstance(value, bool):
+            return value
+        return str(value or '').strip().lower() in ('1', 'true', 'yes', 'y')
+
+    def _normalized(self, value):
+        return str(value or '').strip()
+
+    def parse_items_xlsx(self, attachment):
+        data = base64.b64decode(attachment.datas)
+        workbook = load_workbook(io.BytesIO(data), data_only=True)
+        sheet = workbook['Filtered Items'] if 'Filtered Items' in workbook.sheetnames else workbook.active
+        rows = list(sheet.iter_rows(values_only=True))
+        if not rows:
+            return []
+        headers = [self._normalized(head) for head in rows[0]]
+        parsed_rows = []
+        for row in rows[1:]:
+            if not any(row):
+                continue
+            vals = {headers[idx]: row[idx] if idx < len(row) else False for idx in range(len(headers))}
+            parsed_rows.append({
+                'number': self._normalized(vals.get('Number')),
+                'description': self._normalized(vals.get('Description')),
+                'tags': self._normalized(vals.get('Tags')),
+                'item_origin': self._normalized(vals.get('ItemOrigin')),
+                'minimum_stock_on_hand': self._to_float(vals.get('MinimumStockOnHand')),
+                'minimum_production_qty': self._to_float(vals.get('MinimumProductionQuantity')),
+                'uom_name': self._normalized(vals.get('UnitOfMeasureName')),
+                'category_name': self._normalized(vals.get('Category')),
+                'is_sell_item': self._to_bool(vals.get('IsSellItem')),
+                'default_location': self._normalized(vals.get('Default Location')),
+                'vendor_name': self._normalized(vals.get('Vendor - Vendor.Name')),
+                'vendor_price': self._to_float(vals.get('Vendor - BasePrice')),
+                'vendor_min_qty': self._to_float(vals.get('Vendor - MinimumOrderQuantity')),
+                'vendor_uom_name': self._normalized(vals.get('Vendor - Vendor Unit of Measure')),
+                'raw': vals,
+            })
+        return parsed_rows
+
+    def parse_bom_xlsx(self, attachment):
+        data = base64.b64decode(attachment.datas)
+        workbook = load_workbook(io.BytesIO(data), data_only=True)
+        sheet = workbook['Sheet1'] if 'Sheet1' in workbook.sheetnames else workbook.active
+        rows = list(sheet.iter_rows(values_only=True))
+        if not rows:
+            return []
+        headers = [self._normalized(head) for head in rows[0]]
+        parsed_rows = []
+        for row in rows[1:]:
+            if not any(row):
+                continue
+            vals = {headers[idx]: row[idx] if idx < len(row) else False for idx in range(len(headers))}
+            parsed_rows.append({
+                'parent_number': self._normalized(vals.get('Parent Number')),
+                'parent_description': self._normalized(vals.get('Parent Description')),
+                'child_number': self._normalized(vals.get('Child Number')),
+                'child_description': self._normalized(vals.get('Child Description')),
+                'units_required': self._to_float(vals.get('Units Required')) or 1.0,
+            })
+        return parsed_rows
+
+    def build_plan(self, items_rows, bom_rows):
+        unique_uoms = sorted({r['uom_name'] for r in items_rows if r['uom_name']})
+        unique_categories = sorted({r['category_name'] for r in items_rows if r['category_name']})
+        unique_vendors = sorted({r['vendor_name'] for r in items_rows if r['vendor_name']})
+        unique_locations = sorted({r['default_location'] for r in items_rows if r['default_location']})
+        product_codes = {r['number'] for r in items_rows if r['number']}
+
+        bom_parent_codes = {r['parent_number'] for r in bom_rows if r['parent_number']}
+        bom_child_codes = {r['child_number'] for r in bom_rows if r['child_number']}
+        missing_bom_products = sorted((bom_parent_codes | bom_child_codes) - product_codes)
+
+        unknown_uoms = []
+        for row in items_rows:
+            if row['uom_name']:
+                unknown_uoms.append(row['uom_name'])
+            if row['vendor_uom_name']:
+                unknown_uoms.append(row['vendor_uom_name'])
+        unknown_uoms = sorted(set(unknown_uoms))
+
+        grouped_boms = defaultdict(list)
+        for row in bom_rows:
+            if row['parent_number']:
+                grouped_boms[row['parent_number']].append(row)
+
+        plan = {
+            'steps': self.PLAN_ORDER,
+            'counts': {
+                'unique_uoms': len(unique_uoms),
+                'unique_categories': len(unique_categories),
+                'unique_vendors': len(unique_vendors),
+                'unique_locations': len(unique_locations),
+                'product_rows_count': len(items_rows),
+                'orderpoints_count': len([r for r in items_rows if r['minimum_stock_on_hand'] > 0]),
+                'boms_count': len(grouped_boms),
+                'bom_lines_count': len(bom_rows),
+            },
+            'mapped_fields': {
+                'product.template': ['default_code', 'name', 'categ_id', 'uom_id', 'uom_po_id', 'sale_ok', 'purchase_ok', 'type', 'route_ids'],
+                'product.supplierinfo': ['partner_id', 'price', 'min_qty'],
+                'stock.warehouse.orderpoint': ['product_id', 'location_id', 'product_min_qty', 'product_max_qty', 'qty_multiple'],
+                'mrp.bom': ['product_tmpl_id'],
+                'mrp.bom.line': ['product_id', 'product_qty', 'product_uom_id'],
+            },
+            'issues': {
+                'unknown_uoms': unknown_uoms,
+                'missing_bom_products': missing_bom_products,
+                'rows_without_product_number': [idx + 2 for idx, row in enumerate(items_rows) if not row['number']],
+            },
+        }
+        return plan
+
+    def execute(self, session, items_rows, bom_rows, options, dry_run=False):
+        errors = []
+        stats = defaultdict(int)
+        issue_bucket = defaultdict(list)
+        env = self.env
+
+        company = env.company
+        warehouse = env['stock.warehouse'].search([('company_id', '=', company.id)], limit=1)
+        stock_location = warehouse.lot_stock_id if warehouse else env.ref('stock.stock_location_stock')
+
+        def add_log(message, level='INFO'):
+            _logger.info('Fulcrum import %s: %s', session.name, message)
+            session.append_log(message, level=level)
+
+        add_log(_('Starting %s execution') % ('dry-run' if dry_run else 'import'))
+
+        # Caches
+        uom_cache = {u.name: u for u in env['uom.uom'].search([])}
+        categ_cache = {c.name: c for c in env['product.category'].search([])}
+        partner_cache = {p.name: p for p in env['res.partner'].search([('supplier_rank', '>', 0)])}
+        product_tmpl_cache = {p.default_code: p for p in env['product.template'].search([('default_code', '!=', False)])}
+        product_variant_cache = {p.default_code: p.product_variant_id for p in product_tmpl_cache.values() if p.product_variant_id}
+        location_cache = {l.complete_name: l for l in env['stock.location'].search([('company_id', '=', company.id), ('usage', '=', 'internal')])}
+
+        buy_route = env['stock.route'].search([('name', '=', 'Buy'), ('company_id', 'in', [False, company.id])], limit=1)
+        manufacture_route = env['stock.route'].search([('name', '=', 'Manufacture'), ('company_id', 'in', [False, company.id])], limit=1)
+
+        # UoMs
+        for uom_name in sorted({r['uom_name'] for r in items_rows if r['uom_name']} | {r['vendor_uom_name'] for r in items_rows if r['vendor_uom_name']}):
+            if uom_name in uom_cache:
+                continue
+            if not options.get('auto_create_unknown_uom'):
+                issue_bucket['unknown_uoms'].append(uom_name)
+                continue
+            if dry_run:
+                stats['uom_would_create'] += 1
+                continue
+            ref_uom = env.ref('uom.product_uom_unit')
+            created = env['uom.uom'].create({
+                'name': uom_name,
+                'uom_type': 'reference',
+                'category_id': ref_uom.category_id.id,
+                'rounding': ref_uom.rounding,
+            })
+            uom_cache[uom_name] = created
+            stats['uom_created'] += 1
+            add_log(_('Created UoM %s') % uom_name)
+
+        # Categories
+        for category_name in sorted({r['category_name'] for r in items_rows if r['category_name']}):
+            if category_name in categ_cache:
+                continue
+            if dry_run:
+                stats['category_would_create'] += 1
+                continue
+            created = env['product.category'].create({'name': category_name})
+            categ_cache[category_name] = created
+            stats['category_created'] += 1
+            add_log(_('Created category %s') % category_name)
+
+        # Vendors
+        for vendor_name in sorted({r['vendor_name'] for r in items_rows if r['vendor_name']}):
+            if vendor_name in partner_cache:
+                continue
+            if dry_run:
+                stats['vendor_would_create'] += 1
+                continue
+            created = env['res.partner'].create({'name': vendor_name, 'supplier_rank': 1, 'company_type': 'company'})
+            partner_cache[vendor_name] = created
+            stats['vendor_created'] += 1
+            add_log(_('Created vendor %s') % vendor_name)
+
+        # Locations + putaway
+        if options.get('create_locations_putaway'):
+            for loc_code in sorted({r['default_location'] for r in items_rows if r['default_location']}):
+                full_name = f'{stock_location.complete_name}/Fulcrum/{loc_code}'
+                existing = location_cache.get(full_name)
+                if existing:
+                    continue
+                if dry_run:
+                    stats['location_would_create'] += 1
+                    continue
+                parent = env['stock.location'].search([
+                    ('name', '=', 'Fulcrum'),
+                    ('location_id', '=', stock_location.id),
+                    ('usage', '=', 'internal'),
+                    ('company_id', '=', company.id),
+                ], limit=1)
+                if not parent:
+                    parent = env['stock.location'].create({
+                        'name': 'Fulcrum',
+                        'location_id': stock_location.id,
+                        'usage': 'internal',
+                        'company_id': company.id,
+                    })
+                created = env['stock.location'].create({
+                    'name': loc_code,
+                    'location_id': parent.id,
+                    'usage': 'internal',
+                    'company_id': company.id,
+                })
+                location_cache[created.complete_name] = created
+                stats['location_created'] += 1
+                add_log(_('Created location %s') % created.complete_name)
+
+        # Products + supplierinfo + orderpoints
+        product_rows_by_code = {}
+        for row in items_rows:
+            if not row['number']:
+                issue_bucket['rows_without_product_number'].append(row)
+                continue
+            product_rows_by_code[row['number']] = row
+
+        for code, row in product_rows_by_code.items():
+            uom_name = row['uom_name']
+            if uom_name and uom_name not in uom_cache:
+                issue_bucket['unknown_uoms'].append(uom_name)
+                errors.append({'type': 'product', 'key': code, 'error': f'Unknown UoM {uom_name}'})
+                continue
+
+            category = categ_cache.get(row['category_name'])
+            vals = {
+                'default_code': code,
+                'name': row['description'] or code,
+                'sale_ok': row['is_sell_item'],
+                'purchase_ok': row['item_origin'] == 'Buy' or bool(row['vendor_name']),
+                'type': 'product' if row['minimum_stock_on_hand'] > 0 or row['default_location'] else 'consu',
+            }
+            if category:
+                vals['categ_id'] = category.id
+            if uom_name and uom_cache.get(uom_name):
+                vals['uom_id'] = uom_cache[uom_name].id
+                vals['uom_po_id'] = uom_cache[uom_name].id
+
+            route_ids = []
+            if row['item_origin'] == 'Make' and manufacture_route:
+                route_ids.append(manufacture_route.id)
+            if (row['item_origin'] == 'Buy' or row['vendor_name']) and buy_route:
+                route_ids.append(buy_route.id)
+            if route_ids:
+                vals['route_ids'] = [(6, 0, route_ids)]
+
+            tmpl = product_tmpl_cache.get(code)
+            if tmpl:
+                if dry_run:
+                    stats['product_would_update'] += 1
+                else:
+                    tmpl.write(vals)
+                    stats['product_updated'] += 1
+                    add_log(_('Updated product %s') % code)
+            else:
+                if dry_run:
+                    stats['product_would_create'] += 1
+                    tmpl = False
+                else:
+                    tmpl = env['product.template'].create(vals)
+                    stats['product_created'] += 1
+                    add_log(_('Created product %s') % code)
+                    product_tmpl_cache[code] = tmpl
+                    product_variant_cache[code] = tmpl.product_variant_id
+
+            partner = partner_cache.get(row['vendor_name']) if row['vendor_name'] else False
+            if partner and not dry_run and tmpl:
+                supp_vals = {
+                    'partner_id': partner.id,
+                    'price': row['vendor_price'],
+                    'min_qty': row['vendor_min_qty'] or 0.0,
+                    'product_tmpl_id': tmpl.id,
+                }
+                vendor_uom_name = row['vendor_uom_name']
+                if vendor_uom_name and vendor_uom_name in uom_cache:
+                    supp_vals['product_uom'] = uom_cache[vendor_uom_name].id
+                elif vendor_uom_name:
+                    issue_bucket['unknown_vendor_uom'].append(vendor_uom_name)
+                supplierinfo = env['product.supplierinfo'].search([
+                    ('partner_id', '=', partner.id),
+                    ('product_tmpl_id', '=', tmpl.id),
+                ], limit=1)
+                if supplierinfo:
+                    supplierinfo.write(supp_vals)
+                    stats['supplierinfo_updated'] += 1
+                else:
+                    env['product.supplierinfo'].create(supp_vals)
+                    stats['supplierinfo_created'] += 1
+
+            if row['minimum_stock_on_hand'] > 0:
+                product_variant = product_variant_cache.get(code)
+                if not product_variant:
+                    continue
+                max_qty = row['minimum_stock_on_hand']
+                if options.get('orderpoint_max_policy') == 'double_min':
+                    max_qty = row['minimum_stock_on_hand'] * 2
+                op_vals = {
+                    'product_id': product_variant.id,
+                    'location_id': stock_location.id,
+                    'product_min_qty': row['minimum_stock_on_hand'],
+                    'product_max_qty': max_qty,
+                    'qty_multiple': row['minimum_production_qty'] if row['minimum_production_qty'] > 0 else 1.0,
+                    'company_id': company.id,
+                }
+                op = env['stock.warehouse.orderpoint'].search([
+                    ('product_id', '=', product_variant.id),
+                    ('location_id', '=', stock_location.id),
+                    ('company_id', '=', company.id),
+                ], limit=1)
+                if op:
+                    if dry_run:
+                        stats['orderpoint_would_update'] += 1
+                    else:
+                        op.write(op_vals)
+                        stats['orderpoint_updated'] += 1
+                else:
+                    if dry_run:
+                        stats['orderpoint_would_create'] += 1
+                    else:
+                        env['stock.warehouse.orderpoint'].create(op_vals)
+                        stats['orderpoint_created'] += 1
+
+            if options.get('create_locations_putaway') and row['default_location'] and product_variant_cache.get(code):
+                full_name = f'{stock_location.complete_name}/Fulcrum/{row["default_location"]}'
+                dst_location = location_cache.get(full_name)
+                if dst_location and not dry_run:
+                    putaway = env['stock.putaway.rule'].search([
+                        ('product_id', '=', product_variant_cache[code].id),
+                        ('location_in_id', '=', stock_location.id),
+                        ('location_out_id', '=', dst_location.id),
+                        ('company_id', '=', company.id),
+                    ], limit=1)
+                    if not putaway:
+                        env['stock.putaway.rule'].create({
+                            'product_id': product_variant_cache[code].id,
+                            'location_in_id': stock_location.id,
+                            'location_out_id': dst_location.id,
+                            'company_id': company.id,
+                        })
+                        stats['putaway_created'] += 1
+
+        # BOMs
+        boms_by_parent = defaultdict(list)
+        for row in bom_rows:
+            if row['parent_number']:
+                boms_by_parent[row['parent_number']].append(row)
+
+        for parent_code, lines in boms_by_parent.items():
+            parent_tmpl = product_tmpl_cache.get(parent_code)
+            if not parent_tmpl:
+                issue_bucket['missing_bom_parents'].append(parent_code)
+                errors.append({'type': 'bom', 'key': parent_code, 'error': 'Missing parent product'})
+                continue
+            if dry_run:
+                stats['bom_would_process'] += 1
+                continue
+
+            bom = env['mrp.bom'].search([
+                ('product_tmpl_id', '=', parent_tmpl.id),
+                ('company_id', 'in', [False, company.id]),
+                ('type', '=', 'normal'),
+            ], limit=1)
+            if not bom:
+                bom = env['mrp.bom'].create({
+                    'product_tmpl_id': parent_tmpl.id,
+                    'product_qty': 1.0,
+                    'type': 'normal',
+                    'company_id': company.id,
+                })
+                stats['bom_created'] += 1
+            else:
+                stats['bom_updated'] += 1
+                bom.bom_line_ids.unlink()
+
+            for line in lines:
+                child_code = line['child_number']
+                child_product = product_variant_cache.get(child_code)
+                if not child_product:
+                    if options.get('create_placeholder_missing_bom_children') and child_code:
+                        child_tmpl = env['product.template'].create({
+                            'default_code': child_code,
+                            'name': line['child_description'] or child_code,
+                            'type': 'consu',
+                            'sale_ok': False,
+                            'purchase_ok': False,
+                        })
+                        child_product = child_tmpl.product_variant_id
+                        product_tmpl_cache[child_code] = child_tmpl
+                        product_variant_cache[child_code] = child_product
+                        stats['placeholder_products_created'] += 1
+                        add_log(_('Created placeholder BOM child %s') % child_code, level='WARNING')
+                    else:
+                        issue_bucket['missing_bom_children'].append(child_code)
+                        errors.append({'type': 'bom_line', 'key': f'{parent_code}->{child_code}', 'error': 'Missing child product'})
+                        continue
+                env['mrp.bom.line'].create({
+                    'bom_id': bom.id,
+                    'product_id': child_product.id,
+                    'product_qty': line['units_required'] or 1.0,
+                    'product_uom_id': child_product.uom_id.id,
+                })
+                stats['bom_line_created'] += 1
+
+        issue_payload = {k: sorted(set(filter(None, v))) for k, v in issue_bucket.items()}
+        session_vals = {
+            'stats_json': json.dumps(dict(stats), indent=2, sort_keys=True),
+            'issues_json': json.dumps(issue_payload, indent=2, sort_keys=True),
+            'state': 'planned' if dry_run else ('done' if not errors else 'error'),
+        }
+        session.write(session_vals)
+
+        if errors:
+            attachment = self._build_error_csv_attachment(session, errors)
+            session.error_csv_attachment_id = attachment.id
+            add_log(_('Generated error report with %s rows') % len(errors), level='WARNING')
+
+        add_log(_('Execution finished with %s error rows') % len(errors), level='INFO')
+        return {
+            'stats': dict(stats),
+            'issues': issue_payload,
+            'errors': errors,
+        }
+
+    def _build_error_csv_attachment(self, session, errors):
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=['type', 'key', 'error'])
+        writer.writeheader()
+        for error in errors:
+            writer.writerow(error)
+        data = base64.b64encode(output.getvalue().encode('utf-8'))
+        return self.env['ir.attachment'].create({
+            'name': f'{session.name}_errors.csv',
+            'type': 'binary',
+            'datas': data,
+            'mimetype': 'text/csv',
+            'res_model': session._name,
+            'res_id': session.id,
+        })
