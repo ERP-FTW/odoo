@@ -11,6 +11,7 @@
                     <field name="date_to"/>
                     <field name="is_correction"/>
                     <field name="omit_optional_headers"/>
+                    <field name="apply_s3i_rules"/>
                     <field name="debug_logging"/>
                 </group>
                 <group string="Include sections" col="2">

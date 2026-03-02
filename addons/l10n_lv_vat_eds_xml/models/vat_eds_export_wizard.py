@@ -34,6 +34,11 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
     export_pvn1iii = fields.Boolean(string="PVN1III", default=True)
     export_pvn2 = fields.Boolean(string="PVN2", default=True)
     export_pvn7i = fields.Boolean(string="PVN7I", default=True)
+    apply_s3i_rules = fields.Boolean(
+        string="Apply S3I rules",
+        default=True,
+        help="When enabled, compute DarVeids using S3I rules (A/N/T/V) and override invoice line settings. Also force DokVeids based on document type.",
+    )
     reference_xml_file = fields.Binary(groups="base.group_no_one")
     reference_xml_filename = fields.Char(groups="base.group_no_one")
     diff_report = fields.Text(readonly=True, groups="base.group_no_one")
@@ -492,6 +497,118 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
     # -----------------------
     # Annex framework (tax-driven)
     # -----------------------
+
+    def _get_default_move_dok_veids(self, move):
+        return "4" if move.move_type in ("out_refund", "in_refund") else "1"
+
+    def _get_primary_eds_tax(self, line, mapped_taxes):
+        applied_taxes = (line.tax_line_id or line.tax_ids).filtered(lambda tax: tax.id in mapped_taxes).sorted("id")
+        return applied_taxes[:1]
+
+    def _validate_dar_veids(self, code, move, line):
+        allowed_codes = {value for value, _label in self.env["account.tax"].L10N_LV_EDS_DAR_VEIDS_SELECTION}
+        normalized_code = (code or "").strip()
+        if normalized_code not in allowed_codes:
+            raise UserError(_(
+                "Invalid DarVeids '%(code)s' on invoice %(move)s line %(line)s."
+            ) % {
+                "code": normalized_code or "<empty>",
+                "move": move.display_name,
+                "line": line.display_name or line.id,
+            })
+        return normalized_code
+
+    def _get_effective_section(self, move, line, primary_tax):
+        section = line.l10n_lv_eds_section or primary_tax.l10n_lv_eds_section
+        if not section or section == "none":
+            raise UserError(_(
+                "Missing EDS Section on invoice %(move)s line %(line)s."
+            ) % {"move": move.display_name, "line": line.display_name or line.id})
+        return section
+
+    def _compute_basic_an(self, partner):
+        return "A" if self._get_partner_vat(partner) else "N"
+
+    def _build_s3i_partner_metrics(self, lines, mapped_taxes, company):
+        # Pre-scan once for deterministic + performant S3I computations.
+        eur_currency = self.env.ref("base.EUR", raise_if_not_found=False) or company.currency_id
+        per_move_partner_eur = defaultdict(float)
+        for line in lines:
+            if line.display_type in ("line_note", "line_section") or line.tax_line_id:
+                continue
+            primary_tax = self._get_primary_eds_tax(line, mapped_taxes)
+            if not primary_tax:
+                continue
+            section = line.l10n_lv_eds_section or primary_tax.l10n_lv_eds_section
+            if not section or section == "none":
+                continue
+            partner = line.move_id.partner_id.commercial_partner_id
+            amount_company = abs(line.balance)
+            amount_eur = company.currency_id._convert(amount_company, eur_currency, company, line.date or line.move_id.date)
+            per_move_partner_eur[(line.move_id.id, partner.id)] += amount_eur
+
+        per_partner = defaultdict(lambda: {"total_eur": 0.0, "all_moves_le_150": True})
+        for (_move_id, partner_id), value in per_move_partner_eur.items():
+            per_partner[partner_id]["total_eur"] += value
+            if value > 150.0:
+                per_partner[partner_id]["all_moves_le_150"] = False
+        return per_partner
+
+    def _compute_s3i_dar_veids(self, partner, partner_metrics):
+        metrics = partner_metrics.get(partner.id, {"total_eur": 0.0, "all_moves_le_150": True})
+        if metrics["all_moves_le_150"] and metrics["total_eur"] > 150.0:
+            return "V"
+        if metrics["all_moves_le_150"] and metrics["total_eur"] <= 150.0:
+            return "T"
+        return self._compute_basic_an(partner)
+
+    def _get_dok_veids_for_export(self, move, cfg_tax):
+        if self.apply_s3i_rules:
+            return self._get_default_move_dok_veids(move)
+        if move.l10n_lv_eds_dok_veids:
+            return move.l10n_lv_eds_dok_veids
+        tax_default = move._get_single_tax_default_eds_dok_veids() if hasattr(move, "_get_single_tax_default_eds_dok_veids") else False
+        if tax_default:
+            return tax_default
+        return cfg_tax.l10n_lv_eds_dok_veids or self._get_default_move_dok_veids(move)
+
+    def _get_dar_veids_for_export(self, move, line, cfg_tax, partner, partner_metrics):
+        forced_tax_code = (cfg_tax.l10n_lv_eds_dar_veids or "").strip()
+        if forced_tax_code in ("R4", "Z"):
+            return forced_tax_code, "forced"
+
+        if self.apply_s3i_rules:
+            return self._compute_s3i_dar_veids(partner, partner_metrics), "computed"
+
+        # Rules OFF precedence: line override -> tax default -> fallback A/N.
+        if line.l10n_lv_eds_dar_veids:
+            return line.l10n_lv_eds_dar_veids, "manual"
+        if cfg_tax.l10n_lv_eds_dar_veids:
+            return cfg_tax.l10n_lv_eds_dar_veids, "tax_default"
+        return self._compute_basic_an(partner), "computed"
+
+    def _post_export_audit_messages(self, audit_by_move):
+        moves = self.env["account.move"].browse(list(audit_by_move.keys()))
+        for move in moves:
+            data = audit_by_move.get(move.id, {})
+            mode = _("ON") if self.apply_s3i_rules else _("OFF")
+            forced_note = _("forced by rules") if self.apply_s3i_rules else _("resolved from stored/default")
+            dar_stats = data.get("dar_sources", Counter())
+            move.message_post(body=_(
+                "EDS export: rules %(mode)s<br/>"
+                "DokVeids used: %(dok)s (%(dok_note)s)<br/>"
+                "DarVeids: forced=%(forced)s, computed=%(computed)s, manual=%(manual)s, tax_default=%(tax_default)s, ignored manual overrides: %(ignored)s"
+            ) % {
+                "mode": mode,
+                "dok": ",".join(sorted(data.get("dok_veids", set()))) or "-",
+                "dok_note": forced_note,
+                "forced": dar_stats.get("forced", 0),
+                "computed": dar_stats.get("computed", 0),
+                "manual": dar_stats.get("manual", 0),
+                "tax_default": dar_stats.get("tax_default", 0),
+                "ignored": "yes" if data.get("manual_ignored") else "no",
+            })
+
     def _get_annex_data(self):
         self.ensure_one()
         company = self.company_id
@@ -511,10 +628,12 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             "|", ("company_id", "=", company.id), ("company_id", "=", False),
         ])
         mapped_taxes = {tax.id: tax.with_company(company) for tax in taxes}
+        partner_metrics = self._build_s3i_partner_metrics(lines, mapped_taxes, company)
 
         grouped = defaultdict(lambda: {"base": 0.0, "vat": 0.0, "base_currency": 0.0, "include_vat": True})
         counters = Counter()
         reasons = Counter()
+        audit_by_move = defaultdict(lambda: {"dar_sources": Counter(), "dok_veids": set(), "manual_ignored": False})
 
         counters["moves_scanned"] = len(moves)
         counters["move_lines_scanned"] = len(lines)
@@ -524,13 +643,8 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             if line.display_type in ("line_note", "line_section"):
                 reasons["non_transaction_line"] += 1
                 continue
-            applied_taxes = line.tax_line_id or line.tax_ids
-            if not applied_taxes:
-                reasons["line_without_taxes"] += 1
-                continue
-
-            matched_taxes = applied_taxes.filtered(lambda t: t.id in mapped_taxes)
-            if not matched_taxes:
+            primary_tax = self._get_primary_eds_tax(line, mapped_taxes)
+            if not primary_tax:
                 reasons["tax_unmapped_to_eds"] += 1
                 continue
 
@@ -538,56 +652,63 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             partner = move.partner_id.commercial_partner_id
             partner_vat = self._get_partner_vat(partner)
             partner_country = partner.country_id.code or ""
+            cfg_tax = mapped_taxes[primary_tax.id]
 
-            for tax in matched_taxes:
-                cfg_tax = mapped_taxes[tax.id]
-                if not cfg_tax.l10n_lv_eds_dar_veids:
-                    reasons["tax_missing_dar_veids"] += 1
-                    continue
-                if cfg_tax.l10n_lv_eds_requires_partner_vat and not partner_vat:
+            section = self._get_effective_section(move, line, cfg_tax)
+            dar_veids, dar_source = self._get_dar_veids_for_export(move, line, cfg_tax, partner, partner_metrics)
+            dar_veids = self._validate_dar_veids(dar_veids, move, line)
+            dok_veids = self._get_dok_veids_for_export(move, cfg_tax)
+
+            # VAT requirement is enforced only for final code A under S3I rules.
+            if (self.apply_s3i_rules and dar_veids == "A") or (not self.apply_s3i_rules and cfg_tax.l10n_lv_eds_requires_partner_vat):
+                if not partner_vat:
                     reasons["partner_vat_missing"] += 1
                     continue
-                if not partner_country:
-                    reasons["partner_country_missing"] += 1
-                    continue
+            if not partner_country:
+                reasons["partner_country_missing"] += 1
+                continue
 
-                section = cfg_tax.l10n_lv_eds_section
-                row_currency = move.currency_id or company.currency_id
-                row_currency_code = row_currency.name or company.currency_id.name or "EUR"
-                is_foreign_currency = row_currency != company.currency_id
-                if section == "pvn2":
-                    key = (
-                        section,
-                        cfg_tax.l10n_lv_eds_pazime or "",
-                        partner_country,
-                        partner_vat,
-                    )
+            audit_by_move[move.id]["dar_sources"][dar_source] += 1
+            audit_by_move[move.id]["dok_veids"].add(dok_veids)
+            if self.apply_s3i_rules and line.l10n_lv_eds_dar_veids and dar_source == "computed":
+                audit_by_move[move.id]["manual_ignored"] = True
+
+            row_currency = move.currency_id or company.currency_id
+            row_currency_code = row_currency.name or company.currency_id.name or "EUR"
+            is_foreign_currency = row_currency != company.currency_id
+            if section == "pvn2":
+                key = (
+                    section,
+                    cfg_tax.l10n_lv_eds_pazime or "",
+                    partner_country,
+                    partner_vat,
+                )
+            else:
+                key = (
+                    section,
+                    dar_veids,
+                    dok_veids,
+                    cfg_tax.l10n_lv_eds_pazime or "",
+                    partner_country,
+                    partner_vat,
+                    self._xml_text(partner.name),
+                    self._xml_text(move.name or move.ref),
+                    move.invoice_date or move.date,
+                    row_currency_code,
+                )
+            bucket = grouped[key]
+            bucket["include_vat"] = bool(cfg_tax.l10n_lv_eds_include_vat_amount)
+            sign = -1 if move.move_type in ("out_refund", "in_refund") else 1
+            if line.tax_line_id:
+                bucket["vat"] += sign * abs(line.balance)
+            else:
+                bucket["base"] += sign * abs(line.balance)
+                if is_foreign_currency:
+                    bucket["base_currency"] += sign * abs(line.amount_currency)
+                    counters["currency_rows_foreign"] += 1
                 else:
-                    key = (
-                        section,
-                        cfg_tax.l10n_lv_eds_dar_veids,
-                        cfg_tax.l10n_lv_eds_dok_veids or self._default_doc_type(move),
-                        cfg_tax.l10n_lv_eds_pazime or "",
-                        partner_country,
-                        partner_vat,
-                        self._xml_text(partner.name),
-                        self._xml_text(move.name or move.ref),
-                        move.invoice_date or move.date,
-                        row_currency_code,
-                    )
-                bucket = grouped[key]
-                bucket["include_vat"] = bool(cfg_tax.l10n_lv_eds_include_vat_amount)
-                sign = -1 if move.move_type in ("out_refund", "in_refund") else 1
-                if line.tax_line_id:
-                    bucket["vat"] += sign * abs(line.balance)
-                else:
-                    bucket["base"] += sign * abs(line.balance)
-                    if is_foreign_currency:
-                        bucket["base_currency"] += sign * abs(line.amount_currency)
-                        counters["currency_rows_foreign"] += 1
-                    else:
-                        bucket["base_currency"] += sign * abs(line.balance)
-                        counters["currency_rows_company"] += 1
+                    bucket["base_currency"] += sign * abs(line.balance)
+                    counters["currency_rows_company"] += 1
 
         counters.update(reasons)
 
@@ -658,6 +779,7 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             )
             _logger.info("LV VAT XML annex top excluded reasons: %s", reasons.most_common(10))
 
+        self._post_export_audit_messages(audit_by_move)
         return {
             "sections": section_rows,
             "counters": counters,
@@ -674,7 +796,3 @@ class L10nLvVatEdsExportWizard(models.TransientModel):
             vat = vat[2:]
         return vat
 
-    def _default_doc_type(self, move):
-        if move.move_type in ("out_refund", "in_refund"):
-            return "K"
-        return "R"
