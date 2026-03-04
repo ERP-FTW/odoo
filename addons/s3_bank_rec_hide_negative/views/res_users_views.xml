@@ -10,7 +10,7 @@
                     <field
                         name="groups_id"
                         widget="many2many_checkboxes"
-                        domain="[('id', '=', ref('s3_bank_rec_hide_negative.group_hide_negative_bank_rec_lines'))]"
+                        domain="[('id', 'in', [%(s3_bank_rec_hide_negative.group_hide_negative_bank_rec_lines)d])]"
                     />
                 </group>
             </page>
