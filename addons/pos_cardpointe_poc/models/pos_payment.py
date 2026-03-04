@@ -23,6 +23,21 @@ class PosPayment(models.Model):
         ('refund', 'Refund'),
     ])
 
+
+    def _cardpointe_get_merchant_config(self, terminal_config):
+        merchant_config = terminal_config.merchant_config_id
+        if merchant_config:
+            return merchant_config
+
+        merchant_config = self.env['cardpointe.merchant.config'].search([
+            ('company_id', '=', terminal_config.company_id.id),
+            ('mid', '=', terminal_config.merchant_id),
+        ], limit=1)
+        if merchant_config:
+            terminal_config.merchant_config_id = merchant_config.id
+            return merchant_config
+        return merchant_config
+
     @api.model
     def cardpointe_process_refund(self, payment_method_id, amount, refunded_orderline_ids):
         payment_method = self.env['pos.payment.method'].browse(payment_method_id).exists()
@@ -32,7 +47,7 @@ class PosPayment(models.Model):
         config = payment_method.cardpointe_config_id
         if not config:
             raise UserError(_('CardPointe config missing on payment method.'))
-        merchant_config = config.merchant_config_id
+        merchant_config = self._cardpointe_get_merchant_config(config)
         if not merchant_config:
             raise UserError(_('CardPointe merchant config missing on terminal config.'))
         if not merchant_config.gateway_username or not merchant_config.gateway_password:
