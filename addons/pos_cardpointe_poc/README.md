@@ -79,10 +79,11 @@ When a POS payment line amount is negative, this module now triggers a server-si
 1. Find the original sale `retref` values from refunded ticket lines.
 2. Allocate refund amount across original sale payments (partial refunds supported).
 3. `GET /inquire/{retref}/{merchid}`.
-4. If unsettled (`setlstat` indicates not settled): `POST /void`.
+4. If unsettled (`setlstat` indicates not settled or is missing): `POST /void`.
 5. Otherwise: `POST /refund` with allocated amount.
+6. If refund returns `respcode=28` (`Txn not settled`), the system automatically retries as `POST /void`.
 
-Results are written back to the refund `pos.payment` line (`cardpointe_retref`, `cardpointe_respcode`, `cardpointe_resptext`, `cardpointe_operation`, `cardpointe_original_retref`).
+Results are written back to the refund `pos.payment` line (`cardpointe_retref`, `cardpointe_respcode`, `cardpointe_resptext`, `cardpointe_operation`, `cardpointe_original_retref`, `cardpointe_ok`).
 
 ### cURL examples
 

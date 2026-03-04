@@ -51,3 +51,7 @@ Tail logs for correlation IDs:
 ```bash
 tail -f odoo.log | rg "\[CARDPOINTE\]"
 ```
+
+## Refund fallback behavior
+
+If a gateway refund response returns `respcode=28` (`Txn not settled`), the base refund service will automatically retry as a void for the same `retref`.

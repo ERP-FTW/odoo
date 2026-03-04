@@ -86,6 +86,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
                 line.cardpointe_token = result.token || '';
                 line.cardpointe_status = 'approved';
                 line.cardpointe_operation = 'sale';
+                line.cardpointe_ok = true;
                 line.transaction_id = result.retref || '';
                 line.set_payment_status('done');
                 return true;
@@ -144,6 +145,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             line.cardpointe_resptext = result.resptext || '';
             line.cardpointe_status = 'approved';
             line.cardpointe_operation = result.operation || 'refund';
+            line.cardpointe_ok = !!result.ok;
             line.transaction_id = result.retref || '';
             line.set_payment_status('done');
             return true;
@@ -180,6 +182,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
 
             delete this._activeRequestByCid[cid];
             line.cardpointe_status = result.status || 'error';
+            line.cardpointe_ok = false;
             line.cardpointe_respcode = result.respcode || '';
             line.cardpointe_resptext = result.resptext || '';
             line.set_payment_status('retry');
@@ -194,6 +197,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
 
         _handleFailedResult: function (line, result) {
             line.cardpointe_status = result.status || 'error';
+            line.cardpointe_ok = false;
             line.cardpointe_respcode = result.respcode || '';
             line.cardpointe_resptext = result.resptext || '';
             line.set_payment_status('retry');
@@ -243,6 +247,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             this.cardpointe_status = json.cardpointe_status || '';
             this.cardpointe_original_retref = json.cardpointe_original_retref || '';
             this.cardpointe_operation = json.cardpointe_operation || '';
+            this.cardpointe_ok = !!json.cardpointe_ok;
         }
 
         export_as_JSON() {
@@ -255,6 +260,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             json.cardpointe_status = this.cardpointe_status || '';
             json.cardpointe_original_retref = this.cardpointe_original_retref || '';
             json.cardpointe_operation = this.cardpointe_operation || '';
+            json.cardpointe_ok = !!this.cardpointe_ok;
             return json;
         }
     };

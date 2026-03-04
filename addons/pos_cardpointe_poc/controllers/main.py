@@ -241,6 +241,7 @@ class PosCardPointeController(http.Controller):
             'resptext': result.get('resptext'),
             'operation': result.get('operation'),
             'original_retref': result.get('original_retref'),
+            'ok': result.get('ok', result.get('status') == 'approved'),
         }
 
     @http.route('/pos_cardpointe_poc/poll', type='json', auth='user')
