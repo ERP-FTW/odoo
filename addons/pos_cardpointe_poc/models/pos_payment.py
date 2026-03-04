@@ -32,8 +32,11 @@ class PosPayment(models.Model):
         config = payment_method.cardpointe_config_id
         if not config:
             raise UserError(_('CardPointe config missing on payment method.'))
-        if not config.gateway_username or not config.gateway_password:
-            raise UserError(_('CardPointe gateway credentials are missing on terminal config.'))
+        merchant_config = config.merchant_config_id
+        if not merchant_config:
+            raise UserError(_('CardPointe merchant config missing on terminal config.'))
+        if not merchant_config.gateway_username or not merchant_config.gateway_password:
+            raise UserError(_('CardPointe gateway credentials are missing on merchant config.'))
 
         refund_amount = Decimal(format_gateway_amount(abs(amount or 0)))
         if refund_amount <= 0:
@@ -44,11 +47,11 @@ class PosPayment(models.Model):
             refunded_orderline_ids=refunded_orderline_ids,
             refund_amount=refund_amount,
         )
-        gateway = CardPointeGatewayClient(config)
+        gateway = CardPointeGatewayClient(merchant_config)
         results = []
         for allocation in allocations:
             result = gateway.void_or_refund(
-                merchid=config.merchant_id,
+                merchid=merchant_config.mid,
                 retref=allocation['retref'],
                 amount=allocation['amount'],
             )

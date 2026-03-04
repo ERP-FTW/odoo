@@ -14,6 +14,7 @@
             'pos_cardpointe_poc/static/src/js/pos_cardpointe_poc.js',
         ],
     },
+    'post_init_hook': 'post_init_hook',
     'installable': True,
     'license': 'LGPL-3',
 }

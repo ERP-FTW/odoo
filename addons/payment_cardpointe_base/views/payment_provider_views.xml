@@ -8,15 +8,8 @@
         <field name="arch" type="xml">
             <group name="provider_credentials" position="inside">
                 <group attrs="{'invisible': [('code', '!=', 'cardpointe')]}">
-                    <field name="cardpointe_api_base"/>
-                    <field name="cardpointe_username"/>
-                    <field name="cardpointe_password" password="True"/>
-                    <field name="cardpointe_mid"/>
-                    <field name="cardpointe_tokenizer_url"/>
+                    <field name="cardpointe_merchant_config_id"/>
                     <field name="cardpointe_test_endpoint"/>
-                    <field name="cardpointe_debug_logging"/>
-                    <field name="cardpointe_timeout_connect"/>
-                    <field name="cardpointe_timeout_read"/>
                     <button
                         name="action_cardpointe_test_connection"
                         type="object"
