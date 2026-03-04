@@ -7,7 +7,7 @@
         <field name="arch" type="xml">
             <page name="access_rights" position="inside">
                 <group string="Bank Reconciliation">
-                    <label string="Use Access Rights to enable 'Hide Negative Statement Lines' for users."/>
+                    <div class="o_form_label">Use Access Rights to enable 'Hide Negative Statement Lines' for users.</div>
                 </group>
             </page>
         </field>
