@@ -116,3 +116,11 @@ class CardPointeGatewayClient:
             payload={'merchid': merchid, 'retref': retref, 'amount': format_gateway_amount(amount)},
             timeout=30,
         )
+
+    def sigcap(self, merchid, retref, signature):
+        return self._request(
+            'POST',
+            'sigcap',
+            payload={'merchid': merchid, 'retref': retref, 'signature': signature},
+            timeout=30,
+        )

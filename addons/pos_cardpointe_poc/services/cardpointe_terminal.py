@@ -1,7 +1,9 @@
+import json
 import logging
 
 from odoo.addons.payment_cardpointe_base.services.http import (
     CardPointeRequestError,
+    redact_payload,
     request_json,
     safe_log_headers,
     safe_truncate,
@@ -31,6 +33,30 @@ class CardPointeTerminalClient:
             headers['X-CardConnect-SessionKey'] = session_key
         return headers
 
+    def _sanitize_for_log(self, data):
+        if isinstance(data, dict):
+            clean = {}
+            for key, value in data.items():
+                key_lower = str(key).lower()
+                if any(s in key_lower for s in ('signature', 'receipt')):
+                    continue
+                clean[key] = self._sanitize_for_log(value)
+            return clean
+        if isinstance(data, list):
+            return [self._sanitize_for_log(item) for item in data]
+        return data
+
+    def _safe_body_for_log(self, text):
+        body = text or ''
+        stripped = body.strip()
+        if stripped.startswith('{') and stripped.endswith('}'):
+            try:
+                parsed = json.loads(stripped)
+            except Exception:
+                return safe_truncate(body)
+            return self._sanitize_for_log(parsed)
+        return safe_truncate(body)
+
     def _request(self, method, path, payload=None, session_key=None, timeout=30):
         url = self._url(path)
         headers = self._headers(session_key=session_key)
@@ -39,7 +65,7 @@ class CardPointeTerminalClient:
             method,
             path,
             safe_log_headers(headers),
-            payload or {},
+            redact_payload(payload or {}),
             timeout,
         )
         try:
@@ -65,7 +91,7 @@ class CardPointeTerminalClient:
             method,
             path,
             status_code,
-            safe_truncate(text),
+            self._sanitize_for_log(response_json) if response_json else self._safe_body_for_log(text),
         )
 
         return {
@@ -186,13 +212,14 @@ class CardPointeTerminalClient:
             'raw': data,
         }
 
-    def auth_card_with_session(self, amount_dollars, order_id, session_key):
+    def auth_card_with_session(self, amount_dollars, order_id, session_key, include_signature=False):
         payload = {
             'merchantId': self.config.merchant_id,
             'hsn': self.config.device_serial,
             'amount': dollars_to_implied_cents(amount_dollars),
             'capture': True,
             'orderId': order_id,
+            'includeSignature': bool(include_signature),
         }
         result = self._request(
             'POST',
@@ -206,18 +233,18 @@ class CardPointeTerminalClient:
 
         http_status = result.get('http_status')
         data = dict(result.get('data') or {})
-        if 'signature' in data:
-            data.pop('signature')
+        signature_value = data.pop('signature', None)
 
         normalized = normalize_terminal_authcard_response(http_status, data)
         response_message = normalized.get('resptext') or 'Terminal payment failed.'
 
         _logger.info(
-            "CardPointe authCard mapped status=%s ok=%s respcode=%s retref=%s",
+            "CardPointe authCard mapped status=%s ok=%s respcode=%s retref=%s entrymode=%s",
             normalized.get('status'),
             normalized.get('ok'),
             normalized.get('respcode'),
             normalized.get('retref'),
+            normalized.get('entrymode'),
         )
 
         return {
@@ -232,10 +259,41 @@ class CardPointeTerminalClient:
             'token': normalized.get('token'),
             'entrymode': normalized.get('entrymode'),
             'emvTagData': normalized.get('emvTagData'),
+            'signature_captured_inline': bool(signature_value),
             'raw': data,
         }
 
-    def auth_card(self, amount_dollars, order_id):
+    def read_signature(self, session_key):
+        payload = {
+            'merchantId': self.config.merchant_id,
+            'hsn': self.config.device_serial,
+        }
+        result = self._request(
+            'POST',
+            '/v2/readSignature',
+            payload=payload,
+            session_key=session_key,
+            timeout=max(20, self.config.request_timeout_seconds or 120),
+        )
+        if not result.get('ok'):
+            return result
+
+        data = dict(result.get('data') or {})
+        signature = data.get('signature')
+        if result.get('http_status') != 200 or not signature:
+            return {
+                'ok': False,
+                'status': 'error',
+                'message': data.get('resptext') or data.get('errorMessage') or 'Signature capture failed.',
+                'raw': self._sanitize_for_log(data),
+            }
+        return {
+            'ok': True,
+            'signature': signature,
+            'raw': self._sanitize_for_log(data),
+        }
+
+    def auth_card(self, amount_dollars, order_id, include_signature=False):
         connect_result = self.connect()
         if not connect_result.get('ok'):
             return {
@@ -248,4 +306,5 @@ class CardPointeTerminalClient:
             amount_dollars=amount_dollars,
             order_id=order_id,
             session_key=connect_result['session_key'],
+            include_signature=include_signature,
         )

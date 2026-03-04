@@ -4,6 +4,13 @@
         <field name="model">pos.cardpointe.terminal.config</field>
         <field name="arch" type="xml">
             <form>
+                <header>
+                    <button name="action_test_connect"
+                            string="Test Connect"
+                            type="object"
+                            class="oe_highlight"
+                            groups="base.group_system"/>
+                </header>
                 <sheet>
                     <group>
                         <field name="name"/>
@@ -14,6 +21,11 @@
                         <field name="device_serial"/>
                         <field name="auth_key" password="True"/>
                         <field name="request_timeout_seconds"/>
+                    </group>
+                    <group string="Signature Policy">
+                        <field name="signature_mode"/>
+                        <field name="signature_threshold_amount"/>
+                        <field name="signature_capture_method"/>
                     </group>
                 </sheet>
             </form>
@@ -29,6 +41,7 @@
                 <field name="company_id"/>
                 <field name="merchant_id"/>
                 <field name="device_serial"/>
+                <field name="signature_mode"/>
                 <field name="request_timeout_seconds"/>
             </tree>
         </field>

@@ -24,6 +24,8 @@ class PosPayment(models.Model):
         ('refund', 'Refund'),
     ])
     cardpointe_ok = fields.Boolean(default=False)
+    cardpointe_signature_required = fields.Boolean(default=False)
+    cardpointe_signature_captured = fields.Boolean(default=False)
 
 
     def _cardpointe_get_merchant_config(self, terminal_config):
