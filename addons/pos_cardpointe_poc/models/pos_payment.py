@@ -113,7 +113,7 @@ class PosPayment(models.Model):
             raise UserError(_('Original order for refund could not be determined.'))
 
         original_payments = self.search([
-            ('order_id', 'in', original_order_ids),
+            ('pos_order_id', 'in', original_order_ids),
             ('payment_method_id', '=', payment_method.id),
             ('cardpointe_retref', '!=', False),
             ('amount', '>', 0),
