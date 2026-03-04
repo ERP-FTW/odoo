@@ -1,3 +1,4 @@
+import json
 import logging
 
 from .http import CardPointeRequestError, redact_payload, request_json, safe_log_headers, safe_truncate
@@ -10,13 +11,24 @@ def sanitize_for_log(data):
     if isinstance(data, dict):
         sanitized = {}
         for key, value in data.items():
-            if str(key).lower() in {'signature', 'receipt', 'emvtagdata'}:
+            key_lower = str(key).lower()
+            if any(s in key_lower for s in ('signature', 'receipt', 'emvtagdata')):
                 continue
-            sanitized[key] = sanitize_for_log(value)
+            cleaned_value = sanitize_for_log(value)
+            if cleaned_value in ({}, [], None, ''):
+                continue
+            sanitized[key] = cleaned_value
         return sanitized
     if isinstance(data, list):
         return [sanitize_for_log(item) for item in data]
     if isinstance(data, str):
+        stripped = data.strip()
+        if stripped.startswith('{') and stripped.endswith('}'):
+            try:
+                parsed = json.loads(stripped)
+            except Exception:
+                return safe_truncate(data, limit=300)
+            return sanitize_for_log(parsed)
         return safe_truncate(data, limit=300)
     return data
 

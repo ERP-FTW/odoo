@@ -230,7 +230,7 @@ class PosCardPointeController(http.Controller):
                 refunded_orderline_ids=refunded_orderline_ids or [],
             )
         except UserError as exc:
-            message = getattr(exc, 'name', None) or str(exc)
+            message = exc.args[0] if getattr(exc, 'args', None) else str(exc)
             _logger.warning("CardPointe refund failed payment_method_id=%s reason=%s", payment_method.id, message)
             return {'status': 'error', 'message': message}
 

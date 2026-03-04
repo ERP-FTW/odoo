@@ -22,6 +22,12 @@ def _is_approved(resp):
     return respstat == 'A' or respcode in {'000', '00'} or resptext.startswith('approv')
 
 
+def _is_already_voided(resp):
+    data = _extract_data(resp)
+    text = (data.get('resptext') or '').strip().lower()
+    code = str(data.get('respcode') or '')
+    return code in {'24'} and ('reversal not supported' in text or 'already' in text and 'void' in text)
+
 def is_txn_not_settled(resp):
     data = _extract_data(resp)
     return data.get('respcode') == '28' or 'not settled' in (data.get('resptext') or '').lower()
@@ -42,7 +48,7 @@ def choose_operation_from_inquire(inquire):
 def _normalize_result(operation, retref, response, raw=None):
     data = _extract_data(response)
     return {
-        'ok': _is_approved(response),
+        'ok': _is_approved(response) or (operation == 'void' and _is_already_voided(response)),
         'operation': operation,
         'respstat': data.get('respstat'),
         'respcode': data.get('respcode'),
@@ -56,19 +62,34 @@ def _normalize_result(operation, retref, response, raw=None):
 def execute_void_or_refund(gw_client, merchid, retref, amount, orderid=None):
     inquire = gw_client.inquire(retref, merchid)
     operation = choose_operation_from_inquire(inquire)
+    inquire_data = _extract_data(inquire)
+
+    if str(inquire_data.get('setlstat') or '').strip().lower() == 'voided':
+        synthetic = {
+            'respstat': 'A',
+            'respcode': '000',
+            'resptext': 'Approval',
+            'retref': inquire_data.get('retref') or retref,
+            'authcode': inquire_data.get('authcode'),
+        }
+        return _normalize_result('void', retref, synthetic, {
+            'inquire': inquire_data,
+            'orderid': orderid,
+            'note': 'already_voided',
+        })
 
     if operation == 'void':
         void_result = gw_client.void(merchid, retref)
         if not _is_approved(void_result) and amount and _is_settled_for_refund(void_result):
             refund_result = gw_client.refund(merchid, retref, amount)
             return _normalize_result('refund', retref, refund_result, {
-                'inquire': _extract_data(inquire),
+                'inquire': inquire_data,
                 'void': _extract_data(void_result),
                 'refund': _extract_data(refund_result),
                 'orderid': orderid,
             })
         return _normalize_result('void', retref, void_result, {
-            'inquire': _extract_data(inquire),
+            'inquire': inquire_data,
             'void': _extract_data(void_result),
             'orderid': orderid,
         })
@@ -77,14 +98,14 @@ def execute_void_or_refund(gw_client, merchid, retref, amount, orderid=None):
     if is_txn_not_settled(refund_result):
         void_result = gw_client.void(merchid, retref)
         return _normalize_result('void', retref, void_result, {
-            'inquire': _extract_data(inquire),
+            'inquire': inquire_data,
             'refund': _extract_data(refund_result),
             'void': _extract_data(void_result),
             'orderid': orderid,
         })
 
     return _normalize_result('refund', retref, refund_result, {
-        'inquire': _extract_data(inquire),
+        'inquire': inquire_data,
         'refund': _extract_data(refund_result),
         'orderid': orderid,
     })

@@ -63,17 +63,41 @@ class TestGatewayRefundDecision(unittest.TestCase):
     def test_choose_operation_default_void_when_no_setlstat(self):
         self.assertEqual(refunds.choose_operation_from_inquire({'retref': 'abc'}), 'void')
 
+    def test_inquire_voided_short_circuits_as_success(self):
+        class _VoidedClient:
+            def inquire(self, retref, merchid):
+                return {'ok': True, 'data': {'retref': retref, 'setlstat': 'Voided', 'authcode': 'REVERS'}}
+
+            def void(self, merchid, retref):
+                raise AssertionError('void should not be called for already voided txns')
+
+            def refund(self, merchid, retref, amount):
+                raise AssertionError('refund should not be called for already voided txns')
+
+        result = refunds.execute_void_or_refund(
+            gw_client=_VoidedClient(),
+            merchid='800000009875',
+            retref='062727076309',
+            amount='1.00',
+            orderid='POS/002',
+        )
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['operation'], 'void')
+        self.assertEqual(result['respcode'], '000')
+
     def test_gateway_logging_sanitizes_signature_and_receipt(self):
         payload = {
             'signature': 'abcdef',
             'receipt': 'huge-text',
             'emvTagData': 'XYZ',
+            'userfields': '{"receipt":"Y","receiptData":"SECRET"}',
             'resptext': 'A' * 500,
         }
         sanitized = gateway.sanitize_for_log(payload)
         self.assertNotIn('signature', sanitized)
         self.assertNotIn('receipt', sanitized)
         self.assertNotIn('emvTagData', sanitized)
+        self.assertNotIn('userfields', sanitized)
         self.assertEqual(len(sanitized['resptext']), 303)
 
 
