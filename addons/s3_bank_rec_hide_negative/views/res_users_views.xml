@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_users_view_form_hide_negative_bank_rec" model="ir.ui.view">
+        <field name="name">res.users.form.hide.negative.bank.rec</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <page name="access_rights" position="inside">
+                <group string="Bank Reconciliation">
+                    <div class="o_form_label">Use Access Rights to enable 'Hide Negative Statement Lines' for users.</div>
+                </group>
+            </page>
+        </field>
+    </record>
+</odoo>

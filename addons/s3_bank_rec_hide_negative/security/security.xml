@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="group_hide_negative_bank_rec_lines" model="res.groups">
+        <field name="name">Bank Reconciliation: Hide Negative Statement Lines</field>
+        <field name="category_id" ref="base.module_category_accounting"/>
+    </record>
+</odoo>
