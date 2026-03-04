@@ -15,21 +15,21 @@ class PaymentProvider(models.Model):
     code = fields.Selection(
         selection_add=[('cardpointe', 'CardPointe')], ondelete={'cardpointe': 'set default'})
 
+    cardpointe_merchant_config_id = fields.Many2one('cardpointe.merchant.config', string='CardPointe Merchant Config')
+
+    # Backward-compatible fields kept as the provider-level API contract.
     cardpointe_api_base = fields.Char(
         string="API Base URL",
-        required_if_provider='cardpointe',
         help="Base URL like https://.../cardconnect/rest/",
     )
-    cardpointe_username = fields.Char(string="API Username", required_if_provider='cardpointe')
+    cardpointe_username = fields.Char(string="API Username")
     cardpointe_password = fields.Char(
         string="API Password",
-        required_if_provider='cardpointe',
         groups='base.group_system',
     )
-    cardpointe_mid = fields.Char(string="Merchant ID (MID)", required_if_provider='cardpointe')
+    cardpointe_mid = fields.Char(string="Merchant ID (MID)")
     cardpointe_tokenizer_url = fields.Char(
         string="Hosted iFrame Tokenizer URL",
-        required_if_provider='cardpointe',
     )
     cardpointe_test_endpoint = fields.Char(
         string="Test Connection Endpoint",
@@ -43,24 +43,51 @@ class PaymentProvider(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get('cardpointe_api_base'):
-                vals['cardpointe_api_base'] = self._cardpointe_normalize_base_url(
-                    vals['cardpointe_api_base']
-                )
-        return super().create(vals_list)
+                vals['cardpointe_api_base'] = self._cardpointe_normalize_base_url(vals['cardpointe_api_base'])
+        providers = super().create(vals_list)
+        providers._cardpointe_sync_from_merchant_config()
+        return providers
 
     def write(self, vals):
         if vals.get('cardpointe_api_base'):
-            vals['cardpointe_api_base'] = self._cardpointe_normalize_base_url(
-                vals['cardpointe_api_base']
-            )
-        return super().write(vals)
+            vals['cardpointe_api_base'] = self._cardpointe_normalize_base_url(vals['cardpointe_api_base'])
+        res = super().write(vals)
+        self._cardpointe_sync_from_merchant_config()
+        return res
+
+    def _cardpointe_sync_from_merchant_config(self):
+        for provider in self.filtered(lambda p: p.code == 'cardpointe' and p.cardpointe_merchant_config_id):
+            cfg = provider.cardpointe_merchant_config_id
+            values = {
+                'cardpointe_api_base': self._cardpointe_normalize_base_url(cfg.gateway_base_url),
+                'cardpointe_username': cfg.gateway_username,
+                'cardpointe_password': cfg.gateway_password,
+                'cardpointe_mid': cfg.mid,
+                'cardpointe_tokenizer_url': cfg.tokenizer_url,
+                'cardpointe_debug_logging': cfg.debug_logging,
+                'cardpointe_timeout_connect': cfg.timeout_connect,
+                'cardpointe_timeout_read': cfg.timeout_read,
+            }
+            super(PaymentProvider, provider).write(values)
+
+    @api.onchange('cardpointe_merchant_config_id')
+    def _onchange_cardpointe_merchant_config_id(self):
+        cfg = self.cardpointe_merchant_config_id
+        if not cfg:
+            return
+        self.cardpointe_api_base = self._cardpointe_normalize_base_url(cfg.gateway_base_url)
+        self.cardpointe_username = cfg.gateway_username
+        self.cardpointe_password = cfg.gateway_password
+        self.cardpointe_mid = cfg.mid
+        self.cardpointe_tokenizer_url = cfg.tokenizer_url
+        self.cardpointe_debug_logging = cfg.debug_logging
+        self.cardpointe_timeout_connect = cfg.timeout_connect
+        self.cardpointe_timeout_read = cfg.timeout_read
 
     @api.onchange('cardpointe_api_base')
     def _onchange_cardpointe_api_base(self):
         if self.cardpointe_api_base:
-            self.cardpointe_api_base = self._cardpointe_normalize_base_url(
-                self.cardpointe_api_base
-            )
+            self.cardpointe_api_base = self._cardpointe_normalize_base_url(self.cardpointe_api_base)
 
     def _cardpointe_normalize_base_url(self, base_url):
         base_url = (base_url or '').strip()

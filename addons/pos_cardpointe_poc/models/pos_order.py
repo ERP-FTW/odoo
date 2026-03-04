@@ -13,5 +13,7 @@ class PosOrder(models.Model):
             'cardpointe_resptext': ui_paymentline.get('cardpointe_resptext'),
             'cardpointe_token': ui_paymentline.get('cardpointe_token'),
             'cardpointe_status': ui_paymentline.get('cardpointe_status'),
+            'cardpointe_original_retref': ui_paymentline.get('cardpointe_original_retref'),
+            'cardpointe_operation': ui_paymentline.get('cardpointe_operation'),
         })
         return values

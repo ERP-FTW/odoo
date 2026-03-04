@@ -3,6 +3,7 @@ import threading
 import uuid
 
 from odoo import http
+from odoo.exceptions import UserError
 from odoo.http import request
 
 from ..services.cardpointe_terminal import CardPointeTerminalClient
@@ -213,6 +214,33 @@ class PosCardPointeController(http.Controller):
             'message': result.get('message') or 'Cancel failed.',
             'respcode': result.get('respcode'),
             'resptext': result.get('resptext'),
+        }
+
+
+    @http.route('/pos_cardpointe_poc/refund', type='json', auth='user')
+    def refund(self, payment_method_id, amount, refunded_orderline_ids):
+        payment_method = request.env['pos.payment.method'].browse(int(payment_method_id)).exists()
+        if not payment_method or payment_method.use_payment_terminal != 'cardpointe_poc':
+            return {'status': 'error', 'message': 'Invalid payment method.'}
+
+        try:
+            result = request.env['pos.payment'].cardpointe_process_refund(
+                payment_method_id=payment_method.id,
+                amount=amount,
+                refunded_orderline_ids=refunded_orderline_ids or [],
+            )
+        except UserError as exc:
+            message = getattr(exc, 'name', None) or str(exc)
+            _logger.warning("CardPointe refund failed payment_method_id=%s reason=%s", payment_method.id, message)
+            return {'status': 'error', 'message': message}
+
+        return {
+            'status': result.get('status', 'error'),
+            'retref': result.get('retref'),
+            'respcode': result.get('respcode'),
+            'resptext': result.get('resptext'),
+            'operation': result.get('operation'),
+            'original_retref': result.get('original_retref'),
         }
 
     @http.route('/pos_cardpointe_poc/poll', type='json', auth='user')

@@ -24,11 +24,15 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             if (!line) {
                 return false;
             }
-            if (line.amount <= 0) {
+            if (line.amount === 0) {
                 this._showError(_t('Amount must be greater than zero.'));
                 line.set_payment_status('retry');
                 delete this._cashierCancelledByCid[cid];
                 return false;
+            }
+
+            if (line.amount < 0) {
+                return this._send_refund_request(order, line);
             }
 
             line.set_payment_status('waitingCard');
@@ -81,6 +85,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
                 line.cardpointe_resptext = result.resptext || '';
                 line.cardpointe_token = result.token || '';
                 line.cardpointe_status = 'approved';
+                line.cardpointe_operation = 'sale';
                 line.transaction_id = result.retref || '';
                 line.set_payment_status('done');
                 return true;
@@ -98,6 +103,50 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             this._handleFailedResult(line, result);
             delete this._cashierCancelledByCid[cid];
             return false;
+        },
+
+        _send_refund_request: async function (order, line) {
+            const refundedOrderLineIds = order
+                .get_orderlines()
+                .filter((orderLine) => orderLine.refunded_orderline_id)
+                .map((orderLine) => orderLine.refunded_orderline_id);
+            if (!refundedOrderLineIds.length) {
+                this._showError(_t('Refund must be started from a paid ticket so original CardPointe payment can be located.'));
+                line.set_payment_status('retry');
+                return false;
+            }
+
+            line.set_payment_status('waiting');
+            let result;
+            try {
+                result = await rpc.query({
+                    route: '/pos_cardpointe_poc/refund',
+                    params: {
+                        payment_method_id: line.payment_method.id,
+                        amount: line.amount,
+                        refunded_orderline_ids: refundedOrderLineIds,
+                    },
+                }, { shadow: true, timeout: 90000 });
+            } catch (_error) {
+                this._showError(_t('Could not reach Odoo server during CardPointe refund.'));
+                line.set_payment_status('retry');
+                return false;
+            }
+
+            if (result.status !== 'approved') {
+                this._handleFailedResult(line, result);
+                return false;
+            }
+
+            line.cardpointe_retref = result.retref || '';
+            line.cardpointe_original_retref = result.original_retref || '';
+            line.cardpointe_respcode = result.respcode || '';
+            line.cardpointe_resptext = result.resptext || '';
+            line.cardpointe_status = 'approved';
+            line.cardpointe_operation = result.operation || 'refund';
+            line.transaction_id = result.retref || '';
+            line.set_payment_status('done');
+            return true;
         },
 
         send_payment_cancel: async function (order, cid) {
@@ -156,7 +205,7 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             } else if (result.status === 'timeout') {
                 this._showError(_t('Terminal request timed out. Please check device status and try again.'));
             } else if (result.status === 'in_use') {
-                this._showError(_t('Terminal is already in use. Wait for the current transaction to finish, then try again.'));
+                this._showError(_t('Terminal is in use, retry in a few seconds.'));
             } else {
                 this._showError(result.message || _t('Card payment not approved.'));
             }
@@ -192,6 +241,8 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             this.cardpointe_resptext = json.cardpointe_resptext || '';
             this.cardpointe_token = json.cardpointe_token || '';
             this.cardpointe_status = json.cardpointe_status || '';
+            this.cardpointe_original_retref = json.cardpointe_original_retref || '';
+            this.cardpointe_operation = json.cardpointe_operation || '';
         }
 
         export_as_JSON() {
@@ -202,6 +253,8 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             json.cardpointe_resptext = this.cardpointe_resptext || '';
             json.cardpointe_token = this.cardpointe_token || '';
             json.cardpointe_status = this.cardpointe_status || '';
+            json.cardpointe_original_retref = this.cardpointe_original_retref || '';
+            json.cardpointe_operation = this.cardpointe_operation || '';
             return json;
         }
     };
