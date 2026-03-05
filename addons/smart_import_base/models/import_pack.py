@@ -43,3 +43,16 @@ class SmartImportPack(models.AbstractModel):
             if pack_code == code:
                 return self.env[model_name]
         return self.env['smart.import.pack']
+
+    @api.model
+    def get_step_providers(self, pack_code):
+        providers = []
+        for model_name in sorted(self.env.registry.models):
+            model = self.env[model_name]
+            if not getattr(model, '_smart_import_step_provider', False):
+                continue
+            if getattr(model, '_smart_import_pack_code', False) != pack_code:
+                continue
+            providers.append((getattr(model, '_provider_sequence', 100), model_name, model))
+        providers.sort(key=lambda item: (item[0], item[1]))
+        return [provider for _seq, _name, provider in providers]

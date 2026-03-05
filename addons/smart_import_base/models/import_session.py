@@ -10,14 +10,15 @@ class SmartImportSession(models.Model):
     _name = 'smart.import.session'
     _description = 'Smart Import Session'
     _order = 'create_date desc, id desc'
+    _inherit = ['mail.thread']
 
-    name = fields.Char(required=True, copy=False, default=lambda self: self.env['ir.sequence'].next_by_code('smart.import.session') or 'New')
+    name = fields.Char(required=True, copy=False, default=lambda self: self.env['ir.sequence'].next_by_code('smart.import.session') or 'New', tracking=True)
     state = fields.Selection([
         ('draft', 'Draft'),
         ('planned', 'Planned'),
         ('done', 'Done'),
         ('error', 'Error'),
-    ], default='draft', required=True)
+    ], default='draft', required=True, tracking=True)
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company, required=True)
     user_id = fields.Many2one('res.users', default=lambda self: self.env.user, required=True)
     mapping_profile_id = fields.Many2one('smart.import.mapping.profile')
@@ -50,6 +51,11 @@ class SmartImportSession(models.Model):
         line = f'[{fields.Datetime.now()}] {level}: {msg}'
         self.write({'log_text': f'{self.log_text or ""}{line}\n'})
 
+    def post_summary_message(self, title, lines):
+        self.ensure_one()
+        body = '<br/>'.join([title] + [f'- {line}' for line in (lines or [])])
+        self.message_post(body=body)
+
     def set_stats(self, payload):
         self.ensure_one()
         self.stats_json = json.dumps(payload or {}, indent=2, sort_keys=True)
@@ -67,7 +73,7 @@ class SmartImportSession(models.Model):
         for error in errors_list or []:
             writer.writerow({k: error.get(k, '') for k in fieldnames})
         attachment = self.env['ir.attachment'].create({
-            'name': f'{self.name}_errors.csv',
+            'name': f'{self.name}_issues.csv',
             'type': 'binary',
             'datas': base64.b64encode(output.getvalue().encode('utf-8')),
             'mimetype': 'text/csv',

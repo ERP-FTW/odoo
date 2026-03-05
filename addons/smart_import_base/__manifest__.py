@@ -3,7 +3,7 @@
     'version': '18.0.1.0.0',
     'summary': 'Generic framework for spreadsheet imports',
     'license': 'LGPL-3',
-    'depends': ['base'],
+    'depends': ['base', 'mail'],
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',

@@ -1,4 +1,5 @@
 import base64
+import io
 import json
 import logging
 from collections import defaultdict
@@ -17,8 +18,6 @@ class SmartImportPackInventoryFulcrum(models.AbstractModel):
 
     _pack_code = 'inventory_fulcrum'
     _pack_name = 'Inventory (Fulcrum)'
-
-    PLAN_ORDER = ['uoms', 'categories', 'vendors', 'locations_putaway', 'products', 'orderpoints', 'boms']
 
     def _normalized(self, value):
         return str(value or '').strip()
@@ -62,7 +61,6 @@ class SmartImportPackInventoryFulcrum(models.AbstractModel):
         if {'number', 'description'}.issubset(header_keys):
             return 'items', [
                 {'model': 'product.template', 'confidence': 0.95},
-                {'model': 'product.supplierinfo', 'confidence': 0.8},
                 {'model': 'stock.warehouse.orderpoint', 'confidence': 0.7},
             ]
         return 'unknown', []
@@ -78,7 +76,6 @@ class SmartImportPackInventoryFulcrum(models.AbstractModel):
         return summary
 
     def parse_items_xlsx(self, attachment, mapping_profile=False):
-        import io
         data = base64.b64decode(attachment.datas)
         workbook = load_workbook(io.BytesIO(data), data_only=True)
         sheet = workbook['Sheet1'] if 'Sheet1' in workbook.sheetnames else workbook.active
@@ -113,7 +110,6 @@ class SmartImportPackInventoryFulcrum(models.AbstractModel):
         return parsed_rows
 
     def parse_bom_xlsx(self, attachment):
-        import io
         data = base64.b64decode(attachment.datas)
         workbook = load_workbook(io.BytesIO(data), data_only=True)
         sheet = workbook['Sheet1'] if 'Sheet1' in workbook.sheetnames else workbook.active
@@ -145,43 +141,57 @@ class SmartImportPackInventoryFulcrum(models.AbstractModel):
                 bom_rows.extend(self.parse_bom_xlsx(line.attachment_id))
         return items_rows, bom_rows
 
-    def build_plan(self, session, dry_run=True):
-        items_rows, bom_rows = self._get_rows_from_session(session)
-        product_codes = {r['default_code'] for r in items_rows if r['default_code']}
-        grouped_boms = defaultdict(list)
-        for row in bom_rows:
-            if row['parent_number']:
-                grouped_boms[row['parent_number']].append(row)
-        missing_bom_products = sorted(({r['parent_number'] for r in bom_rows if r['parent_number']} | {r['child_number'] for r in bom_rows if r['child_number']}) - product_codes)
-        stats = {
-            'steps': self.PLAN_ORDER,
-            'counts': {
-                'unique_uoms': len({r['uom_name'] for r in items_rows if r['uom_name']}),
-                'unique_categories': len({r['category'] for r in items_rows if r['category']}),
-                'unique_vendors': len({r['vendor_name'] for r in items_rows if r['vendor_name']}),
-                'unique_locations': len({r['default_location'] for r in items_rows if r['default_location']}),
-                'products': len(items_rows),
-                'orderpoints': len([r for r in items_rows if r['min_stock'] > 0]),
-                'boms': len(grouped_boms),
-                'bom_lines': len(bom_rows),
-            },
-            'bom_parent_codes': sorted(grouped_boms.keys()),
-            'route_preview_counts': {'count_need_buy': 0, 'count_need_manufacture': 0, 'count_need_both': 0},
-        }
-        issues = {'missing_bom_products': missing_bom_products}
-        session.append_log('INFO', _('Step 1 UoM: %s unique') % stats['counts']['unique_uoms'])
-        session.append_log('INFO', _('Step 2 Categories: %s') % stats['counts']['unique_categories'])
-        session.append_log('INFO', _('Step 3 Products: %s') % stats['counts']['products'])
-        session.append_log('INFO', _('Step 4 BOMs: %s parents / %s lines') % (stats['counts']['boms'], stats['counts']['bom_lines']))
-        return {'stats': stats, 'issues': issues, 'dry_run': dry_run}
-
-    def execute(self, session, dry_run=False):
-        items_rows, bom_rows = self._get_rows_from_session(session)
-        legacy = self.env['smart.import.inventory.engine']
+    def _init_payload(self, session, dry_run):
         options = json.loads(session.options_json or '{}')
         options.update({'mapping_profile_id': session.mapping_profile_id.id})
-        session.append_log('INFO', _('Delegating execution to legacy engine compatibility path.'))
-        result = legacy.execute(session, items_rows, bom_rows, options, dry_run=dry_run)
-        if result.get('errors'):
-            session.make_error_csv(result['errors'])
-        return result
+        items_rows, bom_rows = self._get_rows_from_session(session)
+        return {
+            'session': session,
+            'items_rows': items_rows,
+            'bom_rows': bom_rows,
+            'options': options,
+            'dry_run': dry_run,
+            'caches': {},
+            'stats': defaultdict(int),
+            'issues': defaultdict(list),
+            'errors': [],
+        }
+
+    def _collect_plan_from_providers(self, session, payload):
+        plan = {'steps': [], 'counts': {}, 'issues': {}, 'mapped_fields': {}}
+        for provider in self.get_step_providers(self._pack_code):
+            fragment = provider.build_plan_fragment(session, payload) or {}
+            plan['steps'].extend(fragment.get('steps', []))
+            plan['counts'].update(fragment.get('counts', {}))
+            plan['mapped_fields'].update(fragment.get('mapped_fields', {}))
+            for key, val in (fragment.get('issues') or {}).items():
+                plan['issues'].setdefault(key, [])
+                if isinstance(val, list):
+                    plan['issues'][key].extend(val)
+                else:
+                    plan['issues'][key] = val
+        return plan
+
+    def build_plan(self, session, dry_run=True):
+        payload = self._init_payload(session, dry_run=True)
+        plan = self._collect_plan_from_providers(session, payload)
+        plan['issues'] = {k: sorted(set(v)) if isinstance(v, list) else v for k, v in plan['issues'].items()}
+        session.append_log('INFO', _('Plan built from %s providers.') % len(self.get_step_providers(self._pack_code)))
+        return {'stats': plan, 'issues': plan['issues'], 'dry_run': dry_run}
+
+    def execute(self, session, dry_run=False):
+        payload = self._init_payload(session, dry_run=dry_run)
+        providers = self.get_step_providers(self._pack_code)
+        for provider in providers:
+            provider.execute_steps(session, payload)
+
+        stats = dict(payload['stats'])
+        issues = {k: sorted(set(filter(None, v))) for k, v in payload['issues'].items()}
+        errors = payload['errors']
+        if errors:
+            session.make_error_csv(errors)
+            session.append_log('WARNING', _('[smart_import_inventory] issues.csv generated with %s rows') % len(errors))
+
+        session.append_log('INFO', _('[smart_import_inventory] execution finished. providers=%s') % len(providers))
+        _logger.info('[smart_import_inventory] execution finished providers=%s errors=%s', len(providers), len(errors))
+        return {'stats': stats, 'issues': issues, 'errors': errors}
