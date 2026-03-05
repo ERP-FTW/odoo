@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_smart_import_root" name="Smart Import" parent="base.menu_custom" sequence="90" groups="smart_import_base.group_smart_import_user"/>
+    <menuitem id="menu_smart_import_run" name="Run Import" action="action_smart_import_wizard" parent="menu_smart_import_root" sequence="10"/>
+    <menuitem id="menu_smart_import_sessions" name="Sessions" action="action_smart_import_session" parent="menu_smart_import_root" sequence="20"/>
+    <menuitem id="menu_smart_import_config" name="Configuration" parent="menu_smart_import_root" sequence="90" groups="smart_import_base.group_smart_import_manager"/>
+    <menuitem id="menu_smart_import_mapping_profiles" name="Mapping Profiles" action="action_smart_import_mapping_profile" parent="menu_smart_import_config" sequence="10"/>
+    <menuitem id="menu_smart_import_mapping_keywords" name="Mapping Keywords" action="action_smart_import_mapping_keyword" parent="menu_smart_import_config" sequence="20"/>
+    <menuitem id="menu_smart_import_rules" name="Rules" action="action_smart_import_rule" parent="menu_smart_import_config" sequence="30"/>
+</odoo>

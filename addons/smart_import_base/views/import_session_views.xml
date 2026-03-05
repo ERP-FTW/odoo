@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_smart_import_session_tree" model="ir.ui.view">
+        <field name="name">smart.import.session.tree</field>
+        <field name="model">smart.import.session</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="state"/>
+                <field name="company_id"/>
+                <field name="user_id"/>
+                <field name="create_date"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_smart_import_session_file_tree" model="ir.ui.view">
+        <field name="name">smart.import.session.file.tree</field>
+        <field name="model">smart.import.session.file</field>
+        <field name="arch" type="xml"><list><field name="filename"/><field name="kind"/><field name="detected_models_json"/><field name="notes"/></list></field>
+    </record>
+    <record id="view_smart_import_session_form" model="ir.ui.view">
+        <field name="name">smart.import.session.form</field>
+        <field name="model">smart.import.session</field>
+        <field name="arch" type="xml">
+            <form>
+                <header><field name="state" widget="statusbar" statusbar_visible="draft,planned,done,error"/></header>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="company_id"/>
+                        <field name="user_id"/>
+                        <field name="mapping_profile_id"/>
+                        <field name="error_csv_attachment_id"/>
+                    </group>
+                    <notebook>
+                        <page string="Files"><field name="file_line_ids" nolabel="1"><list editable="bottom"><field name="filename"/><field name="kind"/><field name="detected_models_json"/><field name="notes"/></list></field></page>
+                        <page string="Stats"><field name="stats_pretty" widget="text" readonly="1" nolabel="1"/></page>
+                        <page string="Issues"><field name="issues_pretty" widget="text" readonly="1" nolabel="1"/></page>
+                        <page string="Options"><field name="options_json" widget="text" readonly="1" nolabel="1"/></page>
+                        <page string="Log"><field name="log_text" widget="text" readonly="1" nolabel="1"/></page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_smart_import_session" model="ir.actions.act_window">
+        <field name="name">Sessions</field>
+        <field name="res_model">smart.import.session</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

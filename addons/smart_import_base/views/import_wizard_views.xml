@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_smart_import_wizard_form" model="ir.ui.view">
+        <field name="name">smart.import.wizard.form</field>
+        <field name="model">smart.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Smart Import">
+                <sheet>
+                    <group invisible="step != 'upload'">
+                        <field name="pack_code"/>
+                        <field name="mapping_profile_id"/>
+                        <field name="attachment_ids" widget="many2many_binary"/>
+                        <field name="dry_run"/>
+                    </group>
+                    <group invisible="step != 'review'">
+                        <field name="session_id"/>
+                        <field name="session_file_line_ids" nolabel="1"/>
+                        <field name="plan_text" widget="text" nolabel="1" readonly="1"/>
+                        <field name="issues_text" widget="text" nolabel="1" readonly="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button string="Analyze Files" type="object" name="action_analyze_files" class="btn-primary" invisible="step != 'upload'"/>
+                    <button string="Re-analyze" type="object" name="action_back_to_upload" class="btn-secondary" invisible="step != 'review'"/>
+                    <button string="Run Import" type="object" name="action_run_import" class="btn-primary" invisible="step != 'review'"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_smart_import_wizard" model="ir.actions.act_window">
+        <field name="name">Run Import</field>
+        <field name="res_model">smart.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
