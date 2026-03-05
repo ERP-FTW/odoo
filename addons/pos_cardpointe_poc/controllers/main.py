@@ -1,7 +1,6 @@
 import logging
 import threading
 import uuid
-from decimal import Decimal
 
 from odoo import http
 from odoo.exceptions import UserError
@@ -10,6 +9,11 @@ from odoo.http import request
 from odoo.addons.payment_cardpointe_base.services.gateway import CardPointeGatewayClient
 
 from ..services.cardpointe_terminal import CardPointeTerminalClient
+from ..services.signature_policy import (
+    amount_meets_threshold,
+    emv_indicates_signature_applicable,
+    parse_emv_tag_data,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -50,24 +54,17 @@ class PosCardPointeController(http.Controller):
 
         return payment_method, config, None
 
-    def _is_msr_transaction(self, auth_result):
-        entrymode = (auth_result.get('entrymode') or '').lower()
-        has_emv_data = bool(auth_result.get('emvTagData'))
-        if has_emv_data:
-            return False
-        if any(mode in entrymode for mode in ('contactless', 'chip', 'icc', 'emv', 'ctls')):
-            return False
-        if any(mode in entrymode for mode in ('swipe', 'msr', 'track', 'fallback')):
-            return True
-        return not has_emv_data
-
-    def _signature_required(self, config, amount, is_msr):
-        mode = config.signature_mode or 'msr_over_threshold'
-        if mode == 'never':
-            return False
+    def _signature_required_pre_auth(self, config, amount_dollars):
+        mode = config.signature_mode or 'over_threshold'
         if mode == 'always':
             return True
-        return bool(is_msr and Decimal(str(amount or 0)) >= Decimal(str(config.signature_threshold_amount or 0.0)))
+        if mode == 'over_threshold':
+            return amount_meets_threshold(amount_dollars, config.signature_threshold_amount)
+        return False
+
+    def _signature_required_on_policy(self, auth_result):
+        emv_data = parse_emv_tag_data(auth_result.get('emvTagData'))
+        return emv_indicates_signature_applicable(emv_data)
 
     def _resolve_merchant_config(self, terminal_config):
         merchant_config = terminal_config.merchant_config_id
@@ -179,51 +176,46 @@ class PosCardPointeController(http.Controller):
         _logger.info("CardPointe auth started request_id=%s", request_id)
         terminal_client = CardPointeTerminalClient(config)
 
-        include_signature_inline = (
-            config.signature_capture_method == 'inline_authcard'
-            and config.signature_mode == 'always'
-        )
+        signature_required_pre_auth = self._signature_required_pre_auth(config, active_request['amount'])
 
         try:
             result = terminal_client.auth_card_with_session(
                 amount_dollars=active_request['amount'],
                 order_id=active_request['order_uid'],
                 session_key=active_request['session_key'],
-                include_signature=include_signature_inline,
+                include_signature=signature_required_pre_auth,
             )
 
-            signature_required = False
-            signature_captured = False
-            if result.get('status') == 'approved':
-                is_msr = self._is_msr_transaction(result)
-                signature_required = self._signature_required(config, active_request['amount'], is_msr)
-                signature_captured = bool(result.get('signature_captured_inline'))
+            signature_required = signature_required_pre_auth
+            signature_captured = bool(result.get('signature_captured_inline')) if signature_required_pre_auth else False
+            signature_method = 'inline_authcard' if signature_required_pre_auth else ''
+            if result.get('status') == 'approved' and config.signature_mode == 'on_policy':
+                signature_required = self._signature_required_on_policy(result)
+                signature_captured = False
+                signature_method = 'post_readSignature' if signature_required else ''
 
-                if signature_required and config.signature_capture_method == 'post_readSignature':
+                if signature_required:
                     read_sig_result = terminal_client.read_signature(active_request['session_key'])
                     if not read_sig_result.get('ok'):
-                        return {
-                            'status': 'error',
-                            'message': read_sig_result.get('message') or 'Signature capture failed.',
-                            'respcode': result.get('respcode'),
-                            'resptext': result.get('resptext'),
-                        }
-
-                    sigcap_result = self._attach_signature_sigcap(
-                        config,
-                        retref=result.get('retref'),
-                        signature_blob=read_sig_result.get('signature'),
-                    )
-                    if not sigcap_result.get('ok'):
-                        return {
-                            'status': 'error',
-                            'message': sigcap_result.get('message') or 'Gateway signature attach failed.',
-                            'respcode': result.get('respcode'),
-                            'resptext': result.get('resptext'),
-                        }
-                    signature_captured = True
-                elif signature_required and config.signature_capture_method == 'inline_authcard':
-                    signature_captured = bool(result.get('signature_captured_inline'))
+                        _logger.warning(
+                            "CardPointe on_policy readSignature failed request_id=%s reason=%s",
+                            request_id,
+                            read_sig_result.get('message'),
+                        )
+                    else:
+                        signature_captured = True
+                        if result.get('retref'):
+                            sigcap_result = self._attach_signature_sigcap(
+                                config,
+                                retref=result.get('retref'),
+                                signature_blob=read_sig_result.get('signature'),
+                            )
+                            if not sigcap_result.get('ok'):
+                                _logger.warning(
+                                    "CardPointe on_policy sigcap failed request_id=%s reason=%s",
+                                    request_id,
+                                    sigcap_result.get('message'),
+                                )
 
             if result.get('status') == 'approved':
                 return {
@@ -236,6 +228,7 @@ class PosCardPointeController(http.Controller):
                     'token': result.get('token'),
                     'signature_required': signature_required,
                     'signature_captured': signature_captured,
+                    'signature_method': signature_method,
                 }
 
             return {

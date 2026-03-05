@@ -34,7 +34,8 @@ Create **Point of Sale > Configuration > CardPointe Terminal Configs**:
 - Request Timeout Seconds: `120`
 - Signature Mode:
   - `never`
-  - `msr_over_threshold` (default)
+  - `over_threshold` (default)
+  - `on_policy`
   - `always`
 - Signature Threshold Amount: `50.00` (default)
 - Signature Capture Method:
@@ -48,16 +49,19 @@ Then configure payment method `Card (CardPointe POC)`:
 
 ## Signature policy behavior
 
-- Default `authCard` behavior uses `includeSignature=false`.
-- Inline capture sends `includeSignature=true` only when policy requires inline signature pre-auth (always mode).
-- For `msr_over_threshold`, the module determines swipe/MSR vs EMV using `entrymode` and presence of `emvTagData` from `authCard` response.
-- If policy requires signature and method is `post_readSignature`, the module:
-  1. Runs `authCard` with `includeSignature=false`
-  2. Calls terminal `readSignature`
-  3. Calls gateway `sigcap` with original `retref`
-- Database persistence stores only booleans:
+- `never`: no signature capture.
+- `always`: always requests signature inline (`authCard includeSignature=true`).
+- `over_threshold`: requests signature inline when `order_total >= signature_threshold_amount` (no MSR/EMV dependency).
+- `on_policy`: runs `authCard includeSignature=false`, inspects `emvTagData`, and only then captures signature when EMV policy indicates signature is applicable (`readSignature` + optional `sigcap`).
+- Database persistence stores only metadata (no blob):
   - `cardpointe_signature_required`
   - `cardpointe_signature_captured`
+  - `cardpointe_signature_method`
+
+
+## Migration note
+
+Legacy value `msr_over_threshold` is automatically mapped to `over_threshold` in model `create/write`, so existing configs continue to work after upgrade.
 
 ## Terminal verification (manual)
 
@@ -134,6 +138,7 @@ Terminal config form includes admin-only **Test Connect** button.
 - `cardpointe_status`
 - `cardpointe_signature_required`
 - `cardpointe_signature_captured`
+- `cardpointe_signature_method`
 
 ## Troubleshooting
 

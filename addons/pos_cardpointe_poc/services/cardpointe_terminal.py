@@ -40,6 +40,9 @@ class CardPointeTerminalClient:
                 key_lower = str(key).lower()
                 if any(s in key_lower for s in ('signature', 'receipt')):
                     continue
+                if key_lower == 'emvtagdata':
+                    clean[key] = safe_truncate(str(value), limit=200)
+                    continue
                 clean[key] = self._sanitize_for_log(value)
             return clean
         if isinstance(data, list):

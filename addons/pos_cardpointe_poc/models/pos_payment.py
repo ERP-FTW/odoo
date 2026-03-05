@@ -26,6 +26,10 @@ class PosPayment(models.Model):
     cardpointe_ok = fields.Boolean(default=False)
     cardpointe_signature_required = fields.Boolean(default=False)
     cardpointe_signature_captured = fields.Boolean(default=False)
+    cardpointe_signature_method = fields.Selection([
+        ('inline_authcard', 'Inline authCard'),
+        ('post_readSignature', 'Post readSignature'),
+    ])
 
 
     def _cardpointe_get_merchant_config(self, terminal_config):

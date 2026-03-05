@@ -1,5 +1,5 @@
 from odoo import _, api, fields, models
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, ValidationError
 
 from odoo.addons.pos_cardpointe_poc.services.cardpointe_terminal import CardPointeTerminalClient
 
@@ -20,11 +20,17 @@ class CardPointeTerminalConfig(models.Model):
     signature_mode = fields.Selection(
         [
             ('never', 'Never'),
-            ('msr_over_threshold', 'MSR over threshold'),
             ('always', 'Always'),
+            ('over_threshold', 'Over threshold'),
+            ('on_policy', 'On policy (EMV CVM)'),
+            ('msr_over_threshold', 'Legacy: MSR over threshold'),
         ],
-        default='msr_over_threshold',
+        default='over_threshold',
         required=True,
+        help=(
+            "Over threshold: Always request signature when amount >= threshold (any entry mode).\n"
+            "On policy: Capture signature only when EMV indicates signature is applicable (post-transaction)."
+        ),
     )
     signature_threshold_amount = fields.Float(default=50.0, required=True)
     signature_capture_method = fields.Selection(
@@ -36,10 +42,41 @@ class CardPointeTerminalConfig(models.Model):
         required=True,
     )
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            self._normalize_signature_mode(vals)
+        return super().create(vals_list)
+
+    def write(self, vals):
+        self._normalize_signature_mode(vals)
+        return super().write(vals)
+
+    @staticmethod
+    def _normalize_signature_mode(vals):
+        if vals.get('signature_mode') == 'msr_over_threshold':
+            vals['signature_mode'] = 'over_threshold'
+
+    @api.constrains('signature_mode', 'signature_capture_method')
+    def _check_signature_mode_compatibility(self):
+        for rec in self:
+            mode = rec.signature_mode
+            if mode == 'on_policy' and rec.signature_capture_method != 'post_readSignature':
+                raise ValidationError(_('On policy mode requires capture method Post readSignature.'))
+            if mode in ('always', 'over_threshold') and rec.signature_capture_method != 'inline_authcard':
+                raise ValidationError(_('Always/Over threshold modes require capture method Inline authCard.'))
+
     @api.onchange('merchant_config_id')
     def _onchange_merchant_config_id(self):
         if self.merchant_config_id:
             self.merchant_id = self.merchant_config_id.mid
+
+    @api.onchange('signature_mode')
+    def _onchange_signature_mode(self):
+        if self.signature_mode == 'on_policy':
+            self.signature_capture_method = 'post_readSignature'
+        elif self.signature_mode in ('always', 'over_threshold', 'msr_over_threshold'):
+            self.signature_capture_method = 'inline_authcard'
 
     def action_test_connect(self):
         self.ensure_one()
