@@ -82,16 +82,31 @@ class CardPointeTerminalConfig(models.Model):
         self.ensure_one()
         if not self.env.user.has_group('base.group_system'):
             raise AccessError(_('Only administrators can run terminal connect tests.'))
-
-        result = CardPointeTerminalClient(self).connect()
+    
+        client = CardPointeTerminalClient(self)
+        result = client.connect()
+    
         message = _('Connect failed.')
         msg_type = 'warning'
+    
         if result.get('ok'):
-            message = _('Connect succeeded. Session key was returned by terminal API.')
-            msg_type = 'success'
+            # IMPORTANT: free the terminal session immediately so POS can use it
+            session_key = result.get('session_key')
+            disconnect_msg = ''
+            if session_key:
+                disc = client.disconnect(session_key)
+                if not disc.get('ok'):
+                    # We still report connect success, but warn admin the session may remain open
+                    disconnect_msg = _(' (but disconnect failed: %s)') % (disc.get('message') or 'unknown error')
+                    msg_type = 'warning'
+                else:
+                    disconnect_msg = _(' (disconnect OK)')
+            message = _('Connect succeeded. Session key returned by terminal API.%s') % disconnect_msg
+            if msg_type != 'warning':
+                msg_type = 'success'
         elif result.get('message'):
             message = _('Connect failed: %s') % result.get('message')
-
+    
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
