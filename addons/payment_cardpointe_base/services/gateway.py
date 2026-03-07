@@ -1,3 +1,4 @@
+import json
 import logging
 
 from .http import CardPointeRequestError, redact_payload, request_json, safe_log_headers, safe_truncate
@@ -6,24 +7,30 @@ from .money import format_gateway_amount
 _logger = logging.getLogger(__name__)
 
 
-def choose_refund_operation(inquire_data):
-    """Return 'void' when inquiry shows an unsettled tx, otherwise 'refund'."""
-    data = inquire_data or {}
-    settle_status = str(
-        data.get('setlstat')
-        or data.get('settlestat')
-        or data.get('settle_status')
-        or data.get('settleStatus')
-        or ''
-    ).strip().lower()
-
-    if settle_status in {'0', 'n', 'no', 'pending', 'not settled', 'not_settled', 'queued'}:
-        return 'void'
-    if settle_status in {'1', 'y', 'yes', 'settled', 'complete', 'captured'}:
-        return 'refund'
-
-    # Conservative default: refund if status is unknown.
-    return 'refund'
+def sanitize_for_log(data):
+    if isinstance(data, dict):
+        sanitized = {}
+        for key, value in data.items():
+            key_lower = str(key).lower()
+            if any(s in key_lower for s in ('signature', 'receipt', 'emvtagdata')):
+                continue
+            cleaned_value = sanitize_for_log(value)
+            if cleaned_value in ({}, [], None, ''):
+                continue
+            sanitized[key] = cleaned_value
+        return sanitized
+    if isinstance(data, list):
+        return [sanitize_for_log(item) for item in data]
+    if isinstance(data, str):
+        stripped = data.strip()
+        if stripped.startswith('{') and stripped.endswith('}'):
+            try:
+                parsed = json.loads(stripped)
+            except Exception:
+                return safe_truncate(data, limit=300)
+            return sanitize_for_log(parsed)
+        return safe_truncate(data, limit=300)
+    return data
 
 
 class CardPointeGatewayClient:
@@ -40,11 +47,14 @@ class CardPointeGatewayClient:
         if payload is not None:
             headers['Content-Type'] = 'application/json'
 
+        log_headers = dict(headers)
+        log_headers['Authorization'] = f"Basic {self.config.gateway_username or ''}:***"
+
         _logger.info(
             "CardPointe gateway request method=%s path=%s headers=%s payload=%s",
             method,
             path,
-            safe_log_headers(headers),
+            safe_log_headers(log_headers),
             redact_payload(payload or {}),
         )
 
@@ -73,7 +83,7 @@ class CardPointeGatewayClient:
             method,
             path,
             status_code,
-            safe_truncate(text),
+            sanitize_for_log(response_json or {'body': safe_truncate(text)}),
         )
 
         data = response_json or {}
@@ -107,36 +117,10 @@ class CardPointeGatewayClient:
             timeout=30,
         )
 
-    def void_or_refund(self, merchid, retref, amount):
-        inquire_result = self.inquire(retref, merchid)
-        if not inquire_result.get('ok'):
-            return {
-                'ok': False,
-                'status': 'error',
-                'message': inquire_result.get('message') or 'CardPointe inquire failed.',
-                'operation': 'inquire',
-                'raw': inquire_result,
-            }
-
-        operation = choose_refund_operation(inquire_result.get('data'))
-        if operation == 'void':
-            action_result = self.void(merchid, retref)
-        else:
-            action_result = self.refund(merchid, retref, amount)
-
-        data = action_result.get('data') or {}
-        respstat = (data.get('respstat') or '').upper()
-        respcode = str(data.get('respcode') or '')
-        ok = action_result.get('ok') and (respstat == 'A' or respcode in {'000', '00'})
-        message = data.get('resptext') or ('Approved' if ok else action_result.get('message') or 'CardPointe operation failed.')
-
-        return {
-            'ok': ok,
-            'status': 'approved' if ok else 'error',
-            'operation': operation,
-            'retref': data.get('retref') or retref,
-            'respstat': data.get('respstat'),
-            'respcode': data.get('respcode'),
-            'resptext': message,
-            'raw': {'inquire': inquire_result.get('data') or {}, operation: data},
-        }
+    def sigcap(self, merchid, retref, signature):
+        return self._request(
+            'POST',
+            'sigcap',
+            payload={'merchid': merchid, 'retref': retref, 'signature': signature},
+            timeout=30,
+        )

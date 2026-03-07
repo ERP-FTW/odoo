@@ -5,6 +5,7 @@ from odoo.exceptions import UserError
 
 from odoo.addons.payment_cardpointe_base.services.gateway import CardPointeGatewayClient
 from odoo.addons.payment_cardpointe_base.services.money import format_gateway_amount
+from odoo.addons.payment_cardpointe_base.services.refunds import execute_void_or_refund
 
 
 class PosPayment(models.Model):
@@ -21,6 +22,13 @@ class PosPayment(models.Model):
         ('sale', 'Sale'),
         ('void', 'Void'),
         ('refund', 'Refund'),
+    ])
+    cardpointe_ok = fields.Boolean(default=False)
+    cardpointe_signature_required = fields.Boolean(default=False)
+    cardpointe_signature_captured = fields.Boolean(default=False)
+    cardpointe_signature_method = fields.Selection([
+        ('inline_authcard', 'Inline authCard'),
+        ('post_readSignature', 'Post readSignature'),
     ])
 
 
@@ -65,10 +73,12 @@ class PosPayment(models.Model):
         gateway = CardPointeGatewayClient(merchant_config)
         results = []
         for allocation in allocations:
-            result = gateway.void_or_refund(
+            result = execute_void_or_refund(
+                gw_client=gateway,
                 merchid=merchant_config.mid,
                 retref=allocation['retref'],
-                amount=allocation['amount'],
+                amount=format_gateway_amount(allocation['amount']),
+                orderid=allocation.get('order_uid'),
             )
             if not result.get('ok'):
                 message = result.get('resptext') or result.get('message') or _('CardPointe refund failed.')
@@ -101,6 +111,7 @@ class PosPayment(models.Model):
             'respcode': primary.get('respcode') or '',
             'resptext': resptexts or _('Refund approved.'),
             'original_retref': source_retrefs,
+            'ok': True,
         }
 
     def _cardpointe_build_refund_allocations(self, payment_method, refunded_orderline_ids, refund_amount):
@@ -140,7 +151,11 @@ class PosPayment(models.Model):
                 continue
 
             allocated = min(available, remaining)
-            allocations.append({'retref': payment.cardpointe_retref, 'amount': allocated})
+            allocations.append({
+                'retref': payment.cardpointe_retref,
+                'amount': allocated,
+                'order_uid': payment.pos_order_id.pos_reference or payment.pos_order_id.name,
+            })
             remaining -= allocated
 
         if remaining > 0:
