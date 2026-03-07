@@ -87,6 +87,9 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
                 line.cardpointe_status = 'approved';
                 line.cardpointe_operation = 'sale';
                 line.cardpointe_ok = true;
+                line.cardpointe_signature_required = !!result.signature_required;
+                line.cardpointe_signature_captured = !!result.signature_captured;
+                line.cardpointe_signature_method = result.signature_method || '';
                 line.transaction_id = result.retref || '';
                 line.set_payment_status('done');
                 return true;
@@ -183,6 +186,9 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             delete this._activeRequestByCid[cid];
             line.cardpointe_status = result.status || 'error';
             line.cardpointe_ok = false;
+            line.cardpointe_signature_required = false;
+            line.cardpointe_signature_captured = false;
+            line.cardpointe_signature_method = '';
             line.cardpointe_respcode = result.respcode || '';
             line.cardpointe_resptext = result.resptext || '';
             line.set_payment_status('retry');
@@ -198,6 +204,9 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
         _handleFailedResult: function (line, result) {
             line.cardpointe_status = result.status || 'error';
             line.cardpointe_ok = false;
+            line.cardpointe_signature_required = false;
+            line.cardpointe_signature_captured = false;
+            line.cardpointe_signature_method = '';
             line.cardpointe_respcode = result.respcode || '';
             line.cardpointe_resptext = result.resptext || '';
             line.set_payment_status('retry');
@@ -248,6 +257,9 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             this.cardpointe_original_retref = json.cardpointe_original_retref || '';
             this.cardpointe_operation = json.cardpointe_operation || '';
             this.cardpointe_ok = !!json.cardpointe_ok;
+            this.cardpointe_signature_required = !!json.cardpointe_signature_required;
+            this.cardpointe_signature_captured = !!json.cardpointe_signature_captured;
+            this.cardpointe_signature_method = json.cardpointe_signature_method || '';
         }
 
         export_as_JSON() {
@@ -261,6 +273,9 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             json.cardpointe_original_retref = this.cardpointe_original_retref || '';
             json.cardpointe_operation = this.cardpointe_operation || '';
             json.cardpointe_ok = !!this.cardpointe_ok;
+            json.cardpointe_signature_required = !!this.cardpointe_signature_required;
+            json.cardpointe_signature_captured = !!this.cardpointe_signature_captured;
+            json.cardpointe_signature_method = this.cardpointe_signature_method || '';
             return json;
         }
     };
