@@ -58,3 +58,40 @@ class TestPartnerRequirePhoneOrEmail(TransactionCase):
             'mobile': False,
         })
         self.assertTrue(user.partner_id)
+
+    def test_duplicate_email_is_warning_only(self):
+        self.env['res.partner'].create({
+            'name': 'Original Email',
+            'email': 'duplicate@example.com',
+        })
+        duplicate = self.env['res.partner'].create({
+            'name': 'Duplicate Email',
+            'email': 'DUPLICATE@example.com',
+        })
+        self.assertTrue(duplicate)
+        self.assertTrue(duplicate.has_duplicate_email_warning)
+        self.assertTrue(duplicate.has_contact_duplicate_warning)
+
+    def test_duplicate_phone_mobile_cross_field_is_warning_only(self):
+        self.env['res.partner'].create({
+            'name': 'Original Phone',
+            'phone': '+1 (555) 000 1111',
+        })
+        duplicate = self.env['res.partner'].create({
+            'name': 'Duplicate Mobile',
+            'mobile': '1-555-000-1111',
+        })
+        self.assertTrue(duplicate)
+        self.assertTrue(duplicate.has_duplicate_mobile_warning)
+        self.assertTrue(duplicate.has_contact_duplicate_warning)
+
+    def test_duplicate_flags_not_set_when_not_required(self):
+        company_partner = self.env.company.partner_id
+        company_partner.write({'email': 'company@example.com'})
+
+        other = self.env['res.partner'].create({
+            'name': 'Other Company Email',
+            'email': 'company@example.com',
+        })
+        self.assertFalse(company_partner.has_contact_duplicate_warning)
+        self.assertTrue(other.has_contact_duplicate_warning)
