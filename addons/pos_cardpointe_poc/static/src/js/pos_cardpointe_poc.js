@@ -62,6 +62,14 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
 
             this._activeRequestByCid[cid] = startResult.request_id;
             delete this._cashierCancelledByCid[cid];
+            if (startResult.tip_enabled) {
+                Gui.showPopup('ConfirmPopup', {
+                    title: _t('CardPointe POC'),
+                    body: _t('Select tip on terminal…'),
+                    confirmText: _t('OK'),
+                    cancelText: _t('Close'),
+                });
+            }
             let result;
             try {
                 result = await rpc.query({
@@ -90,6 +98,8 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
                 line.cardpointe_signature_required = !!result.signature_required;
                 line.cardpointe_signature_captured = !!result.signature_captured;
                 line.cardpointe_signature_method = result.signature_method || '';
+                line.cardpointe_tip_amount = result.cardpointe_tip_amount || 0.0;
+                line.cardpointe_base_amount = result.cardpointe_base_amount || line.amount;
                 line.transaction_id = result.retref || '';
                 line.set_payment_status('done');
                 return true;
@@ -189,6 +199,8 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             line.cardpointe_signature_required = false;
             line.cardpointe_signature_captured = false;
             line.cardpointe_signature_method = '';
+            line.cardpointe_tip_amount = 0.0;
+            line.cardpointe_base_amount = 0.0;
             line.cardpointe_respcode = result.respcode || '';
             line.cardpointe_resptext = result.resptext || '';
             line.set_payment_status('retry');
@@ -207,6 +219,8 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             line.cardpointe_signature_required = false;
             line.cardpointe_signature_captured = false;
             line.cardpointe_signature_method = '';
+            line.cardpointe_tip_amount = 0.0;
+            line.cardpointe_base_amount = 0.0;
             line.cardpointe_respcode = result.respcode || '';
             line.cardpointe_resptext = result.resptext || '';
             line.set_payment_status('retry');
@@ -260,6 +274,8 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             this.cardpointe_signature_required = !!json.cardpointe_signature_required;
             this.cardpointe_signature_captured = !!json.cardpointe_signature_captured;
             this.cardpointe_signature_method = json.cardpointe_signature_method || '';
+            this.cardpointe_tip_amount = json.cardpointe_tip_amount || 0.0;
+            this.cardpointe_base_amount = json.cardpointe_base_amount || 0.0;
         }
 
         export_as_JSON() {
@@ -276,6 +292,8 @@ odoo.define('pos_cardpointe_poc.payment', function (require) {
             json.cardpointe_signature_required = !!this.cardpointe_signature_required;
             json.cardpointe_signature_captured = !!this.cardpointe_signature_captured;
             json.cardpointe_signature_method = this.cardpointe_signature_method || '';
+            json.cardpointe_tip_amount = this.cardpointe_tip_amount || 0.0;
+            json.cardpointe_base_amount = this.cardpointe_base_amount || 0.0;
             return json;
         }
     };

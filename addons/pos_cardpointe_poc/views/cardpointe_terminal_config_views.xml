@@ -22,6 +22,13 @@
                         <field name="auth_key" password="True"/>
                         <field name="request_timeout_seconds"/>
                     </group>
+                    <group string="Tip at Sale">
+                        <field name="enable_tips"/>
+                        <field name="tip_percent_1" attrs="{'invisible': [('enable_tips', '=', False)], 'required': [('enable_tips', '=', True)]}"/>
+                        <field name="tip_percent_2" attrs="{'invisible': [('enable_tips', '=', False)], 'required': [('enable_tips', '=', True)]}"/>
+                        <field name="tip_percent_3" attrs="{'invisible': [('enable_tips', '=', False)], 'required': [('enable_tips', '=', True)]}"/>
+                        <field name="tip_allow_custom" attrs="{'invisible': [('enable_tips', '=', False)]}"/>
+                    </group>
                     <group string="Signature Policy">
                         <field name="signature_mode"/>
                         <field name="signature_threshold_amount"
