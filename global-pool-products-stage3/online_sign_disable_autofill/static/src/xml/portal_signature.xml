@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="ott_online_sign_disable_autofill.portal_signature" t-inherit="portal.SignatureForm"
+       t-inherit-mode="extension" owl="1">
+        <xpath expr="//form[@method='POST']//div[hasclass('o_web_sign_name_and_signature')]" position="after">
+            <div class="o_web_get_job_title">
+                <label class="col-form-label">Job Title</label>
+                <input type="text" name="job_title" class="form-control job_title o_web_sign_jobTitle"
+                       placeholder="Type your job title" required=""/>
+                <p class="text-muted">There is a short delay after clicking Accept &amp; Sign.</p>
+                <t t-if="docCheckbox">
+                        <style>
+                            .document_reviewed {
+                                vertical-align: middle; /* Aligns the checkbox with the label */
+                                accent-color: #714b67; /* Sets the checkbox color to #714b67 */
+                                margin-right: 10px; /* Adds space between the checkbox and label */
+                            }
+                            .label {
+                                vertical-align: middle; /* Ensures the label is aligned with the checkbox */
+                            }
+                        </style>
+                    <input type="checkbox" name="document_reviewed" class="document_reviewed"/>
+                    <span class="label" t-esc="docLabel"/>
+                </t>
+
+            </div>
+        </xpath>
+    </t>
+</templates>

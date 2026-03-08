@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- Shipping method wizard: add Delivery Tracking Reference -->
+        <record id="view_choose_delivery_carrier_form_inherit_tracking_ref" model="ir.ui.view">
+            <field name="name">choose.delivery.carrier.form.inherit.tracking.ref</field>
+            <field name="model">choose.delivery.carrier</field>
+            <field name="inherit_id" ref="delivery.choose_delivery_carrier_view_form"/>
+            <field name="arch" type="xml">
+
+                <!-- Place it right after the carrier selection -->
+                <xpath expr="//field[@name='carrier_id']" position="after">
+                    <field name="carrier_tracking_ref"
+                           placeholder="Tracking reference (optional)"/>
+                </xpath>
+
+            </field>
+        </record>
+
+    </data>
+</odoo>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_saleorder_document" inherit_id="sale.report_saleorder_document" priority="1">
+        <xpath expr="//div[@name='signature']//div[@class='offset-8 text-center']" position="after">
+            <div class="offset-8 text-center">
+                <p t-field="doc.partner_id.function"/>
+            </div>
+        </xpath>
+    </template>
+</odoo>

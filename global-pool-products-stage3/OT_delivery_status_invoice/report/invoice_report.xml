@@ -1,0 +1,10 @@
+<odoo>
+    <template id="report_invoice_document_inherit_tracking" inherit_id="account.report_invoice_document">
+        <xpath expr="//div[@name='origin']" position="after">
+            <div class="col" t-if="o.delivery_tracking_ref">
+                <strong>Tracking Reference</strong>
+                <div t-field="o.delivery_tracking_ref"/>
+            </div>
+        </xpath>
+    </template>
+</odoo>
