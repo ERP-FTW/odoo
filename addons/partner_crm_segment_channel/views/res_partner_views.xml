@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_segment_channel" model="ir.ui.view">
+        <field name="name">res.partner.form.segment.channel</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='function']" position="after">
+                <field name="segment"/>
+                <field name="channel"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_res_partner_filter_segment_channel" model="ir.ui.view">
+        <field name="name">res.partner.search.segment.channel</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search/group[@name='group_by']" position="inside">
+                <filter name="group_by_segment" string="Segment" context="{'group_by': 'segment'}"/>
+                <filter name="group_by_channel" string="Channel" context="{'group_by': 'channel'}"/>
+            </xpath>
+            <xpath expr="//search" position="inside">
+                <filter name="segment_set" string="Has Segment" domain="[('segment', '!=', False)]"/>
+                <filter name="channel_set" string="Has Channel" domain="[('channel', '!=', False)]"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_res_partner_pivot_segment_channel" model="ir.ui.view">
+        <field name="name">res.partner.pivot.segment.channel</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <pivot string="Contacts Segment/Channel Analysis">
+                <field name="segment" type="row"/>
+                <field name="channel" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_contacts_view_pivot_segment_channel" model="ir.actions.act_window.view">
+        <field name="sequence" eval="30"/>
+        <field name="view_mode">pivot</field>
+        <field name="view_id" ref="view_res_partner_pivot_segment_channel"/>
+        <field name="act_window_id" ref="contacts.action_contacts"/>
+    </record>
+</odoo>
