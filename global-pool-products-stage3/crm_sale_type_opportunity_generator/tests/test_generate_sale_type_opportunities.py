@@ -53,7 +53,7 @@ class TestGenerateSaleTypeOpportunities(BaseCommon):
             'partner_id': cls.partner_company_2.id,
             'team_id': cls.team.id,
             'sale_type_id': cls.sale_type_b.id,
-            'probability': 50,
+            'probability': 0,
             'expected_revenue': 20.0,
         })
 

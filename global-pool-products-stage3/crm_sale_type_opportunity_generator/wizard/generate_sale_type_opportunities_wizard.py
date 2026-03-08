@@ -39,7 +39,6 @@ class GenerateSaleTypeOpportunitiesWizard(models.TransientModel):
             ('partner_id.commercial_partner_id', '=', partner_id),
             ('team_id', '=', self.team_id.id),
             ('active', '=', True),
-            ('probability', '>', 0),
             ('probability', '<', 100),
         ]
 
