@@ -1,0 +1,93 @@
+<odoo>
+    <record id="view_ftp_sale_order_backend_search" model="ir.ui.view">
+        <field name="name">ftp.sale.order.backend.search</field>
+        <field name="model">ftp.sale.order.backend</field>
+        <field name="arch" type="xml">
+            <search string="FTP Mail Server">
+                <field name="name" string="Name"/>
+                <field name="host" string="Server Name"/>
+                <field name="username" string="Username"/>
+                <filter string="Active" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Archived" name="archived" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+    <record id="view_ftp_sale_order_backend_list" model="ir.ui.view">
+        <field name="name">ftp.sale.order.backend.list</field>
+        <field name="model">ftp.sale.order.backend</field>
+        <field name="arch" type="xml">
+            <list string="FTP Mail Server"
+                  decoration-success="state == 'connected'"
+                  decoration-danger="state == 'not_connected'">
+                <field name="name" string="Name"/>
+                <field name="host" string="Server Name"/>
+                <field name="username" string="Username"/>
+                <field name="write_date" string="Last Fetch Date"/>
+                <field name="state" string="Connection Status" widget="badge"
+                       decoration-success="state == 'connected'"
+                       decoration-danger="state == 'not_connected'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ftp_sale_order_backend_form" model="ir.ui.view">
+        <field name="name">ftp.sale.order.backend.form</field>
+        <field name="model">ftp.sale.order.backend</field>
+        <field name="arch" type="xml">
+
+            <form string="FTP Mail Server">
+                <header>
+
+                    <button name="action_test_connection" string="Test Connection" type="object" class="btn-primary"
+                            help="Test the FTP connection settings."/>
+                    <button name="action_reset_connection" string="Disconnect" type="object"
+                            confirm="Are you sure you want to disconnect this FTP server?"
+                            help="Reset the FTP connection status" eval="False"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Connection Settings">
+                            <field name="host" placeholder="ftp.example.com"  readonly="state == 'connected'"/>
+                            <field name="port" placeholder="21"  readonly="state == 'connected'"/>
+                            <field name="directory" placeholder="/orders/incoming"  readonly="state == 'connected'"/>
+                        </group>
+                        <group string="Authentication">
+                            <field name="username"  readonly="state == 'connected'"/>
+                            <field name="password" widget="pasword" password="1"  readonly="state == 'connected'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Additional Information">
+                            <group>
+                                <field name="create_date" readonly="1"/>
+                                <field name="write_date" readonly="1"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ftp_sale_order_backend" model="ir.actions.act_window">
+        <field name="name">FTP Mail Server</field>
+        <field name="res_model">ftp.sale.order.backend</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_ftp_sale_order_backend_list"/>
+        <field name="search_view_id" ref="view_ftp_sale_order_backend_search"/>
+    </record>
+
+    <menuitem
+            id="menu_ftp_sale_order_backend"
+            name="FTP Mail Server"
+            parent="base.menu_email"
+            groups="base.group_system"
+            action="action_ftp_sale_order_backend"
+            sequence="9"/>
+</odoo>

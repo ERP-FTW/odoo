@@ -1,0 +1,29 @@
+<odoo>
+    <!-- Form View for SFTP Import -->
+    <record id="view_sftp_import_form" model="ir.ui.view">
+        <field name="name">sftp.import.form</field>
+        <field name="model">sftp.import</field>
+        <field name="arch" type="xml">
+            <form string="FTP Sale Order Import">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="state" readonly="1"/>
+                    </group>
+                    <footer>
+                        <button name="download_file_from_sftp" type="object" string="Download File"
+                                class="btn-primary"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_sftp_import" model="ir.actions.act_window">
+        <field name="name">Sale Order FTP Transfer</field>
+        <field name="res_model">sftp.import</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_sftp_import_form"/>
+    </record>
+
+</odoo>

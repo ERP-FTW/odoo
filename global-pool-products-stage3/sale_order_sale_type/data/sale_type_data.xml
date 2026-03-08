@@ -1,0 +1,14 @@
+<odoo>
+    <record id="sale_type_early_buy" model="sale.type">
+        <field name="name">Early Buy</field>
+    </record>
+    <record id="sale_type_literature" model="sale.type">
+        <field name="name">Literature</field>
+    </record>
+    <record id="sale_type_custom_order" model="sale.type">
+        <field name="name">Custom Order</field>
+    </record>
+    <record id="sale_type_sales_order" model="sale.type">
+        <field name="name">Sales Order</field>
+    </record>
+</odoo>

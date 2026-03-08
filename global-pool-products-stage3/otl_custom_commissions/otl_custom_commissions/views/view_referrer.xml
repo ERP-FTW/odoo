@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <record id="otl_custom_commissions_sale_commission_plan_view_form_inherit" model="ir.ui.view">
+            <field name="name">sale.commission.plan.view.form.inherit</field>
+            <field name="model">sale.commission.plan</field>
+            <field name="inherit_id" ref="sale_commission.sale_commission_plan_view_form"/>
+            <field name="arch" type="xml">
+                <!-- Hide Sale Team field when user_type is 'person' or 'referrer_id' -->
+                <xpath expr="//field[@name='team_id']" position="attributes">
+                    <attribute name="invisible">user_type in ('person', 'referrer_id')</attribute>
+                </xpath>
+
+                <!-- Add referrer_id field as a dropdown after user_type field -->
+                <xpath expr="//field[@name='team_id']" position="after">
+<!--                     <label for="referrer_id" string="Referrer"/>-->
+                    <field name="referrer_id" string="Referrer"
+                           invisible="user_type != 'referrer_id'"
+                           required="user_type == 'referrer_id'"/> <!-- Prevent the current user from being selected -->
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ftp_backend_user,access.ftp.backend.user,model_ftp_sale_order_backend,base.group_user,1,1,1,1
+access_ftp_backend_admin,access.ftp.backend.admin,model_ftp_sale_order_backend,base.group_erp_manager,1,1,1,1
+access_sftp_import,access_sftp_import,otl_ftp_sale_order_import.model_sftp_import,base.group_user,1,1,1,0
