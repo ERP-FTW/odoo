@@ -7,6 +7,32 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='email'][1]" position="after">
                 <small class="text-muted">Email or Phone/Mobile is required.</small>
+                <field name="has_duplicate_email_warning" invisible="1"/>
+                <field name="has_duplicate_phone_warning" invisible="1"/>
+                <field name="has_duplicate_mobile_warning" invisible="1"/>
+                <field name="has_contact_duplicate_warning" invisible="1"/>
+            </xpath>
+            <xpath expr="//sheet" position="inside">
+                <div class="alert alert-warning mt16" invisible="not has_contact_duplicate_warning">
+                    <strong>Potential duplicate contact methods detected.</strong>
+                    <br/>
+                    <field name="duplicate_contact_warning_message" nolabel="1" readonly="1" class="oe_inline"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_res_partner_filter_duplicate_contact_warning" model="ir.ui.view">
+        <field name="name">res.partner.search.duplicate.contact.warning</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <filter
+                    name="possible_contact_duplicates"
+                    string="Possible Contact Duplicates"
+                    domain="[('has_contact_duplicate_warning', '=', True)]"
+                />
             </xpath>
         </field>
     </record>
