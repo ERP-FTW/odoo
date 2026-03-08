@@ -52,7 +52,7 @@ class TestGenerateSaleTypeOpportunities(BaseCommon):
             'type': 'opportunity',
             'partner_id': cls.partner_company_2.id,
             'team_id': cls.team.id,
-            'sale_type_id': cls.sale_type_a.id,
+            'sale_type_id': cls.sale_type_b.id,
             'probability': 50,
             'expected_revenue': 20.0,
         })
@@ -112,12 +112,21 @@ class TestGenerateSaleTypeOpportunities(BaseCommon):
             ('team_id', '=', self.team.id),
             ('sale_type_id', '=', self.sale_type_a.id),
         ])
-        self.assertEqual(len(opportunities), 2)
+        self.assertEqual(len(opportunities), 1)
 
-        created_opportunity = opportunities.filtered(lambda l: l.id != self.existing_open.id)
+        created_opportunity = opportunities
         self.assertEqual(len(created_opportunity), 1)
         self.assertEqual(created_opportunity.partner_id, self.partner_company_1)
         self.assertEqual(created_opportunity.expected_revenue, 300.0)
+
+        self.assertFalse(
+            self.env['crm.lead'].search([
+                ('partner_id.commercial_partner_id', '=', self.partner_company_2.id),
+                ('team_id', '=', self.team.id),
+                ('sale_type_id', '=', self.sale_type_a.id),
+                ('type', '=', 'opportunity'),
+            ])
+        )
 
         self.assertFalse(
             self.env['crm.lead'].search([

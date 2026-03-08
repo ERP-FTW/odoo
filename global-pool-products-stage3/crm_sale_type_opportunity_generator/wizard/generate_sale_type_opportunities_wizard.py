@@ -36,9 +36,8 @@ class GenerateSaleTypeOpportunitiesWizard(models.TransientModel):
     def _open_opportunity_domain(self, partner_id):
         return [
             ('type', '=', 'opportunity'),
-            ('partner_id', '=', partner_id),
+            ('partner_id.commercial_partner_id', '=', partner_id),
             ('team_id', '=', self.team_id.id),
-            ('sale_type_id', '=', self.sale_type_id.id),
             ('active', '=', True),
             ('probability', '>', 0),
             ('probability', '<', 100),
@@ -86,10 +85,9 @@ class GenerateSaleTypeOpportunitiesWizard(models.TransientModel):
             if lead_obj.search_count(self._open_opportunity_domain(partner.id)):
                 skipped_count += 1
                 _logger.info(
-                    "Skipping opportunity for %s: open opportunity already exists for team=%s sale_type=%s",
+                    "Skipping opportunity for %s: open opportunity already exists for team=%s",
                     partner.display_name,
                     self.team_id.display_name,
-                    self.sale_type_id.display_name,
                 )
                 continue
 
