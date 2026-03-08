@@ -8,16 +8,20 @@ Minimal Odoo 18 proof-of-concept addon to run POS card-present sales on CardPoin
    - Body: `merchantId`, `hsn`
    - Header: `Authorization: <auth_key>`
    - Reads `X-CardConnect-SessionKey` response header.
-2. `POST /v4/authCard`
+2. `POST /v3/tip` (when **Enable Tips** is checked)
+   - Body: `merchantId`, `hsn`, `tipPercent1`, `tipPercent2`, `tipPercent3`, `includeCustomTip`
+   - Headers: `Authorization` + `X-CardConnect-SessionKey`
+   - Tip at time of sale: this call must happen **before** `authCard` per Fiserv terminal guidance.
+3. `POST /v4/authCard`
    - Body: `merchantId`, `hsn`, `amount` (implied cents), `capture: true`, `orderId`, `includeSignature`
    - Headers: `Authorization` + `X-CardConnect-SessionKey`
-3. `POST /v2/readSignature` (when signature policy requires post-auth capture)
+4. `POST /v2/readSignature` (when signature policy requires post-auth capture)
    - Body: `merchantId`, `hsn`
    - Headers: `Authorization` + `X-CardConnect-SessionKey`
-4. `POST /cardconnect/rest/sigcap` (gateway attach)
+5. `POST /cardconnect/rest/sigcap` (gateway attach)
    - Body: `merchid`, `retref`, `signature`
    - Auth: gateway username/password
-5. `POST /v2/cancel` (when cashier clicks **Cancel** while terminal is waiting)
+6. `POST /v2/cancel` (when cashier clicks **Cancel** while terminal is waiting)
    - Body: `merchantId`, `hsn`
    - Headers: `Authorization` + `X-CardConnect-SessionKey`
 
@@ -32,6 +36,9 @@ Create **Point of Sale > Configuration > CardPointe Terminal Configs**:
 - Merchant ID: `800000009875`
 - HSN: `C047UG43720996`
 - Request Timeout Seconds: `120`
+- Enable Tips: enable tip-at-sale terminal prompt before authorization
+- Tip % #1/#2/#3: default `15/18/20`
+- Allow Custom Tip: allow terminal custom tip entry
 - Signature Mode:
   - `never`
   - `over_threshold` (default)
@@ -57,6 +64,8 @@ Then configure payment method `Card (CardPointe POC)`:
   - `cardpointe_signature_required`
   - `cardpointe_signature_captured`
   - `cardpointe_signature_method`
+  - `cardpointe_tip_amount`
+  - `cardpointe_base_amount`
 
 
 ## Migration note
@@ -81,7 +90,19 @@ curl -sv -X POST "$BOLT_BASE/v2/connect" \
 
 Confirm `X-CardConnect-SessionKey` exists in response headers.
 
-### 2) authCard (baseline includeSignature=false)
+### 2) Tip prompt (optional, tip-at-sale)
+
+```bash
+curl -sv -X POST "$BOLT_BASE/v3/tip" \
+  -H "Authorization: $AUTH_KEY" \
+  -H "X-CardConnect-SessionKey: $SESSION_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"merchantId\":\"$MID\",\"hsn\":\"$HSN\",\"tipPercent1\":\"15\",\"tipPercent2\":\"18\",\"tipPercent3\":\"20\",\"includeCustomTip\":true}"
+```
+
+> Tip must be collected before `authCard` when using terminal tip-at-sale flow.
+
+### 3) authCard (total = base + selected tip, includeSignature=false)
 
 ```bash
 SESSION_KEY="<session_key_from_connect>"
@@ -95,7 +116,7 @@ curl -sv -X POST "$BOLT_BASE/v4/authCard" \
   -d "{\"merchantId\":\"$MID\",\"hsn\":\"$HSN\",\"amount\":\"$AMT_CENTS\",\"capture\":true,\"orderId\":\"$ORDER_ID\",\"includeSignature\":false}"
 ```
 
-### 3) readSignature (post capture path)
+### 4) readSignature (post capture path)
 
 ```bash
 curl -sv -X POST "$BOLT_BASE/v2/readSignature" \
@@ -105,7 +126,7 @@ curl -sv -X POST "$BOLT_BASE/v2/readSignature" \
   -d "{\"merchantId\":\"$MID\",\"hsn\":\"$HSN\"}"
 ```
 
-### 4) sigcap (attach signature to original retref)
+### 5) sigcap (attach signature to original retref)
 
 ```bash
 GW_BASE="https://fts-uat.cardconnect.com/cardconnect/rest"
@@ -139,6 +160,8 @@ Terminal config form includes admin-only **Test Connect** button.
 - `cardpointe_signature_required`
 - `cardpointe_signature_captured`
 - `cardpointe_signature_method`
+- `cardpointe_tip_amount`
+- `cardpointe_base_amount`
 
 ## Troubleshooting
 

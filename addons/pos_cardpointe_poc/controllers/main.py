@@ -143,7 +143,7 @@ class PosCardPointeController(http.Controller):
             payment_method_id,
             order_uid,
         )
-        return {'status': 'ready', 'request_id': request_id}
+        return {'status': 'ready', 'request_id': request_id, 'tip_enabled': bool(config.enable_tips)}
 
     @http.route('/pos_cardpointe_poc/auth', type='json', auth='user')
     def auth(self, request_id):
@@ -176,11 +176,26 @@ class PosCardPointeController(http.Controller):
         _logger.info("CardPointe auth started request_id=%s", request_id)
         terminal_client = CardPointeTerminalClient(config)
 
-        signature_required_pre_auth = self._signature_required_pre_auth(config, active_request['amount'])
+        base_amount = float(active_request['amount'] or 0.0)
+        tip_amount = 0.0
+        total_amount = base_amount
+        signature_required_pre_auth = self._signature_required_pre_auth(config, base_amount)
 
         try:
+            if config.enable_tips:
+                tip_result = terminal_client.tip_with_session(active_request['session_key'])
+                if not tip_result.get('ok'):
+                    return {
+                        'status': tip_result.get('status', 'error'),
+                        'message': tip_result.get('message') or 'Tip selection failed.',
+                        'respcode': tip_result.get('respcode'),
+                        'resptext': tip_result.get('resptext'),
+                    }
+                tip_amount = float(tip_result.get('tip_amount') or 0.0)
+                total_amount = base_amount + tip_amount
+
             result = terminal_client.auth_card_with_session(
-                amount_dollars=active_request['amount'],
+                amount_dollars=total_amount,
                 order_id=active_request['order_uid'],
                 session_key=active_request['session_key'],
                 include_signature=signature_required_pre_auth,
@@ -229,6 +244,9 @@ class PosCardPointeController(http.Controller):
                     'signature_required': signature_required,
                     'signature_captured': signature_captured,
                     'signature_method': signature_method,
+                    'cardpointe_tip_amount': tip_amount,
+                    'cardpointe_base_amount': base_amount,
+                    'cardpointe_total_amount': total_amount,
                 }
 
             return {

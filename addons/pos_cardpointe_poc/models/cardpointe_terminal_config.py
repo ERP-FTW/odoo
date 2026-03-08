@@ -17,6 +17,13 @@ class CardPointeTerminalConfig(models.Model):
     device_type = fields.Selection([('clover_flex', 'Clover Flex')], default='clover_flex', required=True)
     device_serial = fields.Char(string='HSN', help='Terminal hardware serial number (HSN).')
     request_timeout_seconds = fields.Integer(default=120, required=True)
+
+    enable_tips = fields.Boolean(string='Enable Tips', default=False)
+    tip_percent_1 = fields.Integer(string='Tip % #1', default=15, required=True)
+    tip_percent_2 = fields.Integer(string='Tip % #2', default=18, required=True)
+    tip_percent_3 = fields.Integer(string='Tip % #3', default=20, required=True)
+    tip_allow_custom = fields.Boolean(string='Allow Custom Tip', default=True)
+
     signature_mode = fields.Selection(
         [
             ('never', 'Never'),
@@ -56,6 +63,14 @@ class CardPointeTerminalConfig(models.Model):
     def _normalize_signature_mode(vals):
         if vals.get('signature_mode') == 'msr_over_threshold':
             vals['signature_mode'] = 'over_threshold'
+
+
+    @api.constrains('tip_percent_1', 'tip_percent_2', 'tip_percent_3')
+    def _check_tip_percents(self):
+        for rec in self:
+            for value in (rec.tip_percent_1, rec.tip_percent_2, rec.tip_percent_3):
+                if value < 0:
+                    raise ValidationError(_('Tip percentages must be zero or greater.'))
 
     @api.constrains('signature_mode', 'signature_capture_method')
     def _check_signature_mode_compatibility(self):

@@ -19,5 +19,7 @@ class PosOrder(models.Model):
             'cardpointe_signature_required': ui_paymentline.get('cardpointe_signature_required'),
             'cardpointe_signature_captured': ui_paymentline.get('cardpointe_signature_captured'),
             'cardpointe_signature_method': ui_paymentline.get('cardpointe_signature_method'),
+            'cardpointe_tip_amount': ui_paymentline.get('cardpointe_tip_amount') or 0.0,
+            'cardpointe_base_amount': ui_paymentline.get('cardpointe_base_amount') or 0.0,
         })
         return values

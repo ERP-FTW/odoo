@@ -31,6 +31,9 @@ class PosPayment(models.Model):
         ('post_readSignature', 'Post readSignature'),
     ])
 
+    cardpointe_tip_amount = fields.Monetary(currency_field='currency_id', store=True)
+    cardpointe_base_amount = fields.Monetary(currency_field='currency_id', store=True)
+
 
     def _cardpointe_get_merchant_config(self, terminal_config):
         merchant_config = terminal_config.merchant_config_id
