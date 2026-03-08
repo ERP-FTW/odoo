@@ -1,0 +1,1 @@
+from . import generate_sale_type_opportunities_wizard

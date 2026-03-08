@@ -1,0 +1,27 @@
+<odoo>
+    <record id="view_generate_sale_type_opportunities_wizard_form" model="ir.ui.view">
+        <field name="name">generate.sale.type.opportunities.wizard.form</field>
+        <field name="model">generate.sale.type.opportunities.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Generate Opportunities from Sales">
+                <group>
+                    <field name="team_id"/>
+                    <field name="sale_type_id"/>
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                </group>
+                <footer>
+                    <button name="action_generate_opportunities" type="object" string="Generate" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_generate_sale_type_opportunities_wizard" model="ir.actions.act_window">
+        <field name="name">Generate Opportunities from Sales</field>
+        <field name="res_model">generate.sale.type.opportunities.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

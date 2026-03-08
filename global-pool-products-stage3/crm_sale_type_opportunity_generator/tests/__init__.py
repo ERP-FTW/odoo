@@ -1,0 +1,1 @@
+from . import test_generate_sale_type_opportunities

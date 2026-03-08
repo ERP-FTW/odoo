@@ -1,0 +1,17 @@
+<odoo>
+    <record id="crm_team_view_form_inherit_generate_sale_type_opportunities" model="ir.ui.view">
+        <field name="name">crm.team.form.inherit.generate.sale.type.opportunities</field>
+        <field name="model">crm.team</field>
+        <field name="inherit_id" ref="sales_team.crm_team_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button
+                    name="%(action_generate_sale_type_opportunities_wizard)d"
+                    string="Generate Opportunities from Sales"
+                    type="action"
+                    class="btn-primary"
+                    context="{'default_team_id': id}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
