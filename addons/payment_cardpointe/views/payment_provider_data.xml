@@ -14,7 +14,7 @@
         <field name="journal_id" ref="payment_cardpointe.account_journal_cardpointe"/>
 
         <field name="inline_form_view_id" ref="inline_form"/>
-        <field name="allow_tokenization">False</field>
+        <field name="allow_tokenization">True</field>
 
         <field
             name="payment_icon_ids"
