@@ -74,7 +74,7 @@ class ConsignmentPortalStock(http.Controller):
         ]
         sold_grouped = MoveLine.read_group(
             sold_domain,
-            fields=['product_id', 'qty_done:sum'],
+            fields=['product_id', 'quantity:sum'],
             groupby=['product_id'],
             lazy=False,
         )
@@ -107,7 +107,7 @@ class ConsignmentPortalStock(http.Controller):
             product_id = row['product_id'][0]
             sold_rows.append({
                 'product': product_map.get(product_id),
-                'qty_sold': row.get('qty_done', 0.0),
+                'qty_sold': row.get('quantity', 0.0),
             })
         sold_rows.sort(key=lambda row: row['qty_sold'], reverse=True)
 
