@@ -1,11 +1,8 @@
-from odoo import SUPERUSER_ID, api
-
 from . import models
 from . import services
 
 
-def post_init_hook(cr, registry):
-    env = api.Environment(cr, SUPERUSER_ID, {})
+def post_init_hook(env):
     providers = env['payment.provider'].search([
         ('code', '=', 'cardpointe'),
         ('cardpointe_merchant_config_id', '=', False),
