@@ -16,7 +16,8 @@
                         <field name="name"/>
                         <field name="company_id"/>
                         <field name="base_url"/>
-                        <field name="merchant_id"/>
+                        <field name="merchant_config_id"/>
+                        <field name="merchant_id" readonly="1"/>
                         <field name="device_type"/>
                         <field name="device_serial"/>
                         <field name="auth_key" password="True"/>
@@ -25,11 +26,8 @@
                     <group string="Signature Policy">
                         <field name="signature_mode"/>
                         <field name="signature_threshold_amount"
-                               attrs="{'invisible': [('signature_mode', '!=', 'over_threshold')], 'required': [('signature_mode', '=', 'over_threshold')]}"/>
-                        <field name="signature_capture_method"
-                               attrs="{
-                                 'invisible': [('signature_mode', '=', 'never')]
-                               }"/>
+                               invisible="signature_mode != 'over_threshold'"
+                               required="signature_mode == 'over_threshold'"/>
                     </group>
                 </sheet>
             </form>

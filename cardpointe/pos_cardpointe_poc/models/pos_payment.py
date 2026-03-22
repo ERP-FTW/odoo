@@ -16,6 +16,8 @@ class PosPayment(models.Model):
     cardpointe_respcode = fields.Char()
     cardpointe_resptext = fields.Char()
     cardpointe_token = fields.Char()
+    cardpointe_entrymode = fields.Char()
+    cardpointe_emvtagdata = fields.Text()
     cardpointe_status = fields.Char()
     cardpointe_original_retref = fields.Char(help='Original sale retref used for this CardPointe void/refund.')
     cardpointe_operation = fields.Selection([
@@ -30,6 +32,27 @@ class PosPayment(models.Model):
         ('inline_authcard', 'Inline authCard'),
         ('post_readSignature', 'Post readSignature'),
     ])
+
+    @api.model
+    def _load_pos_data_fields(self, config_id):
+        fields_list = super()._load_pos_data_fields(config_id)
+        fields_list += [
+            'cardpointe_retref',
+            'cardpointe_authcode',
+            'cardpointe_respcode',
+            'cardpointe_resptext',
+            'cardpointe_token',
+            'cardpointe_entrymode',
+            'cardpointe_emvtagdata',
+            'cardpointe_status',
+            'cardpointe_original_retref',
+            'cardpointe_operation',
+            'cardpointe_ok',
+            'cardpointe_signature_required',
+            'cardpointe_signature_captured',
+            'cardpointe_signature_method',
+        ]
+        return list(dict.fromkeys(fields_list))
 
 
     def _cardpointe_get_merchant_config(self, terminal_config):

@@ -226,6 +226,8 @@ class PosCardPointeController(http.Controller):
                     'resptext': result.get('resptext'),
                     'amount': result.get('amount'),
                     'token': result.get('token'),
+                    'entrymode': result.get('entrymode'),
+                    'emvTagData': result.get('emvTagData'),
                     'signature_required': signature_required,
                     'signature_captured': signature_captured,
                     'signature_method': signature_method,

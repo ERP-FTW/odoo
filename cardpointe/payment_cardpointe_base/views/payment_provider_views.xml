@@ -7,7 +7,7 @@
         <field name="inherit_id" ref="payment.payment_provider_form"/>
         <field name="arch" type="xml">
             <group name="provider_credentials" position="inside">
-                <group attrs="{'invisible': [('code', '!=', 'cardpointe')]}">
+                <group invisible="code != 'cardpointe'">
                     <field name="cardpointe_merchant_config_id"/>
                     <field name="cardpointe_test_endpoint"/>
                     <button
