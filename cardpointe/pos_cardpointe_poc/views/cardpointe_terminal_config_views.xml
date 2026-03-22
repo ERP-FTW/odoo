@@ -34,25 +34,25 @@
         </field>
     </record>
 
-    <record id="view_pos_cardpointe_terminal_config_tree" model="ir.ui.view">
-        <field name="name">pos.cardpointe.terminal.config.tree</field>
+    <record id="view_pos_cardpointe_terminal_config_list" model="ir.ui.view">
+        <field name="name">pos.cardpointe.terminal.config.list</field>
         <field name="model">pos.cardpointe.terminal.config</field>
         <field name="arch" type="xml">
-            <tree>
+            <list>
                 <field name="name"/>
                 <field name="company_id"/>
                 <field name="merchant_id"/>
                 <field name="device_serial"/>
                 <field name="signature_mode"/>
                 <field name="request_timeout_seconds"/>
-            </tree>
+            </list>
         </field>
     </record>
 
     <record id="action_pos_cardpointe_terminal_config" model="ir.actions.act_window">
         <field name="name">CardPointe Terminal Configs</field>
         <field name="res_model">pos.cardpointe.terminal.config</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
 
     <menuitem id="menu_pos_cardpointe_terminal_config"
