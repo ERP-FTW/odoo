@@ -11,6 +11,35 @@ from odoo.addons.payment_cardpointe_base.services.refunds import execute_void_or
 class PosPayment(models.Model):
     _inherit = 'pos.payment'
 
+    _CARDPOINTE_POS_PAYMENT_BASE_FIELDS = [
+        'id',
+        'name',
+        'pos_order_id',
+        'amount',
+        'payment_method_id',
+        'payment_date',
+        'currency_id',
+        'currency_rate',
+        'partner_id',
+        'session_id',
+        'user_id',
+        'company_id',
+        'card_type',
+        'card_brand',
+        'card_no',
+        'cardholder_name',
+        'payment_ref_no',
+        'payment_method_authcode',
+        'payment_method_issuer_bank',
+        'payment_method_payment_mode',
+        'transaction_id',
+        'payment_status',
+        'ticket',
+        'is_change',
+        'account_move_id',
+        'uuid',
+    ]
+
     cardpointe_retref = fields.Char()
     cardpointe_authcode = fields.Char()
     cardpointe_respcode = fields.Char()
@@ -35,7 +64,7 @@ class PosPayment(models.Model):
 
     @api.model
     def _load_pos_data_fields(self, config_id):
-        fields_list = super()._load_pos_data_fields(config_id)
+        fields_list = list(self._CARDPOINTE_POS_PAYMENT_BASE_FIELDS)
         fields_list += [
             'cardpointe_retref',
             'cardpointe_authcode',
