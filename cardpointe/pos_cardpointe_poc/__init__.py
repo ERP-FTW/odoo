@@ -1,5 +1,3 @@
-from odoo import SUPERUSER_ID, api
-
 from . import models
 from . import controllers
 
@@ -23,8 +21,8 @@ def _read_legacy_value(cr, record_id, column, default=''):
     return (row and row[0]) or default
 
 
-def post_init_hook(cr, registry):
-    env = api.Environment(cr, SUPERUSER_ID, {})
+def post_init_hook(env):
+    cr = env.cr
     terminal_config_obj = env['pos.cardpointe.terminal.config']
     merchant_config_obj = env['cardpointe.merchant.config']
 

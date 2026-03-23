@@ -27,23 +27,34 @@ def _parse_tip_amount_dollars(data):
     return (cents / Decimal('100')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
 
-def tip_with_session(self, session_key, amount_dollars, prompt=None):
-    implied_amount = dollars_to_implied_cents(amount_dollars)
-    tip_prompt = (prompt or '').strip() or 'Select tip amount'
+def _tip_percent_presets(config):
+    presets = [int(config.tip_percent_1 or 0), int(config.tip_percent_2 or 0)]
+    if config.tip_presets_count in ('3', '4'):
+        presets.append(int(config.tip_percent_3 or 0))
+    if config.tip_presets_count == '4':
+        presets.append(int(config.tip_percent_4 or 0))
 
-    payload = {
-        'merchantId': self.config.merchant_id,
-        'hsn': self.config.device_serial,
-        'amount': implied_amount,
-        'prompt': tip_prompt,
-        'includeAmountDisplay': True,
-        'includeCustomTipAmount': bool(self.config.tip_allow_custom),
-        'tipPercentPresets': [
-            str(int(self.config.tip_percent_1 or 10)),
-            str(int(self.config.tip_percent_2 or 15)),
-            str(int(self.config.tip_percent_3 or 20)),
-        ],
+    if config.tip_allow_custom:
+        # CardPointe tip endpoint supports at most 3 presets when custom amount is enabled.
+        presets = presets[:3]
+
+    return [str(preset) for preset in presets]
+
+
+def build_tip_payload(config, amount_dollars, prompt=None):
+    return {
+        'merchantId': config.merchant_id,
+        'hsn': config.device_serial,
+        'amount': dollars_to_implied_cents(amount_dollars),
+        'prompt': (prompt or config.tip_prompt or '').strip() or 'Select tip amount',
+        'includeAmountDisplay': bool(config.tip_include_amount_display),
+        'includeCustomTipAmount': bool(config.tip_allow_custom),
+        'tipPercentPresets': _tip_percent_presets(config),
     }
+
+
+def tip_with_session(self, session_key, amount_dollars, prompt=None):
+    payload = build_tip_payload(self.config, amount_dollars, prompt=prompt)
 
     result = self._request(
         'POST',

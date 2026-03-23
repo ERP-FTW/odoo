@@ -11,11 +11,42 @@ from odoo.addons.payment_cardpointe_base.services.refunds import execute_void_or
 class PosPayment(models.Model):
     _inherit = 'pos.payment'
 
+    _CARDPOINTE_POS_PAYMENT_BASE_FIELDS = [
+        'id',
+        'name',
+        'pos_order_id',
+        'amount',
+        'payment_method_id',
+        'payment_date',
+        'currency_id',
+        'currency_rate',
+        'partner_id',
+        'session_id',
+        'user_id',
+        'company_id',
+        'card_type',
+        'card_brand',
+        'card_no',
+        'cardholder_name',
+        'payment_ref_no',
+        'payment_method_authcode',
+        'payment_method_issuer_bank',
+        'payment_method_payment_mode',
+        'transaction_id',
+        'payment_status',
+        'ticket',
+        'is_change',
+        'account_move_id',
+        'uuid',
+    ]
+
     cardpointe_retref = fields.Char()
     cardpointe_authcode = fields.Char()
     cardpointe_respcode = fields.Char()
     cardpointe_resptext = fields.Char()
     cardpointe_token = fields.Char()
+    cardpointe_entrymode = fields.Char()
+    cardpointe_emvtagdata = fields.Text()
     cardpointe_status = fields.Char()
     cardpointe_original_retref = fields.Char(help='Original sale retref used for this CardPointe void/refund.')
     cardpointe_operation = fields.Selection([
@@ -30,6 +61,27 @@ class PosPayment(models.Model):
         ('inline_authcard', 'Inline authCard'),
         ('post_readSignature', 'Post readSignature'),
     ])
+
+    @api.model
+    def _load_pos_data_fields(self, config_id):
+        fields_list = list(self._CARDPOINTE_POS_PAYMENT_BASE_FIELDS)
+        fields_list += [
+            'cardpointe_retref',
+            'cardpointe_authcode',
+            'cardpointe_respcode',
+            'cardpointe_resptext',
+            'cardpointe_token',
+            'cardpointe_entrymode',
+            'cardpointe_emvtagdata',
+            'cardpointe_status',
+            'cardpointe_original_retref',
+            'cardpointe_operation',
+            'cardpointe_ok',
+            'cardpointe_signature_required',
+            'cardpointe_signature_captured',
+            'cardpointe_signature_method',
+        ]
+        return list(dict.fromkeys(fields_list))
 
 
     def _cardpointe_get_merchant_config(self, terminal_config):
