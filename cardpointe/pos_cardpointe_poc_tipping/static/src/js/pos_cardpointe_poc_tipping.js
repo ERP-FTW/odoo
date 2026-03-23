@@ -2,10 +2,8 @@
 
 import { _t } from "@web/core/l10n/translation";
 import { rpc } from "@web/core/network/rpc";
-import { patch } from "@web/core/utils/patch";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { PaymentInterface } from "@point_of_sale/app/payment/payment_interface";
-import { PosPayment } from "@point_of_sale/app/models/pos_payment";
 import { register_payment_method } from "@point_of_sale/app/store/pos_store";
 
 export class CardPointePOCTipping extends PaymentInterface {
@@ -271,11 +269,3 @@ export class CardPointePOCTipping extends PaymentInterface {
 }
 
 register_payment_method("cardpointe_poc", CardPointePOCTipping);
-
-patch(PosPayment.prototype, {
-    setup() {
-        super.setup(...arguments);
-        this.cardpointe_tip_amount = this.cardpointe_tip_amount || 0.0;
-        this.cardpointe_base_amount = this.cardpointe_base_amount || 0.0;
-    },
-});

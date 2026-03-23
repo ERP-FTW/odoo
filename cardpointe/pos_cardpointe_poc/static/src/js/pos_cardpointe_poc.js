@@ -2,10 +2,8 @@
 
 import { _t } from "@web/core/l10n/translation";
 import { rpc } from "@web/core/network/rpc";
-import { patch } from "@web/core/utils/patch";
 import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { PaymentInterface } from "@point_of_sale/app/payment/payment_interface";
-import { PosPayment } from "@point_of_sale/app/models/pos_payment";
 import { register_payment_method } from "@point_of_sale/app/store/pos_store";
 
 export class CardPointePOC extends PaymentInterface {
@@ -247,23 +245,3 @@ export class CardPointePOC extends PaymentInterface {
 }
 
 register_payment_method("cardpointe_poc", CardPointePOC);
-
-patch(PosPayment.prototype, {
-    setup() {
-        super.setup(...arguments);
-        this.cardpointe_retref = this.cardpointe_retref || "";
-        this.cardpointe_authcode = this.cardpointe_authcode || "";
-        this.cardpointe_respcode = this.cardpointe_respcode || "";
-        this.cardpointe_resptext = this.cardpointe_resptext || "";
-        this.cardpointe_token = this.cardpointe_token || "";
-        this.cardpointe_entrymode = this.cardpointe_entrymode || "";
-        this.cardpointe_emvtagdata = this.cardpointe_emvtagdata || "";
-        this.cardpointe_status = this.cardpointe_status || "";
-        this.cardpointe_original_retref = this.cardpointe_original_retref || "";
-        this.cardpointe_operation = this.cardpointe_operation || "";
-        this.cardpointe_ok = !!this.cardpointe_ok;
-        this.cardpointe_signature_required = !!this.cardpointe_signature_required;
-        this.cardpointe_signature_captured = !!this.cardpointe_signature_captured;
-        this.cardpointe_signature_method = this.cardpointe_signature_method || "";
-    },
-});
