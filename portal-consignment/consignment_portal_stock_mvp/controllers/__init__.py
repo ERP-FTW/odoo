@@ -1,1 +1,1 @@
-from . import portal_consign_stock
+# Deprecated wrapper module.

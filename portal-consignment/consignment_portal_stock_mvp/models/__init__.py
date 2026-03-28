@@ -1,1 +1,1 @@
-from . import res_partner
+# Deprecated wrapper module.

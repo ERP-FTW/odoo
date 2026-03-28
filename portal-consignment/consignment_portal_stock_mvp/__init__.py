@@ -1,2 +1,1 @@
-from . import controllers
-from . import models
+# Deprecated wrapper module. Functionality moved to consignment_portal_dashboard.

@@ -1,1 +1,1 @@
-from . import portal_rfq
+# Deprecated wrapper module.

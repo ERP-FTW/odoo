@@ -1,13 +1,10 @@
 {
-    'name': 'Consignment Portal Stock MVP',
+    'name': 'Consignment Portal Stock MVP (deprecated)',
     'version': '18.0.1.0.0',
-    'summary': 'Portal page for consigners to review on-hand and sold stock.',
+    'summary': 'Compatibility wrapper for consignment dashboard refactor',
     'category': 'Website/Portal',
-    'depends': ['portal', 'website', 'stock'],
-    'data': [
-        'views/portal_templates.xml',
-        'views/portal_menu.xml',
-    ],
+    'depends': ['consignment_portal_dashboard'],
+    'data': [],
     'installable': True,
     'application': False,
     'license': 'LGPL-3',
