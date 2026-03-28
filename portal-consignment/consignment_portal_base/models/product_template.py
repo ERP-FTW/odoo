@@ -6,5 +6,5 @@ class ProductTemplate(models.Model):
 
     x_rfq_portal_ok = fields.Boolean(
         string='RFQ Portal',
-        help='Allow requesting this product via portal RFQ cart.',
+        help='Allow requesting this product via the portal RFQ builder.',
     )

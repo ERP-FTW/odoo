@@ -6,5 +6,6 @@ class ResPartner(models.Model):
 
     x_is_consigner = fields.Boolean(
         string='Consigner',
-        help='Grants access to the Consign RFQ portal pages.',
+        help='Grants access to the consignment portal area.',
+        default=False,
     )
