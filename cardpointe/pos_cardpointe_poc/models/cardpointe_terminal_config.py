@@ -1,5 +1,5 @@
 from odoo import _, api, fields, models
-from odoo.exceptions import AccessError, ValidationError
+from odoo.exceptions import AccessError
 
 from odoo.addons.pos_cardpointe_poc.services.cardpointe_terminal import CardPointeTerminalClient
 
@@ -11,11 +11,24 @@ class CardPointeTerminalConfig(models.Model):
     name = fields.Char(required=True)
     company_id = fields.Many2one('res.company', required=True, default=lambda self: self.env.company)
     base_url = fields.Char(default='https://bolt-uat.cardpointe.com/api', required=True)
-    merchant_id = fields.Char(default='800000009875', required=True)
-    merchant_config_id = fields.Many2one('cardpointe.merchant.config')
+    merchant_config_id = fields.Many2one('cardpointe.merchant.config', required=True)
+    merchant_id = fields.Char(related='merchant_config_id.mid', store=True, readonly=True)
     auth_key = fields.Char(required=True)
-    device_type = fields.Selection([('clover_flex', 'Clover Flex')], default='clover_flex', required=True)
+    device_type = fields.Selection(
+        [
+            ('clover_pocket', 'Clover Pocket'),
+            ('clover_flex', 'Clover Flex'),
+            ('clover_mini', 'Clover Mini'),
+        ],
+        default='clover_pocket',
+        required=True,
+    )
     device_serial = fields.Char(string='HSN', help='Terminal hardware serial number (HSN).')
+    print_receipt_on_terminal = fields.Boolean(
+        string='Print Receipt on Terminal',
+        default=False,
+        help='Enable receipt printing on supported Clover terminals with built-in printers.',
+    )
     request_timeout_seconds = fields.Integer(default=120, required=True)
     signature_mode = fields.Selection(
         [
@@ -33,14 +46,6 @@ class CardPointeTerminalConfig(models.Model):
         ),
     )
     signature_threshold_amount = fields.Float(default=50.0, required=True)
-    signature_capture_method = fields.Selection(
-        [
-            ('inline_authcard', 'Inline authCard'),
-            ('post_readSignature', 'Post readSignature'),
-        ],
-        default='inline_authcard',
-        required=True,
-    )
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -57,26 +62,10 @@ class CardPointeTerminalConfig(models.Model):
         if vals.get('signature_mode') == 'msr_over_threshold':
             vals['signature_mode'] = 'over_threshold'
 
-    @api.constrains('signature_mode', 'signature_capture_method')
-    def _check_signature_mode_compatibility(self):
-        for rec in self:
-            mode = rec.signature_mode
-            if mode == 'on_policy' and rec.signature_capture_method != 'post_readSignature':
-                raise ValidationError(_('On policy mode requires capture method Post readSignature.'))
-            if mode in ('always', 'over_threshold') and rec.signature_capture_method != 'inline_authcard':
-                raise ValidationError(_('Always/Over threshold modes require capture method Inline authCard.'))
-
     @api.onchange('merchant_config_id')
     def _onchange_merchant_config_id(self):
         if self.merchant_config_id:
             self.merchant_id = self.merchant_config_id.mid
-
-    @api.onchange('signature_mode')
-    def _onchange_signature_mode(self):
-        if self.signature_mode == 'on_policy':
-            self.signature_capture_method = 'post_readSignature'
-        elif self.signature_mode in ('always', 'over_threshold', 'msr_over_threshold'):
-            self.signature_capture_method = 'inline_authcard'
 
     def action_test_connect(self):
         self.ensure_one()

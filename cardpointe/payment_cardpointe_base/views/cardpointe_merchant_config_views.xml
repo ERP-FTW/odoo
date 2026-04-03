@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_cardpointe_merchant_config_tree" model="ir.ui.view">
-        <field name="name">cardpointe.merchant.config.tree</field>
+    <record id="view_cardpointe_merchant_config_list" model="ir.ui.view">
+        <field name="name">cardpointe.merchant.config.list</field>
         <field name="model">cardpointe.merchant.config</field>
         <field name="arch" type="xml">
-            <tree>
+            <list>
                 <field name="name"/>
                 <field name="company_id"/>
                 <field name="mid"/>
                 <field name="gateway_base_url"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -39,7 +39,7 @@
     <record id="action_cardpointe_merchant_config" model="ir.actions.act_window">
         <field name="name">CardPointe Merchant Configs</field>
         <field name="res_model">cardpointe.merchant.config</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
     </record>
 
     <menuitem id="menu_cardpointe_merchant_config"

@@ -1,6 +1,6 @@
 {
     'name': 'POS CardPointe POC',
-    'version': '16.0.1.0.0',
+    'version': '18.0.1.0.0',
     'summary': 'POC CardPointe terminal integration for POS',
     'category': 'Sales/Point of Sale',
     'depends': ['point_of_sale', 'payment_cardpointe_base'],
@@ -10,7 +10,7 @@
         'views/pos_payment_method_views.xml',
     ],
     'assets': {
-        'point_of_sale.assets': [
+        'point_of_sale._assets_pos': [
             'pos_cardpointe_poc/static/src/js/pos_cardpointe_poc.js',
         ],
     },
