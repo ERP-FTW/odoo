@@ -2,6 +2,9 @@
 
 import { PaymentInterface } from "@point_of_sale/app/payment/payment_interface";
 
+const STATUS_ATTEMPTS = 3;
+const STATUS_DELAY_MS = 5000;
+
 export class PaymentBreezPayment extends PaymentInterface {
     async send_payment_request(cid) {
         const order = this.pos.get_order();
@@ -50,16 +53,15 @@ export class PaymentBreezPayment extends PaymentInterface {
     }
 
     async _check_payment_status(line) {
-        let apiResp;
         const order = this.pos.get_order();
         if (!order) {
             return false;
         }
 
-        for (let i = 0; i < 100; i++) {
-            line.crypto_payment_status = `Checking Invoice status ${i + 1}/100`;
+        for (let i = 0; i < STATUS_ATTEMPTS; i++) {
+            line.crypto_payment_status = `Checking Invoice status ${i + 1}/${STATUS_ATTEMPTS}`;
             try {
-                apiResp = await this.env.services.orm.silent.call(
+                const apiResp = await this.env.services.orm.silent.call(
                     "pos.payment.method",
                     "breez_check_payment_status",
                     [{
@@ -68,12 +70,13 @@ export class PaymentBreezPayment extends PaymentInterface {
                         order_id: order.uuid,
                     }]
                 );
-                if (["paid", "settled", "complete"].includes((apiResp.status || "").toLowerCase())) {
+                const status = (apiResp.status || "").toLowerCase();
+                if (["paid", "settled", "complete"].includes(status)) {
                     line.crypto_payment_status = "Invoice Paid";
                     line.set_payment_status("done");
                     return true;
                 }
-                if (["expired", "invalid", "failed"].includes((apiResp.status || "").toLowerCase())) {
+                if (["expired", "invalid", "failed"].includes(status)) {
                     line.crypto_payment_status = "Invoice Expired";
                     line.set_payment_status("retry");
                     return false;
@@ -81,8 +84,10 @@ export class PaymentBreezPayment extends PaymentInterface {
             } catch {
                 return false;
             }
-            await new Promise((resolve) => setTimeout(resolve, 50000));
+            await new Promise((resolve) => setTimeout(resolve, STATUS_DELAY_MS));
         }
+
+        line.set_payment_status("waiting");
         return false;
     }
 }

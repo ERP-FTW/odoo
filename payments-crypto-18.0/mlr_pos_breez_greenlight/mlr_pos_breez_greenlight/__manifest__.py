@@ -17,6 +17,7 @@
         'point_of_sale._assets_pos': [
             'mlr_pos_breez_greenlight/static/src/js/models.js',
             'mlr_pos_breez_greenlight/static/src/js/payment_cryptopayment.js',
+            'mlr_pos_breez_greenlight/static/src/js/payment_screen.js',
         ],
     },
     'license': 'LGPL-3',
