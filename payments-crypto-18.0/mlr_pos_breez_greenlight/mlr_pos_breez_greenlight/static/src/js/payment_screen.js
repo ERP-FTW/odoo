@@ -27,7 +27,7 @@ patch(PaymentScreen.prototype, {
                         line.crypto_payment_status = "Invoice Paid";
                         line.set_payment_status("done");
                     } else if (["new", "unpaid", "processing", "pending"].includes(status)) {
-                        line.set_payment_status("waiting");
+                        line.set_payment_status("cryptowaiting");
                         return false;
                     } else if (["expired", "invalid", "failed"].includes(status)) {
                         line.set_payment_status("retry");

@@ -87,17 +87,18 @@ class PosPaymentMethod(models.Model):
         self.call_breez_sdk().node_info()
         return SimpleNamespace(status_code=200)
 
-    def action_get_conversion_rate(self):
+    def action_get_conversion_rate(self, sdk_services=None):
         try:
-            fiat_rates = self.call_breez_sdk().fetch_fiat_rates()
+            sdk = sdk_services or self.call_breez_sdk()
+            fiat_rates = sdk.fetch_fiat_rates()
             usd_rates = [rate for rate in fiat_rates if rate.coin == 'USD']
             return usd_rates[0].value if usd_rates else None
         except Exception as error:
             raise UserError(_('Get Conversion Rate: %s') % error)
 
-    def get_amount_sats(self, pos_payment_obj):
+    def get_amount_sats(self, pos_payment_obj, sdk_services=None):
         try:
-            breez_conversion_rate = self.action_get_conversion_rate()
+            breez_conversion_rate = self.action_get_conversion_rate(sdk_services=sdk_services)
             amount_sats = round((float(pos_payment_obj.get('amount')) / float(breez_conversion_rate)) * 100000000, 1)
             return {
                 'conversion_rate': breez_conversion_rate,
@@ -109,13 +110,14 @@ class PosPaymentMethod(models.Model):
     def breez_create_crypto_invoice_direct_invoice(self, args):
         try:
             _logger.info('Creating Breez invoice for payment method %s and order %s', self.id, args.get('order_id'))
-            invoiced_info = self.get_amount_sats(args)
+            sdk = self.call_breez_sdk()
+            invoiced_info = self.get_amount_sats(args, sdk_services=sdk)
             amount_millisats = int(invoiced_info['invoiced_sat_amount']) * 1000
             req = breez_sdk.ReceivePaymentRequest(
                 amount_msat=amount_millisats,
                 description='Invoice for Odoo',
             )
-            create_invoice_object = self.call_breez_sdk().receive_payment(req)
+            create_invoice_object = sdk.receive_payment(req)
             invoice = create_invoice_object.ln_invoice.bolt11
             result = {
                 'code': 0,

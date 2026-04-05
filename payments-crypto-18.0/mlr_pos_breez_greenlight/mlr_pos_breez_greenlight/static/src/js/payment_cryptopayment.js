@@ -2,9 +2,6 @@
 
 import { PaymentInterface } from "@point_of_sale/app/payment/payment_interface";
 
-const STATUS_ATTEMPTS = 3;
-const STATUS_DELAY_MS = 5000;
-
 export class PaymentBreezPayment extends PaymentInterface {
     async send_payment_request(cid) {
         const order = this.pos.get_order();
@@ -43,7 +40,7 @@ export class PaymentBreezPayment extends PaymentInterface {
         line.cryptopay_payment_type = data.cryptopay_payment_type;
         const conversionRate = line.amount / (line.invoiced_crypto_amount / 100000000);
         line.conversion_rate = conversionRate.toFixed(2);
-        line.set_payment_status("waiting");
+        line.set_payment_status("cryptowaiting");
 
         return this._check_payment_status(line);
     }
@@ -58,36 +55,34 @@ export class PaymentBreezPayment extends PaymentInterface {
             return false;
         }
 
-        for (let i = 0; i < STATUS_ATTEMPTS; i++) {
-            line.crypto_payment_status = `Checking Invoice status ${i + 1}/${STATUS_ATTEMPTS}`;
-            try {
-                const apiResp = await this.env.services.orm.silent.call(
-                    "pos.payment.method",
-                    "breez_check_payment_status",
-                    [{
-                        invoice_id: line.cryptopay_invoice_id,
-                        pm_id: line.payment_method_id.id,
-                        order_id: order.uuid,
-                    }]
-                );
-                const status = (apiResp.status || "").toLowerCase();
-                if (["paid", "settled", "complete"].includes(status)) {
-                    line.crypto_payment_status = "Invoice Paid";
-                    line.set_payment_status("done");
-                    return true;
-                }
-                if (["expired", "invalid", "failed"].includes(status)) {
-                    line.crypto_payment_status = "Invoice Expired";
-                    line.set_payment_status("retry");
-                    return false;
-                }
-            } catch {
+        try {
+            const apiResp = await this.env.services.orm.silent.call(
+                "pos.payment.method",
+                "breez_check_payment_status",
+                [{
+                    invoice_id: line.cryptopay_invoice_id,
+                    pm_id: line.payment_method_id.id,
+                    order_id: order.uuid,
+                }]
+            );
+            const status = (apiResp.status || "").toLowerCase();
+
+            if (["paid", "settled", "complete"].includes(status)) {
+                line.crypto_payment_status = "Invoice Paid";
+                line.set_payment_status("done");
+                return true;
+            }
+            if (["expired", "invalid", "failed"].includes(status)) {
+                line.crypto_payment_status = "Invoice Expired";
+                line.set_payment_status("retry");
                 return false;
             }
-            await new Promise((resolve) => setTimeout(resolve, STATUS_DELAY_MS));
-        }
 
-        line.set_payment_status("waiting");
-        return false;
+            line.crypto_payment_status = "Payment pending";
+            line.set_payment_status("cryptowaiting");
+            return true;
+        } catch {
+            return false;
+        }
     }
 }
