@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pos_payment_method_view_form_inherit_pos_btcpay" model="ir.ui.view">
+        <field name="name">pos.payment.method.form.inherit.btcpay</field>
+        <field name="model">pos.payment.method</field>
+        <field name="inherit_id" ref="point_of_sale.pos_payment_method_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='use_payment_terminal']" position="after">
+                <group name="crypto_payment">
+                    <field name="server_url"/>
+                    <field name="api_key" password="True"/>
+                    <field name="btcpay_store_id" password="True"/>
+                    <field name="btcpay_speed_policy"/>
+                    <field name="btcpay_payment_flow"/>
+                    <field name="btcpay_selected_crypto" password="True"/>
+                    <field name="btcpay_expiration_minutes"/>
+                    <field name="btcpay_company_name" />
+                    <field name="crypto_minimum_amount" />
+                    <field name="crypto_maximum_amount"/>
+                </group>
+                <div colspan="2" class="mt16">
+                    <button name="action_test_connection" type="object" string="Test CryptoPay Server connection" class="oe_highlight"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>
