@@ -28,28 +28,48 @@ class PosPaymentMethod(models.Model):
     breez_mnemonic = fields.Char(string='Breez Mnemonic')
     breez_working_dir = fields.Char(string='Breez Working Directory')
 
-    def _build_breez_config(self):
+    def _get_breez_settings(self):
         self.ensure_one()
-        if not self.breez_working_dir:
+        working_dir = (self.breez_working_dir or '').strip()
+        api_key = (self.api_key or '').strip()
+        mnemonic = (self.breez_mnemonic or '').strip()
+        invite_code = (self.breez_invite_code or '').strip()
+
+        if not working_dir:
             raise UserError(_('Please set a Breez working directory on this payment method.'))
-        os.makedirs(self.breez_working_dir, exist_ok=True)
+        if not api_key:
+            raise UserError(_('Please set the API Key for Breez on this payment method.'))
+        if not mnemonic:
+            raise UserError(_('Please set the Breez Mnemonic on this payment method.'))
+
+        return {
+            'working_dir': working_dir,
+            'api_key': api_key,
+            'mnemonic': mnemonic,
+            'invite_code': invite_code,
+        }
+
+    def _build_breez_config(self):
+        settings = self._get_breez_settings()
+        os.makedirs(settings['working_dir'], exist_ok=True)
         config = breez_sdk.default_config(
             env_type=breez_sdk.EnvironmentType.PRODUCTION,
-            api_key=self.api_key,
+            api_key=settings['api_key'],
             node_config=breez_sdk.NodeConfig.GREENLIGHT(
                 config=breez_sdk.GreenlightNodeConfig(
                     partner_credentials=None,
-                    invite_code=self.breez_invite_code,
+                    invite_code=settings['invite_code'],
                 )
             ),
         )
-        config.working_dir = self.breez_working_dir
+        config.working_dir = settings['working_dir']
         return config
 
     def call_breez_sdk(self):
         self.ensure_one()
         try:
-            seed = breez_sdk.mnemonic_to_seed(self.breez_mnemonic)
+            settings = self._get_breez_settings()
+            seed = breez_sdk.mnemonic_to_seed(settings['mnemonic'])
             connect_request = breez_sdk.ConnectRequest(
                 config=self._build_breez_config(),
                 seed=seed,
