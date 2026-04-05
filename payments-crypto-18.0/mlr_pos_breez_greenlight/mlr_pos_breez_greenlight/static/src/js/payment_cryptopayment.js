@@ -40,7 +40,7 @@ export class PaymentBreezPayment extends PaymentInterface {
         line.cryptopay_payment_type = data.cryptopay_payment_type;
         const conversionRate = line.amount / (line.invoiced_crypto_amount / 100000000);
         line.conversion_rate = conversionRate.toFixed(2);
-        line.set_payment_status("cryptowaiting");
+        line.set_payment_status("waiting");
 
         return this._check_payment_status(line);
     }
@@ -75,6 +75,7 @@ export class PaymentBreezPayment extends PaymentInterface {
                 }
                 if (["expired", "invalid", "failed"].includes((apiResp.status || "").toLowerCase())) {
                     line.crypto_payment_status = "Invoice Expired";
+                    line.set_payment_status("retry");
                     return false;
                 }
             } catch {
