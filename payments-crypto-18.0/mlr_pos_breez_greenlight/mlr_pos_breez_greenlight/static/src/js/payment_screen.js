@@ -1,7 +1,7 @@
 /** @odoo-module */
 
 import { _t } from "@web/core/l10n/translation";
-import { ErrorPopup } from "@point_of_sale/app/errors/popups/error_popup";
+import { AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
 import { patch } from "@web/core/utils/patch";
 
@@ -29,19 +29,19 @@ patch(PaymentScreen.prototype, {
                         line.crypto_payment_status = "Invoice Paid";
                         line.set_payment_status("done");
                     } else if (["new", "unpaid", "processing", "pending"].includes(status)) {
-                        this.popup.add(ErrorPopup, {
+                        this.dialog.add(AlertDialog, {
                             title: _t("Payment Request Pending"),
                             body: _t("Payment pending, retry after customer confirms."),
                         });
                         line.set_payment_status("cryptowaiting");
                     } else if (["expired", "invalid", "failed"].includes(status)) {
-                        this.popup.add(ErrorPopup, {
+                        this.dialog.add(AlertDialog, {
                             title: _t("Payment Request Expired"),
                             body: _t("Payment request expired, retry by sending a new request."),
                         });
                         line.set_payment_status("retry");
                     } else if (status) {
-                        this.popup.add(ErrorPopup, {
+                        this.dialog.add(AlertDialog, {
                             title: _t("Payment Request Unknown"),
                             body: _t("Payment status is unknown, retry by sending a new request."),
                         });
