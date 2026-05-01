@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_signup_partner_link_event_tree" model="ir.ui.view">
+        <field name="name">auth.signup.partner.link.event.tree</field>
+        <field name="model">auth.signup.partner.link.event</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="create_date"/>
+                <field name="email"/>
+                <field name="event_type"/>
+                <field name="state"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_signup_partner_link_event_form" model="ir.ui.view">
+        <field name="name">auth.signup.partner.link.event.form</field>
+        <field name="model">auth.signup.partner.link.event</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="email"/>
+                            <field name="event_type"/>
+                            <field name="state"/>
+                        </group>
+                        <group>
+                            <field name="user_id"/>
+                            <field name="partner_id"/>
+                            <field name="partner_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="message"/>
+                    </group>
+                    <group>
+                        <field name="request_ip"/>
+                        <field name="user_agent"/>
+                        <field name="signup_policy"/>
+                        <field name="duplicate_blocking_enabled"/>
+                        <field name="partner_linking_enabled"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_signup_partner_link_event_search" model="ir.ui.view">
+        <field name="name">auth.signup.partner.link.event.search</field>
+        <field name="model">auth.signup.partner.link.event</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="email"/>
+                <field name="event_type"/>
+                <filter name="open" string="Open" domain="[('state','=','open')]"/>
+                <filter name="reviewed" string="Reviewed" domain="[('state','=','reviewed')]"/>
+                <separator/>
+                <filter name="existing_user_blocked" string="Existing User Blocked" domain="[('event_type','=','existing_user_blocked')]"/>
+                <filter name="partner_manual_review" string="Manual Review" domain="[('event_type','=','partner_manual_review')]"/>
+                <filter name="partner_multiple_conflict" string="Multiple Conflict" domain="[('event_type','=','partner_multiple_conflict')]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_signup_partner_link_event" model="ir.actions.act_window">
+        <field name="name">Signup Events</field>
+        <field name="res_model">auth.signup.partner.link.event</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

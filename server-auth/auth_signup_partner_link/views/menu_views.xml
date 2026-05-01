@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_signup_partner_link_event"
+              name="Signup Events"
+              parent="base.menu_security"
+              action="action_signup_partner_link_event"
+              groups="base.group_system"
+              sequence="90"/>
+</odoo>
