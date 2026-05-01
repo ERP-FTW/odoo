@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_auth_signup_partner_link" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.auth.signup.partner.link</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="auth_signup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//setting[@id='enable_password_reset']" position="after">
+                <setting id="signup_block_duplicate_users" string="Enable duplicate user blocking" help="Prevents public signup from creating a second user when the email already belongs to an existing user.">
+                    <field name="signup_block_duplicate_users"/>
+                </setting>
+                <setting id="signup_enable_partner_linking" string="Enable contact linking" help="Allows signup to attach a new portal user to an existing contact instead of creating a duplicate contact.">
+                    <field name="signup_enable_partner_linking"/>
+                </setting>
+                <setting id="signup_partner_link_policy" string="Link signup to existing contact" help="Controls whether matching contacts are automatically linked, ignored, or sent to manual review.">
+                    <field name="signup_partner_link_policy"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>
