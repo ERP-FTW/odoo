@@ -11,7 +11,7 @@ export class NowPaymentsPaymentInterface extends PaymentInterface {
             return false;
         }
 
-        line.set_payment_status("waiting");
+        line.set_payment_status("cryptowaiting");
 
         let data;
         try {
@@ -60,6 +60,7 @@ export class NowPaymentsPaymentInterface extends PaymentInterface {
     async _poll_payment_status(order, line) {
         for (let attempt = 1; attempt <= 100; attempt++) {
             line.update({ crypto_payment_status: `Checking invoice status ${attempt}/100` });
+            line.set_payment_status("cryptowaiting");
 
             let apiResp;
             try {
