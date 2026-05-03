@@ -52,6 +52,7 @@ export class NowPaymentsPaymentInterface extends PaymentInterface {
         }
 
         line.update(updates);
+        Object.assign(line, updates);
 
         return this._poll_payment_status(order, line);
     }
@@ -64,7 +65,7 @@ export class NowPaymentsPaymentInterface extends PaymentInterface {
             try {
                 apiResp = await this.pos.data.call("pos.payment.method", "now_check_payment_status", [
                     {
-                        invoice_id: line.cryptopay_invoice_id,
+                        invoice_id: line.cryptopay_invoice_id || false,
                         pm_id: line.payment_method_id.id,
                         order_id: order.uuid || order.name,
                     },

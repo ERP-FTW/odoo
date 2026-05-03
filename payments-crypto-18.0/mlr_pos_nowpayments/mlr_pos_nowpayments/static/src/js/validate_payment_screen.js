@@ -20,7 +20,7 @@ patch(PaymentScreen.prototype, {
                 try {
                     apiResp = await this.pos.data.call("pos.payment.method", "now_check_payment_status", [
                         {
-                            invoice_id: line.cryptopay_invoice_id,
+                            invoice_id: line.cryptopay_invoice_id || false,
                             pm_id: line.payment_method_id.id,
                             order_id: order.uuid || order.name,
                         },

@@ -194,7 +194,10 @@ class PosPaymentMethod(models.Model):
             cryptopay_pm = self.env['pos.payment.method'].search([('id', '=', args['pm_id'])], limit=1)
             if cryptopay_pm.use_payment_terminal != 'now':
                 return super().check_payment_status(args)
-            invoice_status_api = cryptopay_pm.call_cryptopay_api({}, '/v1/payment/' + args.get('invoice_id'), 'GET')
+            invoice_id = args.get('invoice_id')
+            if not invoice_id:
+                return {"payment_status": "waiting"}
+            invoice_status_api = cryptopay_pm.call_cryptopay_api({}, f"/v1/payment/{invoice_id}", 'GET')
             if invoice_status_api.status_code != 200:
                 return {"payment_status": "inaccessible"}
             _logger.info(f"Completed Now check_payment_status_payment_link. Passing back {invoice_status_api.json()}")
