@@ -7,18 +7,18 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='use_payment_terminal']" position="after">
                 <group name="crypto_payment" colspan="4">
-                    <field name="server_url" attrs="{'invisible': [('use_payment_terminal', '!=', 'now')], 'required': [('use_payment_terminal', '=', 'now')]}"/>
-                    <field name="api_key" attrs="{'invisible': [('use_payment_terminal', '!=', 'now')], 'required': [('use_payment_terminal', '=', 'now')]}" password="True"/>
-                    <field name="now_payment_flow" attrs="{'invisible': [('use_payment_terminal', '!=', 'now')], 'required': [('use_payment_terminal', '=', 'now')]}"/>
-                    <field name="nowpayments_username" attrs="{'invisible': [('use_payment_terminal', '!=', 'now')], 'required': [('use_payment_terminal', '=', 'now')]}" password="True"/>
-                    <field name="nowpayments_password" attrs="{'invisible': [('use_payment_terminal', '!=', 'now')], 'required': [('use_payment_terminal', '=', 'now')]}" password="True"/>
-                    <field name="crypto_minimum_amount" attrs="{'invisible': [('use_payment_terminal', '!=', 'now')], 'required': [('use_payment_terminal', '=', 'now')]}"/>
-                    <field name="crypto_maximum_amount" attrs="{'invisible': [('use_payment_terminal', '!=', 'now')], 'required': [('use_payment_terminal', '=', 'now')]}"/>
-                    <field name="now_selected_crypto" attrs="{'invisible': ['|',('use_payment_terminal', '!=', 'now'),('now_payment_flow', '!=', 'direct invoice')], 'required': [('now_payment_flow', '=', 'direct invoice')]}"/>
-                    <field name="now_sandbox" attrs="{'invisible': ['|',('use_payment_terminal', '!=', 'now'),('now_payment_flow', '!=', 'direct invoice')]}"/>
-                    <field name="now_sandbox_case" attrs="{'invisible': ['|',('use_payment_terminal', '!=', 'now'),('now_payment_flow', '!=', 'direct invoice')], 'required': [('now_sandbox', '=', True)]}"/>
-                    <div colspan="2" class="mt16" attrs="{'invisible': [('use_payment_terminal', '!=', 'now')], 'required': [('use_payment_terminal', '=', 'now')]}">
-                    <button name="action_test_connection" type="object" string="Test CryptoPay Server connection" class="oe_highlight"/>
+                    <field name="server_url" invisible="use_payment_terminal != 'now'" required="use_payment_terminal == 'now'"/>
+                    <field name="api_key" invisible="use_payment_terminal != 'now'" required="use_payment_terminal == 'now'" password="True"/>
+                    <field name="now_payment_flow" invisible="use_payment_terminal != 'now'" required="use_payment_terminal == 'now'"/>
+                    <field name="nowpayments_username" invisible="use_payment_terminal != 'now'" required="use_payment_terminal == 'now'" password="True"/>
+                    <field name="nowpayments_password" invisible="use_payment_terminal != 'now'" required="use_payment_terminal == 'now'" password="True"/>
+                    <field name="crypto_minimum_amount" invisible="use_payment_terminal != 'now'" required="use_payment_terminal == 'now'"/>
+                    <field name="crypto_maximum_amount" invisible="use_payment_terminal != 'now'" required="use_payment_terminal == 'now'"/>
+                    <field name="now_selected_crypto" invisible="use_payment_terminal != 'now' or now_payment_flow != 'direct invoice'" required="use_payment_terminal == 'now' and now_payment_flow == 'direct invoice'"/>
+                    <field name="now_sandbox" invisible="use_payment_terminal != 'now' or now_payment_flow != 'direct invoice'"/>
+                    <field name="now_sandbox_case" invisible="use_payment_terminal != 'now' or now_payment_flow != 'direct invoice'" required="now_sandbox"/>
+                    <div colspan="2" class="mt16" invisible="use_payment_terminal != 'now'">
+                        <button name="action_test_connection" type="object" string="Test CryptoPay Server connection" class="oe_highlight"/>
                     </div>
                 </group>
             </xpath>
