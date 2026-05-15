@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="product_packaging_tree_view_website_sale_packaging" model="ir.ui.view">
+        <field name="name">product.packaging.tree.website.sale.packaging</field>
+        <field name="model">product.packaging</field>
+        <field name="inherit_id" ref="product.product_packaging_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='qty']" position="after">
+                <field name="website_published"/>
+                <field name="website_default"/>
+                <field name="website_sequence" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_packaging_form_view_website_sale_packaging" model="ir.ui.view">
+        <field name="name">product.packaging.form.website.sale.packaging</field>
+        <field name="model">product.packaging</field>
+        <field name="inherit_id" ref="product.product_packaging_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='qty']" position="inside">
+                <field name="website_published"/>
+                <field name="website_default"/>
+                <field name="website_sequence"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="product_packaging_selector" inherit_id="website_sale.product" name="Website Product Packaging Selector">
+        <xpath expr="//div[@class='js_product js_main_product mb-3']" position="inside">
+            <t t-set="website_packagings" t-value="product._get_website_sale_packagings()"/>
+            <t t-set="default_website_packaging" t-value="product._get_default_website_sale_packaging()"/>
+            <t t-if="website_packagings">
+                <div class="mb-3 o_website_sale_packaging">
+                    <label class="form-label" for="website_packaging_selector">Purchase Format</label>
+                    <select id="website_packaging_selector" class="form-select" name="website_packaging_selector" t-att-data-packaging-only="product.website_packaging_sale_mode == 'packaging_only' and '1' or '0'">
+                        <option t-if="product.website_packaging_sale_mode == 'unit_and_packaging'" value="">Units</option>
+                        <t t-foreach="website_packagings" t-as="pkg">
+                            <option t-att-value="pkg.id" t-att-selected="'selected' if default_website_packaging and pkg.id == default_website_packaging.id else None" t-out="'%s (%s %s)' % (pkg.name, pkg.qty, pkg.product_uom_id.display_name)"/>
+                        </t>
+                    </select>
+                    <input type="hidden" name="website_packaging_id" class="o_website_packaging_id" t-att-value="default_website_packaging.id if product.website_packaging_sale_mode == 'packaging_only' and default_website_packaging else ''"/>
+                    <input type="hidden" name="website_packaging_qty" class="o_website_packaging_qty" value="1"/>
+                </div>
+            </t>
+        </xpath>
+        <xpath expr="//input[@name='add_qty']" position="attributes">
+            <attribute name="class" add="o_website_packaging_visible_qty" separator=" "/>
+        </xpath>
+    </template>
+
+    <template id="cart_lines_packaging_info" inherit_id="website_sale.cart_lines" name="Cart lines packaging info">
+        <xpath expr="//t[@t-call='website_sale.cart_line_description_following_lines']" position="after">
+            <div t-if="line.product_packaging_id" class="text-muted small">
+                <span t-out="'%s × %s' % (line.product_packaging_qty, line.product_packaging_id.display_name)"/>
+                <span class="ms-1" t-out="'(%s %s)' % (line.product_uom_qty, line.product_uom.name)"/>
+            </div>
+        </xpath>
+        <xpath expr="//input[contains(@class, 'js_quantity quantity form-control border-start-0 border-end-0')]" position="attributes">
+            <attribute name="t-att-value">line.product_packaging_id and line.product_packaging_qty or line._get_displayed_quantity()</attribute>
+            <attribute name="t-att-data-website-packaging-id">line.product_packaging_id.id or ''</attribute>
+            <attribute name="t-att-data-website-packaging-qty">line.product_packaging_qty or ''</attribute>
+        </xpath>
+    </template>
+</odoo>
