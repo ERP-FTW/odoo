@@ -1,0 +1,35 @@
+<odoo>
+    <template id="product_packaging_selector" inherit_id="website_sale.product" name="Website packaging selector on product page">
+        <xpath expr="//form[hasclass('js_main_product') or @action='/shop/cart/update']" position="inside">
+            <t t-set="website_packagings" t-value="product._get_website_sale_packagings()"/>
+            <t t-set="default_website_packaging" t-value="product._get_default_website_sale_packaging()"/>
+            <div t-if="website_packagings" class="mb-3 o_wsale_packaging_selector" t-att-data-packaging-only="1 if product.website_packaging_sale_mode == 'packaging_only' else 0">
+                <label class="form-label" for="website_packaging_selector">Packaging</label>
+                <select id="website_packaging_selector" class="form-select">
+                    <option t-if="product.website_packaging_sale_mode == 'unit_and_packaging'" value="">Units</option>
+                    <t t-foreach="website_packagings" t-as="packaging">
+                        <option t-att-value="packaging.id" t-att-data-package-qty="packaging.qty" t-att-selected="'selected' if default_website_packaging and default_website_packaging.id == packaging.id else None">
+                            <t t-esc="packaging.name"/> (<t t-esc="packaging.qty"/> <t t-esc="packaging.product_uom_id.name"/>)
+                        </option>
+                    </t>
+                </select>
+                <input type="hidden" name="website_packaging_id" t-att-value="default_website_packaging.id if (default_website_packaging and product.website_packaging_sale_mode == 'packaging_only') or default_website_packaging else ''"/>
+                <input type="hidden" name="website_packaging_qty" value="1"/>
+                <div class="form-text o_wsale_packaging_help mt-2"></div>
+            </div>
+        </xpath>
+    </template>
+
+    <template id="cart_lines_packaging_info" inherit_id="website_sale.cart_lines" name="Display package quantities in cart">
+        <xpath expr="//div[@name='website_sale_cart_line_quantity']//input[contains(@class, 'js_quantity')]" position="attributes">
+            <attribute name="t-att-value">line.product_packaging_qty if line.product_packaging_id else line.product_uom_qty</attribute>
+            <attribute name="t-att-data-packaging-id">line.product_packaging_id.id or ''</attribute>
+        </xpath>
+        <xpath expr="//div[@name='o_wsale_cart_line_button_container']" position="after">
+            <div t-if="line.product_packaging_id" class="small text-muted">
+                <span t-esc="line.product_packaging_qty"/> × <span t-esc="line.product_packaging_id.name"/><br/>
+                <span t-esc="line.product_uom_qty"/> <span t-esc="line.product_uom.name"/>
+            </div>
+        </xpath>
+    </template>
+</odoo>
