@@ -25,7 +25,7 @@
             <attribute name="t-att-value">line.product_packaging_qty if line.product_packaging_id else line.product_uom_qty</attribute>
             <attribute name="t-att-data-packaging-id">line.product_packaging_id.id or ''</attribute>
         </xpath>
-        <xpath expr="//a[hasclass('text-muted')][1]" position="after">
+        <xpath expr="//div[@name='o_wsale_cart_line_button_container']" position="after">
             <div t-if="line.product_packaging_id" class="small text-muted">
                 <span t-esc="line.product_packaging_qty"/> × <span t-esc="line.product_packaging_id.name"/><br/>
                 <span t-esc="line.product_uom_qty"/> <span t-esc="line.product_uom.name"/>
