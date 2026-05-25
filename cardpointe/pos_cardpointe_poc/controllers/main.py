@@ -7,6 +7,7 @@ from odoo.exceptions import UserError
 from odoo.http import request
 
 from odoo.addons.payment_cardpointe_base.services.gateway import CardPointeGatewayClient
+from odoo.addons.payment_cardpointe_base.services.money import format_gateway_amount
 
 from ..services.cardpointe_terminal import CardPointeTerminalClient
 from ..services.signature_policy import (
@@ -82,17 +83,96 @@ class PosCardPointeController(http.Controller):
     def _attach_signature_sigcap(self, terminal_config, retref, signature_blob):
         merchant_config = self._resolve_merchant_config(terminal_config)
         if not merchant_config or not merchant_config.gateway_username or not merchant_config.gateway_password:
-            return {
-                'ok': False,
-                'message': 'CardPointe gateway credentials are missing on merchant config for sigcap.',
-            }
-
+            return {'ok': False, 'message': 'CardPointe gateway credentials are missing on merchant config for sigcap.'}
         gateway = CardPointeGatewayClient(merchant_config)
-        return gateway.sigcap(
-            merchid=merchant_config.mid,
-            retref=retref,
-            signature=signature_blob,
-        )
+        return gateway.sigcap(merchid=merchant_config.mid, retref=retref, signature=signature_blob)
+
+    @http.route('/pos_cardpointe_poc/manual_config', type='json', auth='user')
+    def manual_config(self, pos_config_id, payment_method_id):
+        payment_method, config, error = self._validate_start_payload(pos_config_id, payment_method_id)
+        if error:
+            return error
+        if not payment_method.cardpointe_manual_entry_enabled:
+            return {'status': 'error', 'message': 'Manual Entry is disabled for this payment method.'}
+        merchant_config = self._resolve_merchant_config(config)
+        if not merchant_config:
+            return {'status': 'error', 'message': 'CardPointe merchant config missing on terminal config.'}
+        if not merchant_config.tokenizer_url:
+            return {'status': 'error', 'message': 'CardPointe tokenizer URL is missing on merchant config.'}
+        return {
+            'status': 'ok',
+            'tokenizer_url': merchant_config.tokenizer_url,
+            'ecomind': payment_method.cardpointe_manual_entry_ecomind or 'E',
+            'require_partner': bool(payment_method.cardpointe_manual_entry_require_partner),
+            'manual_entry_enabled': True,
+        }
+
+    @http.route('/pos_cardpointe_poc/manual_auth', type='json', auth='user')
+    def manual_auth(self, pos_config_id, payment_method_id, amount, currency, order_uid, payment_line_uuid, token,
+                    partner_id=None, fallback_reason=None, terminal_error_status=None, terminal_error_message=None,
+                    cardholder_name=None, billing_address=None):
+        payment_method, config, error = self._validate_start_payload(pos_config_id, payment_method_id)
+        if error:
+            return error
+        if not payment_method.cardpointe_manual_entry_enabled:
+            return {'status': 'error', 'message': 'Manual Entry is disabled for this payment method.'}
+        if not token:
+            return {'status': 'error', 'message': 'Missing CardPointe token for manual entry.'}
+        merchant_config = self._resolve_merchant_config(config)
+        if not merchant_config:
+            return {'status': 'error', 'message': 'CardPointe merchant config missing on terminal config.'}
+        if not merchant_config.gateway_username or not merchant_config.gateway_password:
+            return {'status': 'error', 'message': 'CardPointe gateway credentials are missing on merchant config.'}
+
+        ecomind = payment_method.cardpointe_manual_entry_ecomind or 'E'
+        _logger.info('[CARDPOINTE POS MANUAL] user=%s pos_config_id=%s payment_method_id=%s amount=%s order_uid=%s line=%s token_present=%s ecomind=%s fallback_reason=%s',
+            request.env.user.id, pos_config_id, payment_method_id, amount, order_uid, payment_line_uuid, bool(token), ecomind, fallback_reason or '')
+
+        payload = {
+            'merchid': merchant_config.mid,
+            'account': token,
+            'amount': format_gateway_amount(amount),
+            'currency': currency or 'USD',
+            'capture': 'Y',
+            'orderid': order_uid,
+            'ecomind': ecomind,
+        }
+        if cardholder_name:
+            payload['name'] = cardholder_name
+        partner = request.env['res.partner'].browse(int(partner_id)).exists() if partner_id else request.env['res.partner']
+        if partner:
+            payload.update({
+                'name': payload.get('name') or partner.name,
+                'address': partner.street,
+                'city': partner.city,
+                'region': partner.state_id.code if partner.state_id else '',
+                'country': partner.country_id.code if partner.country_id else '',
+                'postal': partner.zip,
+            })
+        if isinstance(billing_address, dict):
+            payload.update({k: v for k, v in billing_address.items() if k in {'address', 'city', 'region', 'country', 'postal', 'name'} and v})
+
+        result = CardPointeGatewayClient(merchant_config).auth(payload)
+        approved = bool(result.get('ok'))
+        return {
+            'status': 'approved' if approved else ('declined' if result.get('respcode') else 'error'),
+            'capture_method': 'iframe_manual',
+            'retref': result.get('retref') or '',
+            'authcode': result.get('authcode') or '',
+            'respcode': result.get('respcode') or '',
+            'resptext': result.get('resptext') or result.get('message') or '',
+            'token': result.get('token') or '',
+            'entrymode': 'iframe_manual',
+            'ecomind': ecomind,
+            'amount': payload['amount'],
+            'ok': approved,
+            'http_status': result.get('http_status'),
+            'fallback_reason': fallback_reason or 'manual_selected',
+            'terminal_error_status': terminal_error_status or '',
+            'terminal_error_message': terminal_error_message or '',
+        }
+
+    # keep existing routes below
 
     @http.route('/pos_cardpointe_poc/start', type='json', auth='user')
     def start(self, pos_config_id, payment_method_id, amount, currency, order_uid, payment_line_uuid):

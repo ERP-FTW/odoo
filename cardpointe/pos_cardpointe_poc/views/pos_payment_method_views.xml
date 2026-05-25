@@ -5,8 +5,11 @@
         <field name="inherit_id" ref="point_of_sale.pos_payment_method_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='use_payment_terminal']" position="after">
-                <field name="cardpointe_config_id"
-                       invisible="use_payment_terminal != 'cardpointe_poc'" required="use_payment_terminal == 'cardpointe_poc'"/>
+                <field name="cardpointe_config_id" invisible="use_payment_terminal != 'cardpointe_poc'" required="use_payment_terminal == 'cardpointe_poc'"/>
+                <field name="cardpointe_manual_entry_enabled" invisible="use_payment_terminal != 'cardpointe_poc'"/>
+                <field name="cardpointe_manual_entry_ecomind" invisible="not cardpointe_manual_entry_enabled or use_payment_terminal != 'cardpointe_poc'" required="cardpointe_manual_entry_enabled"/>
+                <field name="cardpointe_manual_entry_require_partner" invisible="not cardpointe_manual_entry_enabled or use_payment_terminal != 'cardpointe_poc'"/>
+                <field name="cardpointe_manual_entry_require_manager" invisible="not cardpointe_manual_entry_enabled or use_payment_terminal != 'cardpointe_poc'"/>
             </xpath>
         </field>
     </record>
