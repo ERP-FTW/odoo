@@ -281,10 +281,10 @@ export class CardPointePOC extends PaymentInterface {
                 return true;
             }
             this._handleFailedResult(line, result);
-            return false;
+            throw new Error("manual_auth_not_approved");
         } catch {
             this._handleFailedResult(line, { status: "error", message: _t("Could not reach Odoo server during Manual Entry."), fallback_reason: "server_error" });
-            return false;
+            throw new Error("manual_auth_rpc_error");
         }
     }
 

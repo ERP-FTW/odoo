@@ -16,17 +16,45 @@ export class CardPointeManualEntryPopup extends Component {
 
     _extractToken(payload) {
         if (!payload) return "";
-        if (typeof payload === "string") return "";
-        return payload.token || payload.account || payload.message?.token || payload.message?.account || "";
+
+        let data = payload;
+        if (typeof data === "string") {
+            try {
+                data = JSON.parse(data);
+            } catch {
+                return "";
+            }
+        }
+        if (typeof data !== "object") return "";
+
+        const candidates = [
+            data,
+            data.message,
+            data.response,
+            data.tokenizeResponse,
+            data.tokenizerResponse,
+        ].filter((item) => item && typeof item === "object");
+
+        for (const candidate of candidates) {
+            const token = candidate.token || candidate.account || candidate.acctid || "";
+            if (token) {
+                return token;
+            }
+        }
+        return "";
     }
 
-    _handleMessage(event) {
+    async _handleMessage(event) {
         const token = this._extractToken(event.data);
         if (!token) {
             return;
         }
-        this.props.onToken({ token, ecomind: this.state.ecomind });
-        this.props.close();
+        try {
+            await this.props.onToken({ token, ecomind: this.state.ecomind });
+            this.props.close();
+        } catch {
+            // Keep popup open so cashier can retry tokenizer submission.
+        }
     }
 
     cancel() {
