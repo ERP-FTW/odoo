@@ -241,6 +241,7 @@ export class CardPointePOC extends PaymentInterface {
             tokenizerUrl: config.tokenizer_url,
             allowedEcominds: config.allowed_ecominds || [["E", "E - Ecommerce"], ["T", "T - Telephone/Mail"]],
             defaultEcomind: config.default_ecomind || "E",
+            cancelLabel: _t("Cancel"),
             onToken: ({ token, ecomind }) => this._submitManualAuth(line, order, token, ecomind, options),
         });
         return true;

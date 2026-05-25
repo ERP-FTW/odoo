@@ -5,7 +5,7 @@ import { _t } from "@web/core/l10n/translation";
 
 export class CardPointeManualEntryPopup extends Component {
     static template = "pos_cardpointe_poc.CardPointeManualEntryPopup";
-    static props = ["title", "tokenizerUrl", "allowedEcominds", "defaultEcomind", "close", "onToken"];
+    static props = ["title", "tokenizerUrl", "allowedEcominds", "defaultEcomind", "cancelLabel", "close", "onToken"];
 
     setup() {
         this.state = useState({ ecomind: this.props.defaultEcomind || "E", tokenError: "" });
