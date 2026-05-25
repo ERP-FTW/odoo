@@ -10,15 +10,11 @@ class PosPaymentMethod(models.Model):
         default=False,
         help='Allow POS cashiers to use CardPointe Hosted iFrame Tokenizer as a manual card entry fallback.',
     )
-    cardpointe_manual_entry_ecomind = fields.Selection(
-        [("E", "E - Ecommerce"), ("T", "T - Telephone/Mail")],
-        string='Manual Entry ecomind',
-        default='E',
-        required=True,
-        help='Card-not-present transaction origin indicator for POS manual entry fallback.',
-    )
-    cardpointe_manual_entry_require_partner = fields.Boolean(string='Require Customer for Manual Entry', default=False)
-    cardpointe_manual_entry_require_manager = fields.Boolean(string='Require Manager for Manual Entry', default=False)
+
+    def _load_pos_data_fields(self, config_id):
+        fields_list = super()._load_pos_data_fields(config_id)
+        fields_list += ['cardpointe_config_id', 'cardpointe_manual_entry_enabled']
+        return list(dict.fromkeys(fields_list))
 
     def _get_payment_terminal_selection(self):
         return super()._get_payment_terminal_selection() + [('cardpointe_poc', 'CardPointe POC')]
@@ -28,3 +24,4 @@ class PosPaymentMethod(models.Model):
         super()._onchange_use_payment_terminal()
         if self.use_payment_terminal != 'cardpointe_poc':
             self.cardpointe_config_id = False
+            self.cardpointe_manual_entry_enabled = False

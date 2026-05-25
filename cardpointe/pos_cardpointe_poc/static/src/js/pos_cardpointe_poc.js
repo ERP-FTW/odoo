@@ -4,6 +4,9 @@ import { _t } from "@web/core/l10n/translation";
 import { rpc } from "@web/core/network/rpc";
 import { AlertDialog, ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { PaymentInterface } from "@point_of_sale/app/payment/payment_interface";
+import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
+import { patch } from "@web/core/utils/patch";
+import { CardPointeManualEntryPopup } from "./manual_entry_popup";
 import { register_payment_method } from "@point_of_sale/app/store/pos_store";
 
 export class CardPointePOC extends PaymentInterface {
@@ -229,16 +232,53 @@ export class CardPointePOC extends PaymentInterface {
     async open_manual_entry(uuid, options = {}) {
         const order = this.pos.get_order();
         const line = this._findLine(order, uuid);
-        if (!line) { return false; }
-        const token = window.prompt(_t("Enter CardPointe hosted tokenizer token"));
-        if (!token) { return false; }
+        if (!line) return false;
+        const config = await this._loadManualConfig(line);
+        if (!config) return false;
+
+        this.env.services.dialog.add(CardPointeManualEntryPopup, {
+            title: _t("Enter Card Manually"),
+            tokenizerUrl: config.tokenizer_url,
+            allowedEcominds: config.allowed_ecominds || [["E", "E - Ecommerce"], ["T", "T - Telephone/Mail"]],
+            defaultEcomind: config.default_ecomind || "E",
+            onToken: ({ token, ecomind }) => this._submitManualAuth(line, order, token, ecomind, options),
+        });
+        return true;
+    }
+
+    async _loadManualConfig(line) {
+        try {
+            const result = await rpc("/pos_cardpointe_poc/manual_config", { pos_config_id: this.pos.config.id, payment_method_id: line.payment_method_id.id }, { silent: true });
+            if (result.status !== "ok") {
+                this._showError(result.message || _t("Manual Entry is unavailable."));
+                return null;
+            }
+            return result;
+        } catch {
+            this._showError(_t("Could not reach Odoo server while loading Manual Entry."));
+            return null;
+        }
+    }
+
+    async _submitManualAuth(line, order, token, ecomind, options = {}) {
         line.set_payment_status("waiting");
         try {
             const result = await rpc("/pos_cardpointe_poc/manual_auth", {
-                pos_config_id: this.pos.config.id, payment_method_id: line.payment_method_id.id, amount: line.amount, currency: this.pos.currency.name,
-                order_uid: order.uuid, payment_line_uuid: line.uuid, token, partner_id: order.get_partner()?.id || null, ...options,
+                pos_config_id: this.pos.config.id,
+                payment_method_id: line.payment_method_id.id,
+                amount: line.amount,
+                currency: this.pos.currency.name,
+                order_uid: order.uuid,
+                payment_line_uuid: line.uuid,
+                token,
+                ecomind,
+                partner_id: order.get_partner()?.id || null,
+                ...options,
             }, { silent: true });
-            if (result.status === "approved") { this._applyApprovedCardPointeResult(line, result, "iframe_manual"); return true; }
+            if (result.status === "approved") {
+                this._applyApprovedCardPointeResult(line, result, "iframe_manual");
+                return true;
+            }
             this._handleFailedResult(line, result);
             return false;
         } catch {
@@ -293,3 +333,12 @@ export class CardPointePOC extends PaymentInterface {
 }
 
 register_payment_method("cardpointe_poc", CardPointePOC);
+
+patch(PaymentScreen.prototype, {
+    async onClickCardPointeManualEntry() {
+        const order = this.pos.get_order();
+        const line = order?.selected_paymentline;
+        if (!line || line.payment_method_id.use_payment_terminal !== "cardpointe_poc") return;
+        await line.payment_method_id.payment_terminal.open_manual_entry(line.uuid, { fallback_reason: "manual_selected" });
+    },
+});

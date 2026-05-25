@@ -19,5 +19,13 @@ class PosOrder(models.Model):
             'cardpointe_signature_required': ui_paymentline.get('cardpointe_signature_required'),
             'cardpointe_signature_captured': ui_paymentline.get('cardpointe_signature_captured'),
             'cardpointe_signature_method': ui_paymentline.get('cardpointe_signature_method'),
+            'cardpointe_entrymode': ui_paymentline.get('cardpointe_entrymode'),
+            'cardpointe_emvtagdata': ui_paymentline.get('cardpointe_emvtagdata'),
+            'cardpointe_capture_method': ui_paymentline.get('cardpointe_capture_method'),
+            'cardpointe_ecomind': ui_paymentline.get('cardpointe_ecomind'),
+            'cardpointe_fallback_reason': ui_paymentline.get('cardpointe_fallback_reason'),
+            'cardpointe_terminal_error_status': ui_paymentline.get('cardpointe_terminal_error_status'),
+            'cardpointe_terminal_error_message': ui_paymentline.get('cardpointe_terminal_error_message'),
+            'cardpointe_gateway_http_status': ui_paymentline.get('cardpointe_gateway_http_status'),
         })
         return values

@@ -1,1 +1,33 @@
-<templates xml:space="preserve"></templates>
+<templates xml:space="preserve">
+    <t t-name="pos_cardpointe_poc.CardPointeManualEntryPopup">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title"><t t-esc="props.title"/></h4>
+                </div>
+                <div class="modal-body d-flex flex-column gap-2">
+                    <label class="form-label">ecomind</label>
+                    <select class="form-select" t-model="state.ecomind">
+                        <t t-foreach="props.allowedEcominds" t-as="item" t-key="item[0]">
+                            <option t-att-value="item[0]"><t t-esc="item[1]"/></option>
+                        </t>
+                    </select>
+                    <iframe t-att-src="props.tokenizerUrl" style="width:100%;height:340px;border:1px solid #d6d6d6;" title="CardPointe Hosted iFrame"/>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" t-on-click="cancel"><t t-esc="env._t('Cancel')"/></button>
+                </div>
+            </div>
+        </div>
+    </t>
+
+    <t t-name="pos_cardpointe_poc.PaymentScreenButtons" t-inherit="point_of_sale.PaymentScreenButtons" t-inherit-mode="extension">
+        <xpath expr="//button[contains(@class, 'js_invoice') or contains(@class, 'partner-button')]" position="after">
+            <button t-if="currentOrder && currentOrder.selected_paymentline && currentOrder.selected_paymentline.payment_method_id.use_payment_terminal === 'cardpointe_poc' and currentOrder.selected_paymentline.payment_method_id.cardpointe_manual_entry_enabled and currentOrder.selected_paymentline.amount &gt; 0 and currentOrder.selected_paymentline.payment_status !== 'done'"
+                    class="button btn btn-light py-3 text-start"
+                    t-on-click="() => this.onClickCardPointeManualEntry()">
+                <i class="fa fa-credit-card me-2"/>Manual Entry
+            </button>
+        </xpath>
+    </t>
+</templates>

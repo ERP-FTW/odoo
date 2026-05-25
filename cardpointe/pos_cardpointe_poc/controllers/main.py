@@ -102,14 +102,14 @@ class PosCardPointeController(http.Controller):
         return {
             'status': 'ok',
             'tokenizer_url': merchant_config.tokenizer_url,
-            'ecomind': payment_method.cardpointe_manual_entry_ecomind or 'E',
-            'require_partner': bool(payment_method.cardpointe_manual_entry_require_partner),
+            'allowed_ecominds': [["E", "E - Ecommerce"], ["T", "T - Telephone/Mail"]],
+            'default_ecomind': 'E',
             'manual_entry_enabled': True,
         }
 
     @http.route('/pos_cardpointe_poc/manual_auth', type='json', auth='user')
     def manual_auth(self, pos_config_id, payment_method_id, amount, currency, order_uid, payment_line_uuid, token,
-                    partner_id=None, fallback_reason=None, terminal_error_status=None, terminal_error_message=None,
+                    ecomind='E', partner_id=None, fallback_reason=None, terminal_error_status=None, terminal_error_message=None,
                     cardholder_name=None, billing_address=None):
         payment_method, config, error = self._validate_start_payload(pos_config_id, payment_method_id)
         if error:
@@ -124,7 +124,9 @@ class PosCardPointeController(http.Controller):
         if not merchant_config.gateway_username or not merchant_config.gateway_password:
             return {'status': 'error', 'message': 'CardPointe gateway credentials are missing on merchant config.'}
 
-        ecomind = payment_method.cardpointe_manual_entry_ecomind or 'E'
+        ecomind = (ecomind or 'E').strip().upper()
+        if ecomind not in ('E', 'T'):
+            ecomind = 'E'
         _logger.info('[CARDPOINTE POS MANUAL] user=%s pos_config_id=%s payment_method_id=%s amount=%s order_uid=%s line=%s token_present=%s ecomind=%s fallback_reason=%s',
             request.env.user.id, pos_config_id, payment_method_id, amount, order_uid, payment_line_uuid, bool(token), ecomind, fallback_reason or '')
 
