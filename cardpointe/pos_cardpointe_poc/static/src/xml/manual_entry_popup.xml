@@ -23,7 +23,7 @@
 
     <t t-name="pos_cardpointe_poc.PaymentScreenButtons" t-inherit="point_of_sale.PaymentScreenButtons" t-inherit-mode="extension">
         <xpath expr="//button[contains(@class, 'js_invoice') or contains(@class, 'partner-button')]" position="after">
-            <button t-if="currentOrder && currentOrder.selected_paymentline && currentOrder.selected_paymentline.payment_method_id.use_payment_terminal === 'cardpointe_poc' and currentOrder.selected_paymentline.payment_method_id.cardpointe_manual_entry_enabled and currentOrder.selected_paymentline.amount &gt; 0 and currentOrder.selected_paymentline.payment_status !== 'done'"
+            <button t-if="currentOrder and currentOrder.selected_paymentline and currentOrder.selected_paymentline.payment_method_id.use_payment_terminal === 'cardpointe_poc' and currentOrder.selected_paymentline.payment_method_id.cardpointe_manual_entry_enabled and currentOrder.selected_paymentline.amount &gt; 0 and currentOrder.selected_paymentline.payment_status !== 'done'"
                     class="button btn btn-light py-3 text-start"
                     t-on-click="() => this.onClickCardPointeManualEntry()">
                 <i class="fa fa-credit-card me-2"/>Manual Entry
