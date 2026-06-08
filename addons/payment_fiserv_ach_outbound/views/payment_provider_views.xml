@@ -1,0 +1,24 @@
+<odoo>
+  <record id="payment_provider_form_fiserv_ach_outbound" model="ir.ui.view">
+    <field name="name">payment.provider.form.fiserv.ach.outbound</field>
+    <field name="model">payment.provider</field>
+    <field name="inherit_id" ref="payment.payment_provider_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//group[@name='provider_credentials']" position="inside">
+        <group string="Fiserv ACH Outbound" attrs="{'invisible': [('code', '!=', 'fiserv_ach_outbound')]}">
+          <field name="fiserv_ach_enabled"/>
+          <field name="fiserv_ach_base_url"/>
+          <field name="fiserv_ach_merchid"/>
+          <field name="fiserv_ach_username"/>
+          <field name="fiserv_ach_password" password="True"/>
+          <field name="fiserv_ach_auth_token" password="True"/>
+          <field name="fiserv_ach_default_currency_id"/>
+          <field name="fiserv_ach_default_entry_code"/>
+          <field name="fiserv_ach_default_description"/>
+          <field name="fiserv_ach_default_ecomind"/>
+          <field name="fiserv_ach_use_profile_tokens"/>
+        </group>
+      </xpath>
+    </field>
+  </record>
+</odoo>

@@ -1,0 +1,12 @@
+<odoo>
+  <record id="view_account_journal_form_outbound_provider" model="ir.ui.view">
+    <field name="name">account.journal.form.outbound.provider</field>
+    <field name="model">account.journal</field>
+    <field name="inherit_id" ref="account.view_account_journal_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='payment_sequence']" position="after">
+        <field name="outbound_payment_provider_id" attrs="{'invisible': [('type', 'not in', ('bank', 'cash'))]}"/>
+      </xpath>
+    </field>
+  </record>
+</odoo>
