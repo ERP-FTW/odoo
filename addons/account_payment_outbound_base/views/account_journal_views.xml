@@ -4,7 +4,7 @@
     <field name="model">account.journal</field>
     <field name="inherit_id" ref="account.view_account_journal_form"/>
     <field name="arch" type="xml">
-      <xpath expr="//field[@name='bank_account_id']" position="after">
+      <xpath expr="//field[@name='payment_sequence']" position="after">
         <field name="outbound_payment_provider_id" attrs="{'invisible': [('type', 'not in', ('bank', 'cash'))]}"/>
       </xpath>
     </field>

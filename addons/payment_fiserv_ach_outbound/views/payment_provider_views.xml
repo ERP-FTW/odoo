@@ -4,7 +4,7 @@
     <field name="model">payment.provider</field>
     <field name="inherit_id" ref="payment.payment_provider_form"/>
     <field name="arch" type="xml">
-      <xpath expr="//group[@name='provider']" position="after">
+      <xpath expr="//group[@name='provider_credentials']" position="inside">
         <group string="Fiserv ACH Outbound" attrs="{'invisible': [('code', '!=', 'fiserv_ach_outbound')]}">
           <field name="fiserv_ach_enabled"/>
           <field name="fiserv_ach_base_url"/>

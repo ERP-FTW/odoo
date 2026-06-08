@@ -4,7 +4,7 @@ from odoo.tests.common import TransactionCase
 class TestOutboundBase(TransactionCase):
     def setUp(self):
         super().setUp()
-        self.provider = self.env['payment.provider'].create({'name': 'Dummy', 'code': 'transfer', 'state': 'enabled'})
+        self.provider = self.env['payment.provider'].create({'name': 'Dummy', 'code': 'none', 'state': 'enabled'})
         self.journal = self.env['account.journal'].search([('type', '=', 'bank')], limit=1)
         self.journal.outbound_payment_provider_id = self.provider
 

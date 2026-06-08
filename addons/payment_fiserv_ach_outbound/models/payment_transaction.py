@@ -14,11 +14,11 @@ class PaymentTransaction(models.Model):
     _inherit = 'payment.transaction'
 
     def _send_payment_request(self):
-        for tx in self:
-            if tx.provider_code != 'fiserv_ach_outbound' or not tx.is_outbound_payout:
-                continue
-            tx._fiserv_send_outbound_ach_request()
-        return super()._send_payment_request()
+        self.ensure_one()
+        super()._send_payment_request()
+        if self.provider_code != 'fiserv_ach_outbound' or not self.is_outbound_payout:
+            return
+        self._fiserv_send_outbound_ach_request()
 
     def _fiserv_send_outbound_ach_request(self):
         self.ensure_one()
