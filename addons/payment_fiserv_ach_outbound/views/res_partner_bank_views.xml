@@ -1,0 +1,19 @@
+<odoo>
+  <record id="res_partner_bank_form_fiserv_ach" model="ir.ui.view">
+    <field name="name">res.partner.bank.form.fiserv.ach</field>
+    <field name="model">res.partner.bank</field>
+    <field name="inherit_id" ref="base.view_partner_bank_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//sheet/group" position="inside">
+        <group string="Outbound ACH">
+          <field name="allow_outbound_ach"/>
+          <field name="ach_account_type"/>
+          <field name="ach_account_holder_name"/>
+          <field name="ach_profile_id"/>
+          <field name="ach_token" password="True"/>
+          <field name="bank_aba"/>
+        </group>
+      </xpath>
+    </field>
+  </record>
+</odoo>
