@@ -3,9 +3,9 @@
     <t t-name="pos_tip_cashout_direct.TipCashoutScreen">
         <div class="tip-cashout-screen screen h-100 d-flex flex-column bg-100">
             <div class="top-content d-flex align-items-center p-2 border-bottom bg-view">
-                <button class="btn btn-secondary" t-on-click="back">Back</button>
+                <button class="btn btn-secondary" t-on-click="() => this.back()">Back</button>
                 <h2 class="ms-3 mb-0">Tips / Cashout</h2>
-                <button class="btn btn-primary ms-auto" t-on-click="loadSummary">Refresh</button>
+                <button class="btn btn-primary ms-auto" t-on-click="() => this.loadSummary()">Refresh</button>
             </div>
             <div class="content overflow-auto p-3">
                 <table class="table table-sm table-hover bg-view">
@@ -19,7 +19,7 @@
                             <td t-esc="env.utils.formatCurrency(line.card_tips_paid_from_drawer)"/>
                             <td t-esc="env.utils.formatCurrency(line.card_tips_remaining)"/>
                             <td><span t-if="line.ambiguous_order_ids.length" class="badge text-bg-warning me-1">Mixed payment review</span><span t-if="line.mismatch_order_ids.length" class="badge text-bg-danger">Tip mismatch</span></td>
-                            <td><button class="btn btn-secondary" t-att-disabled="!line.employee_id || line.state == 'paid'" t-on-click="() => pay(line)">Pay Card Tips</button></td>
+                            <td><button class="btn btn-secondary" t-att-disabled="!line.employee_id || line.state == 'paid'" t-on-click="() => this.pay(line)">Pay Card Tips</button></td>
                         </tr>
                     </tbody>
                 </table>
