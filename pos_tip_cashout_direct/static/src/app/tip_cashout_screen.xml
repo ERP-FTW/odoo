@@ -19,7 +19,7 @@
                             <td t-esc="env.utils.formatCurrency(line.card_tips_paid_from_drawer)"/>
                             <td t-esc="env.utils.formatCurrency(line.card_tips_remaining)"/>
                             <td><span t-if="line.ambiguous_order_ids.length" class="badge text-bg-warning me-1">Mixed payment review</span><span t-if="line.mismatch_order_ids.length" class="badge text-bg-danger">Tip mismatch</span></td>
-                            <td><button class="btn btn-secondary" t-att-disabled="!line.employee_id || line.state == 'paid'" t-on-click="() => this.pay(line)">Pay Card Tips</button></td>
+                            <td><button class="btn btn-secondary" t-att-disabled="!line.employee_id || line.card_tips_remaining &lt;= 0" t-on-click="() => this.pay(line)">Pay Card Tips</button></td>
                         </tr>
                     </tbody>
                 </table>

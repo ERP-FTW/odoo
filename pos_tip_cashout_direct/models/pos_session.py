@@ -83,14 +83,17 @@ class PosSession(models.Model):
         employee_summary = next((line for line in summary if line['employee_id'] == employee_id), None)
         if not employee_summary:
             raise UserError(_('No tips found for this employee in this session.'))
+        if card_tips_paid_from_drawer and session.currency_id.compare_amounts(card_tips_paid_from_drawer, employee_summary['card_tips_remaining']) > 0:
+            raise UserError(_('The payout cannot exceed the remaining card tips.'))
         cashout = self.env['pos.tip.cashout'].search([('session_id', '=', session.id), ('employee_id', '=', employee_id)], limit=1)
+        paid_total = (cashout.card_tips_paid_from_drawer if cashout else 0.0) + card_tips_paid_from_drawer
         vals = {
             'session_id': session.id,
             'employee_id': employee_id,
             'pos_card_tips': employee_summary['pos_card_tips'],
             'pos_cash_tips': employee_summary['pos_cash_tips'],
             'declared_cash_tips': declared_cash_tips,
-            'card_tips_paid_from_drawer': card_tips_paid_from_drawer,
+            'card_tips_paid_from_drawer': paid_total,
             'state': 'approved',
         }
         if cashout:
@@ -98,5 +101,5 @@ class PosSession(models.Model):
         else:
             cashout = self.env['pos.tip.cashout'].create(vals)
         if card_tips_paid_from_drawer:
-            cashout.action_paid_from_drawer()
+            cashout._create_drawer_payout(card_tips_paid_from_drawer)
         return cashout.id
