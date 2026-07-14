@@ -1,0 +1,33 @@
+<odoo>
+    <record id="view_pos_tip_cashout_tree" model="ir.ui.view">
+        <field name="name">pos.tip.cashout.list</field>
+        <field name="model">pos.tip.cashout</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="create_date"/>
+                <field name="session_id"/>
+                <field name="employee_id"/>
+                <field name="pos_card_tips"/>
+                <field name="pos_cash_tips"/>
+                <field name="declared_cash_tips"/>
+                <field name="card_tips_paid_from_drawer"/>
+                <field name="card_tips_remaining"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_pos_tip_cashout_form" model="ir.ui.view">
+        <field name="name">pos.tip.cashout.form</field>
+        <field name="model">pos.tip.cashout</field>
+        <field name="arch" type="xml">
+            <form>
+                <header><button name="action_paid_from_drawer" type="object" string="Pay From Drawer" class="btn-primary" invisible="state == 'paid'"/><field name="state" widget="statusbar"/></header>
+                <sheet><group><field name="session_id"/><field name="config_id"/><field name="employee_id"/><field name="company_id"/></group><group><field name="pos_card_tips"/><field name="pos_cash_tips"/><field name="declared_cash_tips"/><field name="card_tips_paid_from_drawer"/><field name="card_tips_remaining"/><field name="statement_line_id"/></group></sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_pos_tip_cashout" model="ir.actions.act_window">
+        <field name="name">POS Tip Cashouts</field><field name="res_model">pos.tip.cashout</field><field name="view_mode">list,form</field>
+    </record>
+    <menuitem id="menu_pos_tip_cashout" name="Tip Cashouts" parent="point_of_sale.menu_point_root" action="action_pos_tip_cashout" sequence="70"/>
+</odoo>
