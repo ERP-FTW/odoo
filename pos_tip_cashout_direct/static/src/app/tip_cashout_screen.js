@@ -33,14 +33,14 @@ export class TipCashoutScreen extends Component {
         const amountInput = await makeAwaitable(this.dialog, NumberPopup, {
             title: _t("Tip payout amount"),
             subtitle: _t("Enter the amount of card tips to pay from the cash drawer now. You may pay less than the remaining card tip balance; the unpaid amount stays as remaining liability."),
-            startingValue: remaining,
+            startingValue: String(remaining),
             confirmButtonLabel: _t("Review Payout"),
             isValid: (value) => {
-                const amount = this.env.utils.parseValidFloat(value);
+                const amount = this.parsePayoutAmount(value);
                 return amount > 0 && amount <= remaining;
             },
             feedback: (value) => {
-                const amount = this.env.utils.parseValidFloat(value);
+                const amount = this.parsePayoutAmount(value);
                 if (amount <= 0) {
                     return _t("Enter an amount greater than zero.");
                 }
@@ -50,7 +50,7 @@ export class TipCashoutScreen extends Component {
                 return false;
             },
         });
-        const amount = this.env.utils.parseValidFloat(amountInput);
+        const amount = this.parsePayoutAmount(amountInput);
         if (!amount) {
             return;
         }
@@ -70,6 +70,9 @@ export class TipCashoutScreen extends Component {
         await this.orm.call("pos.session", "create_tip_cashout", [this.pos.session.id, line.employee_id, line.declared_cash_tips || 0, amount]);
         await this.loadSummary();
         this.notification.add(_t("Tip payout cash-out created."));
+    }
+    parsePayoutAmount(value) {
+        return this.env.utils.parseValidFloat(String(value ?? "")) || 0;
     }
     back() { this.pos.showScreen("ProductScreen"); }
 }
