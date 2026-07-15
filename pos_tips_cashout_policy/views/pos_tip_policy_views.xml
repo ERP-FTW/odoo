@@ -1,0 +1,60 @@
+<odoo>
+    <record id="view_pos_tip_policy_list" model="ir.ui.view">
+        <field name="name">pos.tip.policy.list</field>
+        <field name="model">pos.tip.policy</field>
+        <field name="arch" type="xml">
+            <list><field name="name"/><field name="company_id"/><field name="basis"/><field name="require_policy_before_cashout"/><field name="allow_session_cashout"/><field name="active"/></list>
+        </field>
+    </record>
+    <record id="view_pos_tip_policy_form" model="ir.ui.view">
+        <field name="name">pos.tip.policy.form</field>
+        <field name="model">pos.tip.policy</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group><field name="name"/><field name="active"/><field name="company_id"/><field name="pos_config_ids" widget="many2many_tags"/><field name="effective_start"/><field name="effective_end"/></group>
+                    <group><field name="basis"/><field name="require_policy_before_cashout"/><field name="allow_session_cashout"/><field name="journal_id"/><field name="tip_payable_account_id"/><field name="tip_pool_clearing_account_id"/></group>
+                    <notebook><page string="Policy Lines"><field name="line_ids"><list editable="bottom"><field name="sequence"/><field name="name"/><field name="source_employee_ids" widget="many2many_tags"/><field name="recipient_employee_ids" widget="many2many_tags"/><field name="source_percent"/><field name="distribution_percent"/><field name="active"/></list></field></page></notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_pos_tip_policy" model="ir.actions.act_window"><field name="name">Tip Policies</field><field name="res_model">pos.tip.policy</field><field name="view_mode">list,form</field></record>
+
+    <record id="view_pos_tip_pool_batch_list" model="ir.ui.view">
+        <field name="name">pos.tip.pool.batch.list</field><field name="model">pos.tip.pool.batch</field>
+        <field name="arch" type="xml"><list><field name="name"/><field name="policy_id"/><field name="session_id"/><field name="total_basis_amount"/><field name="total_contribution_amount"/><field name="total_distribution_amount"/><field name="state"/></list></field>
+    </record>
+    <record id="view_pos_tip_pool_batch_form" model="ir.ui.view">
+        <field name="name">pos.tip.pool.batch.form</field><field name="model">pos.tip.pool.batch</field>
+        <field name="arch" type="xml">
+            <form>
+                <header><button name="action_calculate" type="object" string="Calculate" class="btn-primary" invisible="state not in ('draft','calculated')"/><button name="action_create_draft_move" type="object" string="Create Draft Move" invisible="state not in ('calculated','approved')"/><button name="action_approve" type="object" string="Approve" invisible="state not in ('calculated','move_created')"/><button name="action_cancel" type="object" string="Cancel" invisible="state in ('cancelled','posted','reversed')"/><field name="state" widget="statusbar"/></header>
+                <sheet>
+                    <group><field name="name"/><field name="policy_id"/><field name="company_id"/><field name="session_id"/><field name="pos_config_ids" widget="many2many_tags"/><field name="date_start"/><field name="date_end"/><field name="currency_id"/><field name="move_id"/></group>
+                    <group><field name="total_basis_amount"/><field name="total_contribution_amount"/><field name="total_distribution_amount"/></group>
+                    <notebook>
+                        <page string="Contributions"><field name="contribution_ids"><list><field name="employee_id"/><field name="basis_amount"/><field name="percent"/><field name="amount"/></list></field></page>
+                        <page string="Distributions"><field name="distribution_ids"><list><field name="employee_id"/><field name="distribution_percent"/><field name="amount"/></list></field></page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_pos_tip_pool_batch" model="ir.actions.act_window"><field name="name">Tip Pool Batches</field><field name="res_model">pos.tip.pool.batch</field><field name="view_mode">list,form</field></record>
+
+    <record id="view_pos_tip_pool_contribution_list" model="ir.ui.view"><field name="name">pos.tip.pool.contribution.list</field><field name="model">pos.tip.pool.contribution</field><field name="arch" type="xml"><list><field name="batch_id"/><field name="employee_id"/><field name="session_id"/><field name="basis_amount"/><field name="percent"/><field name="amount"/></list></field></record>
+    <record id="action_pos_tip_pool_contribution" model="ir.actions.act_window"><field name="name">Tip Pool Contributions</field><field name="res_model">pos.tip.pool.contribution</field><field name="view_mode">list</field></record>
+    <record id="view_pos_tip_pool_distribution_list" model="ir.ui.view"><field name="name">pos.tip.pool.distribution.list</field><field name="model">pos.tip.pool.distribution</field><field name="arch" type="xml"><list><field name="batch_id"/><field name="employee_id"/><field name="session_id"/><field name="distribution_percent"/><field name="amount"/></list></field></record>
+    <record id="action_pos_tip_pool_distribution" model="ir.actions.act_window"><field name="name">Tip Pool Distributions</field><field name="res_model">pos.tip.pool.distribution</field><field name="view_mode">list</field></record>
+
+    <menuitem id="menu_pos_tip_management" name="Tip Management" parent="point_of_sale.menu_point_root" sequence="70"/>
+    <record id="pos_tip_cashout_direct.menu_pos_tip_cashout" model="ir.ui.menu">
+        <field name="parent_id" ref="menu_pos_tip_management"/>
+        <field name="sequence">10</field>
+    </record>
+    <menuitem id="menu_pos_tip_policy" name="Tip Policies" parent="menu_pos_tip_management" action="action_pos_tip_policy" sequence="20"/>
+    <menuitem id="menu_pos_tip_pool_batch" name="Tip Pool Batches" parent="menu_pos_tip_management" action="action_pos_tip_pool_batch" sequence="30"/>
+    <menuitem id="menu_pos_tip_pool_contribution" name="Tip Pool Contributions" parent="menu_pos_tip_management" action="action_pos_tip_pool_contribution" sequence="40"/>
+    <menuitem id="menu_pos_tip_pool_distribution" name="Tip Pool Distributions" parent="menu_pos_tip_management" action="action_pos_tip_pool_distribution" sequence="50"/>
+</odoo>

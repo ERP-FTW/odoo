@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_tips_cashout_policy.TipCashoutScreen" t-inherit="pos_tip_cashout_direct.TipCashoutScreen" t-inherit-mode="extension">
+        <xpath expr="//thead/tr/th[normalize-space()='Paid From Drawer']" position="before">
+            <th>Policy Contribution</th><th>Policy Distribution</th>
+        </xpath>
+        <xpath expr="//tbody/tr/td[span]" position="before">
+            <td t-esc="env.utils.formatCurrency(line.policy_contribution_amount || 0)"/>
+            <td t-esc="env.utils.formatCurrency(line.policy_distribution_amount || 0)"/>
+        </xpath>
+        <xpath expr="//tbody/tr/td[span]" position="inside">
+            <span t-if="line.policy_applies" class="badge text-bg-info me-1">Policy: <t t-esc="line.policy_name"/></span>
+            <span t-if="line.policy_cashout_blocked" class="badge text-bg-danger me-1">Policy cashout blocked</span>
+        </xpath>
+        <xpath expr="//button[normalize-space()='Pay Card Tips']" position="attributes">
+            <attribute name="t-att-disabled">!line.employee_id || line.card_tips_remaining &lt;= 0 || line.policy_cashout_blocked</attribute>
+        </xpath>
+    </t>
+</templates>
