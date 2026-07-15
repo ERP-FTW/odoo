@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_tip_cashout_direct.Navbar" t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
+        <xpath expr="//DropdownItem[normalize-space()='Backend']" position="after">
+            <DropdownItem onSelected="() => this.openTipCashout()">
+                Tips / Cashout
+            </DropdownItem>
+        </xpath>
+    </t>
+</templates>
