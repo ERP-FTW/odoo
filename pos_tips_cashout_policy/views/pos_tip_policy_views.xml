@@ -48,8 +48,13 @@
     <record id="view_pos_tip_pool_distribution_list" model="ir.ui.view"><field name="name">pos.tip.pool.distribution.list</field><field name="model">pos.tip.pool.distribution</field><field name="arch" type="xml"><list><field name="batch_id"/><field name="employee_id"/><field name="session_id"/><field name="distribution_percent"/><field name="amount"/></list></field></record>
     <record id="action_pos_tip_pool_distribution" model="ir.actions.act_window"><field name="name">Tip Pool Distributions</field><field name="res_model">pos.tip.pool.distribution</field><field name="view_mode">list</field></record>
 
-    <menuitem id="menu_pos_tip_policy" name="Tip Policies" parent="point_of_sale.menu_point_root" action="action_pos_tip_policy" sequence="71"/>
-    <menuitem id="menu_pos_tip_pool_batch" name="Tip Pool Batches" parent="point_of_sale.menu_point_root" action="action_pos_tip_pool_batch" sequence="72"/>
-    <menuitem id="menu_pos_tip_pool_contribution" name="Tip Pool Contributions" parent="point_of_sale.menu_point_root" action="action_pos_tip_pool_contribution" sequence="73"/>
-    <menuitem id="menu_pos_tip_pool_distribution" name="Tip Pool Distributions" parent="point_of_sale.menu_point_root" action="action_pos_tip_pool_distribution" sequence="74"/>
+    <menuitem id="menu_pos_tip_management" name="Tip Management" parent="point_of_sale.menu_point_root" sequence="70"/>
+    <record id="pos_tip_cashout_direct.menu_pos_tip_cashout" model="ir.ui.menu">
+        <field name="parent_id" ref="menu_pos_tip_management"/>
+        <field name="sequence">10</field>
+    </record>
+    <menuitem id="menu_pos_tip_policy" name="Tip Policies" parent="menu_pos_tip_management" action="action_pos_tip_policy" sequence="20"/>
+    <menuitem id="menu_pos_tip_pool_batch" name="Tip Pool Batches" parent="menu_pos_tip_management" action="action_pos_tip_pool_batch" sequence="30"/>
+    <menuitem id="menu_pos_tip_pool_contribution" name="Tip Pool Contributions" parent="menu_pos_tip_management" action="action_pos_tip_pool_contribution" sequence="40"/>
+    <menuitem id="menu_pos_tip_pool_distribution" name="Tip Pool Distributions" parent="menu_pos_tip_management" action="action_pos_tip_pool_distribution" sequence="50"/>
 </odoo>
